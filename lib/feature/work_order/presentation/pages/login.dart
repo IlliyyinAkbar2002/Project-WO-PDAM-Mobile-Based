@@ -8,8 +8,8 @@ import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/au
 import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/landing_page.dart'
     as admin;
 import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/users/landing_page.dart'
-    as user;
+import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
+import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -400,15 +400,31 @@ class _LoginPageState extends State<LoginPage> {
         if (result is DataSuccess) {
           final authResponse = result.data!;
 
-          // Save token and user data (await to ensure persistence)
+          // Save token first (await to ensure persistence)
           if (authResponse.token != null) {
             await AuthStorage.saveToken(authResponse.token!);
             print('🔐 Token saved: ${authResponse.token!.substring(0, 10)}...');
           }
-          if (authResponse.user != null) {
-            await AuthStorage.saveUser(authResponse.user!);
-            print('👤 User saved: ${authResponse.user!['email']}');
+
+          // Fetch full user profile from /me endpoint
+          final meResult = await authDataSource.fetchMe();
+
+          int? roleId = authResponse.user?['role_id'];
+
+          if (meResult is DataSuccess) {
+            final userData = meResult.data!;
+            await AuthStorage.saveUser(userData);
+            print('👤 User saved with name: ${userData['name']}');
+            roleId = userData['role_id'] as int?;
+          } else {
+            // Fallback to basic user data if /me fails
+            if (authResponse.user != null) {
+              await AuthStorage.saveUser(authResponse.user!);
+              print('👤 User saved (fallback): ${authResponse.user!['email']}');
+            }
           }
+
+          if (!mounted) return;
 
           // Show success message
           final message = authResponse.message ?? 'Login berhasil!';
@@ -420,15 +436,39 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-          // Navigate to main page
+          // Navigate to main page based on role AND position (jabatan)
+          Widget targetPage;
+
+          int? positionId;
+          if (meResult is DataSuccess<Map<String, dynamic>>) {
+            positionId = meResult.data?['employee']?['position_id'] as int?;
+          }
+
+          print('🎭 Role ID: $roleId');
+          print('👔 Position ID: $positionId');
+
+          if (roleId == 1) {
+            // Superadmin
+            targetPage = const admin.LandingPage();
+          } else if (roleId == 2) {
+            // Manager role - langsung ke Manajer Landing Page
+            targetPage = const ManajerLandingPage();
+          } else if (roleId == 3) {
+            // Employee role - cek jabatan_id
+            if (positionId == 4) {
+              // Supervisor
+              targetPage = const SpvLandingPage();
+            } else {
+              // Staff Senior (5) atau Staff (6)
+              targetPage = const StaffLandingPage();
+            }
+          } else {
+            // Default fallback
+            targetPage = const admin.LandingPage();
+          }
+
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => authResponse.user?['role_id'] == 2
-                  ? const ManajerLandingPage()
-                  : authResponse.user?['role_id'] == 3
-                  ? const user.LandingPage()
-                  : const admin.LandingPage(),
-            ),
+            MaterialPageRoute(builder: (context) => targetPage),
           );
         } else if (result is DataFailed) {
           // Handle login failure

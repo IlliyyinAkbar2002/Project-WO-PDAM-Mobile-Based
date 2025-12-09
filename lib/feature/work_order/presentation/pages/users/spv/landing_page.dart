@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_intern_pdam/config/theme/app_color.dart';
 import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/landing_page.dart'
-    as admin;
+import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/landing_page.dart';
 
-class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+class SpvLandingPage extends StatefulWidget {
+  const SpvLandingPage({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  State<SpvLandingPage> createState() => _SpvLandingPageState();
 }
 
-class _LandingPageState extends AppStatePage<LandingPage> {
+class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
@@ -20,7 +19,7 @@ class _LandingPageState extends AppStatePage<LandingPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const admin.LandingPageHeaderWidget(),
+              const LandingPageHeaderWidget(),
               const SizedBox(height: 8),
 
               // Stats Card Section
@@ -28,7 +27,7 @@ class _LandingPageState extends AppStatePage<LandingPage> {
                 offset: const Offset(0, -28),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: admin.LandingPageStatsCard(),
+                  child: LandingPageStatsCard(),
                 ),
               ),
               const SizedBox(height: 24),
@@ -36,7 +35,7 @@ class _LandingPageState extends AppStatePage<LandingPage> {
               // Attendance Card Section
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: admin.LandingPageAttendanceCard(),
+                child: LandingPageAttendanceCard(),
               ),
               const SizedBox(height: 24),
 
@@ -47,14 +46,14 @@ class _LandingPageState extends AppStatePage<LandingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quick Access',
+                      'Quick Access - Supervisor',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: _colors.foreground[900],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const admin.LandingPageNavigationGrid(
+                    const LandingPageNavigationGrid(
                       selectedPicId: null,
                       selectedUserId: null,
                     ),
