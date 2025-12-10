@@ -50,6 +50,7 @@ class _NavigationGrid extends StatelessWidget {
           // Get user role to determine which bottom sheet to show
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
 
           // Show role-specific tasks modal bottom sheet
           showModalBottomSheet(
@@ -60,7 +61,7 @@ class _NavigationGrid extends StatelessWidget {
             barrierColor: Colors.black.withOpacity(0.3),
             builder: (ctx) {
               // Manajer role (role_id: 2) - Show Manajer tasks
-              if (roleId == 2) {
+              if (roleId == 2 || (roleId == 3 && positionId == 4)) {
                 return _TasksBottomSheetManajer(
                   onWorkOrderKeluar: () {
                     // TODO: Add PIC selection validation later
@@ -124,7 +125,10 @@ class _NavigationGrid extends StatelessWidget {
               }
               // Users role (role_id: 3) - Show Users tasks
               else {
-                return _TasksBottomSheetUsers(selectedUserId: selectedUserId);
+                return _TasksBottomSheetUsers(
+                  selectedUserId: selectedUserId,
+                  positionId: positionId ?? 0,
+                );
               }
             },
             shape: const RoundedRectangleBorder(
@@ -379,8 +383,12 @@ class _TaskMenuItem extends StatelessWidget {
 /// Bottom sheet shown when Users tap on "Tasks" grid item
 class _TasksBottomSheetUsers extends StatelessWidget {
   final int? selectedUserId;
+  final int? positionId;
 
-  const _TasksBottomSheetUsers({required this.selectedUserId});
+  const _TasksBottomSheetUsers({
+    required this.selectedUserId,
+    required this.positionId,
+  });
 
   @override
   Widget build(BuildContext context) {
