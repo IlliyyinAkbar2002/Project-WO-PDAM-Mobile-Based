@@ -94,7 +94,7 @@ class WorkOrderModel extends WorkOrderEntity {
       'estimasi_selesai': endDateTime?.toIso8601String(),
       'longitude': longitude,
       'latitude': latitude,
-      'pic_id': creator,
+      // pic_id tidak dikirim - backend akan otomatis menggunakan authenticated user
       'status_id': statusId,
       'jenis_workorder_id': workOrderTypeId,
       'jenis_lokasi_id': locationTypeId,

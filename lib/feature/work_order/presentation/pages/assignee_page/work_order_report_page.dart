@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' hide LocationAccuracy;
 import 'package:mobile_intern_pdam/config/theme/dynamic_form_config.dart';
 import 'package:mobile_intern_pdam/core/utils/app_snackbar.dart';
 import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
@@ -422,6 +424,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       } else {
         AppSnackbar.showSuccess("Anda berada dalam jangkauan.");
       }
+    } on TimeoutException catch (_) {
+      // Handle timeout - GPS terlalu lama
+      debugPrint(
+        "⚠️ GPS timeout - tidak dapat mendapatkan lokasi dalam waktu yang ditentukan",
+      );
+      setState(() {
+        _inRange = false;
+        _isCheckingDistance = false;
+      });
+      AppSnackbar.showError("Tidak dapat menentukan lokasi. Coba lagi.");
     } catch (e) {
       debugPrint("⚠️ Error pengecekan lokasi: $e");
       setState(() {
@@ -457,8 +469,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       }
     }
 
-    // Ambil lokasi saat ini
-    final Position current = await Geolocator.getCurrentPosition();
+    // Coba ambil lokasi terakhir yang diketahui (sangat cepat)
+    Position? current = await Geolocator.getLastKnownPosition();
+
+    // Jika tidak ada, baru ambil lokasi baru dengan timeout
+    current ??= await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+        timeLimit: Duration(seconds: 10),
+      ),
+    );
 
     // Hitung jarak
     double distance = Geolocator.distanceBetween(

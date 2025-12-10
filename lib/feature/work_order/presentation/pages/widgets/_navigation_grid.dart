@@ -18,20 +18,11 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.calendar_month_outlined,
         label: 'Meeting Agenda',
         onTap: () {
-          if (selectedPicId == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Please select PIC ID first'),
-                backgroundColor: colors.warning,
-              ),
-            );
-            return;
-          }
+          // picId tidak lagi diperlukan - backend menggunakan authenticated user untuk filter
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  AssignerWorkOrderPage(picId: selectedPicId!),
+              builder: (context) => AssignerWorkOrderPage(picId: selectedPicId),
             ),
           );
         },
@@ -64,14 +55,13 @@ class _NavigationGrid extends StatelessWidget {
               if (roleId == 2 || (roleId == 3 && positionId == 4)) {
                 return _TasksBottomSheetManajer(
                   onWorkOrderKeluar: () {
-                    // TODO: Add PIC selection validation later
-                    // For now, using placeholder picId for frontend development
+                    // picId tidak lagi diperlukan untuk filter - backend menggunakan authenticated user
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            AssignerWorkOrderPage(picId: selectedPicId ?? 1),
+                            AssignerWorkOrderPage(picId: selectedPicId),
                       ),
                     );
                   },
@@ -447,10 +437,14 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                   _TaskMenuItem(
                     label: 'Work Order',
                     onTap: () {
-                      if (selectedUserId == null) {
+                      // Ambil userId dari AuthStorage untuk staff
+                      final user = AuthStorage.getUserSync();
+                      final userId = user?['id'] as int?;
+
+                      if (userId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Please select User ID first'),
+                            content: const Text('User ID tidak ditemukan'),
                             backgroundColor: colors.warning,
                           ),
                         );
@@ -461,7 +455,7 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              AssigneeWorkOrderPage(userId: selectedUserId!),
+                              AssigneeWorkOrderPage(userId: userId),
                         ),
                       );
                     },

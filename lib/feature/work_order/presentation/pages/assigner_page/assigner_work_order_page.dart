@@ -6,8 +6,9 @@ import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assigne
 import 'package:mobile_intern_pdam/feature/work_order/presentation/widgets/work_order_filter.dart';
 
 class AssignerWorkOrderPage extends StatefulWidget {
-  final int picId;
-  const AssignerWorkOrderPage({super.key, required this.picId});
+  final int?
+  picId; // Now optional - backend handles filtering by authenticated user
+  const AssignerWorkOrderPage({super.key, this.picId});
 
   @override
   State<AssignerWorkOrderPage> createState() => _AssignerWorkOrderPageState();
