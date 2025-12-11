@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:location/location.dart' hide LocationAccuracy;
+// Removed: location package - using only Geolocator to avoid conflicts
 import 'package:mobile_intern_pdam/config/theme/dynamic_form_config.dart';
 import 'package:mobile_intern_pdam/core/utils/app_snackbar.dart';
 import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
@@ -29,6 +30,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final int? progressId;
   final int? workOrderTypeId;
   final LatLng? lngLat;
+  final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
 
   const WorkOrderReportPage({
     super.key,
@@ -38,6 +40,7 @@ class WorkOrderReportPage extends StatefulWidget {
     required this.progressId,
     this.workOrderTypeId,
     this.lngLat,
+    this.radiusMeter = 100, // Default 100 meter jika tidak ada
   });
 
   @override
@@ -66,16 +69,31 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     super.initState();
     _workOrderBloc = context.read<WorkOrderBloc>();
 
+    // Tunda inisialisasi sampai frame pertama selesai
+    // untuk menghindari konflik dengan Google Maps dari halaman sebelumnya
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+    });
+  }
+
+  /// Menginisialisasi data setelah frame pertama selesai render
+  void _initializeData() {
+    if (!mounted) return;
+
+    // Dispatch BLoC event untuk mengambil data
     if (widget.mode == 'Selesai') {
       _workOrderBloc.add(GetProgressDetailsEvent(widget.progressId!));
     } else {
       _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
     }
 
+    // Check distance jika diperlukan
     if (widget.lngLat != null && widget.isAssignee) {
       _checkDistance();
     } else {
-      _isCheckingDistance = false;
+      setState(() {
+        _isCheckingDistance = false;
+      });
     }
   }
 
@@ -86,15 +104,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _checkDataLoaded() {
+    // Removed nested setState - this method is now only for logging
     if (_progressDetails.isNotEmpty) {
-      setState(() {
-        debugPrint("✅ Data loaded: $_progressDetails");
-        debugPrint("Value : ${_progressDetails.first.value}");
-        debugPrint(
-          "Description: ${_progressDetails.first.workOrderProgress?.description}",
-        );
-        isDataLoaded = true;
-      });
+      debugPrint("✅ Data loaded: $_progressDetails");
+      debugPrint("Value : ${_progressDetails.first.value}");
+      debugPrint(
+        "Description: ${_progressDetails.first.workOrderProgress?.description}",
+      );
     }
   }
 
@@ -105,32 +121,66 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       body: BlocListener<WorkOrderBloc, WorkOrderState>(
         listener: (context, state) {
           if (state is WorkOrderProgressDetailLoaded) {
-            setState(() {
-              _descriptionController.text = state.progress.description ?? '';
-              _submitTime = state.progress.submitTime;
-              _images = state.progress.documentation!
-                  .map((doc) => doc.url) // doc.url adalah String path relatif
-                  .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
-                  .cast<dynamic>() // Agar sesuai dengan ImagePickerField
-                  .toList();
-            });
+            // Proses data di luar setState
+            final description = state.progress.description ?? '';
+            final submitTime = state.progress.submitTime;
+            final images = state.progress.documentation!
+                .map((doc) => doc.url)
+                .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
+                .cast<dynamic>()
+                .toList();
 
-            isDataLoaded = true;
+            // Schedule setState setelah frame selesai untuk menghindari blocking
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() {
+                _descriptionController.text = description;
+                _submitTime = submitTime;
+                _images = images;
+                isDataLoaded = true;
+              });
+            });
           }
           if (state is ProgressDetailsLoaded) {
-            setState(() {
-              _progressDetails = state.progressDetails;
-              _descriptionController.text =
-                  state.progressDetails.first.workOrderProgress?.description ??
-                  '';
-              _submitTime =
-                  state.progressDetails.first.workOrderProgress?.submitTime;
-              _formData = {
-                for (var detail in _progressDetails)
-                  detail.id.toString(): (isDetailMode)
-                      ? detail.value
-                      : _getOptionIdFromValue(detail),
-              };
+            // Proses data di luar setState untuk menghindari blocking UI
+            final progressDetails = state.progressDetails;
+
+            // 🔒 Safety check: Handle empty list to prevent "Bad state: No element" error
+            if (progressDetails.isEmpty) {
+              debugPrint("⚠️ ProgressDetails kosong, skip processing");
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() {
+                  _progressDetails = [];
+                  isDataLoaded = true;
+                });
+              });
+              return;
+            }
+
+            final description =
+                progressDetails.first.workOrderProgress?.description ?? '';
+            final submitTime =
+                progressDetails.first.workOrderProgress?.submitTime;
+
+            // Hitung formData di luar setState
+            final formData = <String, dynamic>{};
+            for (var detail in progressDetails) {
+              formData[detail.id.toString()] = isDetailMode
+                  ? detail.value
+                  : _getOptionIdFromValue(detail);
+            }
+
+            // Schedule setState setelah frame selesai untuk menghindari blocking
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() {
+                _progressDetails = progressDetails;
+                _descriptionController.text = description;
+                _submitTime = submitTime;
+                _formData = formData;
+                isDataLoaded = true;
+              });
               _checkDataLoaded();
             });
           }
@@ -408,19 +458,39 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   Future<void> _checkDistance() async {
+    // Beri jeda untuk memastikan Google Maps dari halaman sebelumnya
+    // sudah selesai melakukan heavy initialization
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+
     try {
       final latitudeData = widget.lngLat!.latitude;
       final longitudeData = widget.lngLat!.longitude;
-      final result = await isUserWithinRange(
-        targetLat: latitudeData,
-        targetLng: longitudeData,
-      );
+
+      // Tambahkan timeout keseluruhan 15 detik untuk mencegah freeze
+      final result =
+          await isUserWithinRange(
+            targetLat: latitudeData,
+            targetLng: longitudeData,
+            maxDistanceInMeters: widget.radiusMeter.toDouble(),
+          ).timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException("Pengecekan lokasi timeout");
+            },
+          );
+
+      if (!mounted) return; // Safety check setelah async operation
+
       setState(() {
         _inRange = result;
         _isCheckingDistance = false;
       });
       if (!result) {
-        AppSnackbar.showError("Lokasi Anda diluar jangkauan.");
+        AppSnackbar.showError(
+          "Lokasi Anda diluar jangkauan (radius ${widget.radiusMeter}m).",
+        );
       } else {
         AppSnackbar.showSuccess("Anda berada dalam jangkauan.");
       }
@@ -429,6 +499,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       debugPrint(
         "⚠️ GPS timeout - tidak dapat mendapatkan lokasi dalam waktu yang ditentukan",
       );
+      if (!mounted) return;
       setState(() {
         _inRange = false;
         _isCheckingDistance = false;
@@ -436,37 +507,43 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       AppSnackbar.showError("Tidak dapat menentukan lokasi. Coba lagi.");
     } catch (e) {
       debugPrint("⚠️ Error pengecekan lokasi: $e");
+      if (!mounted) return;
       setState(() {
         _inRange = false;
         _isCheckingDistance = false;
       });
+      AppSnackbar.showError("Error: ${e.toString()}");
     }
   }
 
   Future<bool> isUserWithinRange({
     required double targetLat,
     required double targetLng,
-    double maxDistanceInMeters = 100, // batas jarak
+    required double maxDistanceInMeters, // batas jarak dari MasterLocation
   }) async {
-    Location location = Location();
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // Menggunakan Geolocator saja untuk semua operasi (menghindari konflik dengan package location)
+
+    // Cek apakah location service enabled
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      serviceEnabled = await location
-          .requestService(); // ✅ munculkan dialog otomatis
-      if (!serviceEnabled) {
-        throw Exception("GPS harus diaktifkan.");
+      // Buka settings GPS (lebih reliable daripada location.requestService())
+      await Geolocator.openLocationSettings();
+      throw Exception("GPS harus diaktifkan. Silakan aktifkan dan coba lagi.");
+    }
+
+    // Cek permission menggunakan Geolocator
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception("Akses lokasi ditolak.");
       }
     }
 
-    // Cek permission
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        throw Exception("Akses lokasi ditolak.");
-      }
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
+      );
     }
 
     // Coba ambil lokasi terakhir yang diketahui (sangat cepat)

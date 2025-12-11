@@ -136,6 +136,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "locationType": state.workOrder.locationType?.locationType,
               "latitude": state.workOrder.latitude,
               "longitude": state.workOrder.longitude,
+              "locationId": state.workOrder.locationId,
+              "radiusMeter": state.workOrder.location?.radiusMeter,
               "startDateTime": state.workOrder.startDateTime,
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
@@ -146,6 +148,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                   : [],
             };
             debugPrint("✅ formData Updated: $formData");
+            debugPrint(
+              "📍 Location ID: ${state.workOrder.locationId}, Radius: ${state.workOrder.location?.radiusMeter}",
+            );
             _checkDataLoaded();
           });
         }
@@ -351,6 +356,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       locationTypeId: formData["locationType"],
       latitude: formData["latitude"],
       longitude: formData["longitude"],
+      locationId:
+          formData["locationId"], // ID dari MasterLocation untuk radius check
       creator: widget.picId,
       requiresApproval: widget.isOvertime,
     );

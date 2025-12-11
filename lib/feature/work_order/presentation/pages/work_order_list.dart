@@ -165,6 +165,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           final lnglat = workOrder.latitude != null
               ? LatLng(workOrder.latitude!, workOrder.longitude!)
               : null;
+          // Ambil radius dari location jika ada, default 100 meter
+          final radiusMeter = workOrder.location?.radiusMeter ?? 100;
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -174,6 +176,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                       workOrderId: workOrder.id,
                       status: workOrder.statusId,
                       lngLat: lnglat,
+                      radiusMeter: radiusMeter,
                     )
                   : CreateWorkOrderPage(
                       picId: widget.picId,

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:mobile_intern_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:mobile_intern_pdam/feature/work_order/domain/entities/status_entity.dart';
 import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
@@ -13,6 +14,9 @@ class WorkOrderEntity extends Equatable {
   final DateTime? endDateTime;
   final double? longitude;
   final double? latitude;
+  final int? locationId; // ID dari MasterLocation
+  final MasterLocationEntity?
+  location; // Relasi ke MasterLocation (dengan radius_meter)
   final int? creator;
   final int? assigneeId;
   final int? statusId; //Mengambil dari Status
@@ -27,11 +31,6 @@ class WorkOrderEntity extends Equatable {
   final WorkOrderTypeEntity? workOrderType;
   final StatusEntity? status;
 
-  // final AssigneesEntity? assignees;
-  // final String? description;
-  // final LocationEntity? location;
-  // final DepartmentEntity? department;
-
   const WorkOrderEntity({
     this.id,
     required this.title,
@@ -41,6 +40,8 @@ class WorkOrderEntity extends Equatable {
     this.endDateTime,
     this.longitude,
     this.latitude,
+    this.locationId,
+    this.location,
     this.creator,
     this.assigneeId,
     this.statusId,
@@ -54,10 +55,6 @@ class WorkOrderEntity extends Equatable {
     this.locationType,
     this.workOrderType,
     this.status,
-
-    // this.description,
-    // this.location,
-    // this.department,
   });
 
   @override
@@ -70,6 +67,8 @@ class WorkOrderEntity extends Equatable {
     endDateTime,
     longitude,
     latitude,
+    locationId,
+    location,
     creator,
     assigneeId,
     statusId,
@@ -94,6 +93,8 @@ class WorkOrderEntity extends Equatable {
     DateTime? endDateTime,
     double? longitude,
     double? latitude,
+    int? locationId,
+    MasterLocationEntity? location,
     int? creator,
     int? assigneeId,
     int? statusId,
@@ -117,6 +118,8 @@ class WorkOrderEntity extends Equatable {
       endDateTime: endDateTime ?? this.endDateTime,
       longitude: longitude ?? this.longitude,
       latitude: latitude ?? this.latitude,
+      locationId: locationId ?? this.locationId,
+      location: location ?? this.location,
       creator: creator ?? this.creator,
       assigneeId: assigneeId ?? this.assigneeId,
       statusId: statusId ?? this.statusId,

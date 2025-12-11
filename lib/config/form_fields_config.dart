@@ -41,6 +41,7 @@ class FormFieldsConfig {
         "showIf": (formData) => formData["locationType"] == 1,
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
+        "locationId": (formData) => formData["locationId"],
       },
       {
         "key": "timeEstimate",
@@ -97,6 +98,7 @@ class FormFieldsConfig {
         "showIf": (formData) => formData["locationType"] == "Statis",
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
+        "locationId": (formData) => formData["locationId"],
         "isReadOnly": isDetailMode,
       },
       {

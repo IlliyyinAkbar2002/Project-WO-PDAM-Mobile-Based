@@ -17,10 +17,13 @@ class CustomFieldWidgets {
       isReadOnly: field["isReadOnly"] ?? false,
       latitude: formData["latitude"],
       longitude: formData["longitude"],
-      onLocationSelected: (lat, long) {
+      locationId: formData["locationId"],
+      onLocationSelected: (lat, long, {int? locationId, int? radiusMeter}) {
         if (!(field["isReadOnly"] ?? false)) {
           onFieldChanged("latitude", lat);
           onFieldChanged("longitude", long);
+          onFieldChanged("locationId", locationId);
+          onFieldChanged("radiusMeter", radiusMeter);
         }
       },
     ),

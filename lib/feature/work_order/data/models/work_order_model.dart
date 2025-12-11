@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:mobile_intern_pdam/feature/work_order/data/models/location_type_model.dart';
+import 'package:mobile_intern_pdam/feature/work_order/data/models/master_location_model.dart';
 import 'package:mobile_intern_pdam/feature/work_order/data/models/status_model.dart';
 import 'package:mobile_intern_pdam/feature/work_order/data/models/user_model.dart';
 import 'package:mobile_intern_pdam/feature/work_order/data/models/work_order_type_model.dart';
@@ -16,6 +17,8 @@ class WorkOrderModel extends WorkOrderEntity {
     super.endDateTime,
     super.longitude,
     super.latitude,
+    super.locationId,
+    super.location,
     super.creator,
     super.assigneeId,
     super.statusId,
@@ -29,8 +32,6 @@ class WorkOrderModel extends WorkOrderEntity {
     super.locationType,
     super.workOrderType,
     super.status,
-    // this.locationType,
-    // this.assignees,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -41,6 +42,7 @@ class WorkOrderModel extends WorkOrderEntity {
   factory WorkOrderModel.fromMap(Map<String, dynamic> map) {
     print("📢 Parsing Work Order: $map");
     print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
+    print("📍 Data location yang diterima: ${map['location']}");
 
     return WorkOrderModel(
       id: map['id'],
@@ -58,6 +60,10 @@ class WorkOrderModel extends WorkOrderEntity {
           : null,
       latitude: map['latitude'] != null
           ? double.tryParse(map['latitude'].toString())
+          : null,
+      locationId: map['location_id'],
+      location: map['location'] != null
+          ? MasterLocationModel.fromMap(map['location'])
           : null,
       creator: map['pic_id'],
       assigneeId: map['petugas_id'],
@@ -94,6 +100,7 @@ class WorkOrderModel extends WorkOrderEntity {
       'estimasi_selesai': endDateTime?.toIso8601String(),
       'longitude': longitude,
       'latitude': latitude,
+      'location_id': locationId, // ID dari MasterLocation untuk radius check
       // pic_id tidak dikirim - backend akan otomatis menggunakan authenticated user
       'status_id': statusId,
       'jenis_workorder_id': workOrderTypeId,
@@ -113,6 +120,8 @@ class WorkOrderModel extends WorkOrderEntity {
       endDateTime: endDateTime,
       longitude: longitude,
       latitude: latitude,
+      locationId: locationId,
+      location: location,
       creator: creator,
       assigneeId: assigneeId,
       statusId: statusId,
@@ -137,6 +146,8 @@ class WorkOrderModel extends WorkOrderEntity {
       endDateTime: entity.endDateTime,
       longitude: entity.longitude,
       latitude: entity.latitude,
+      locationId: entity.locationId,
+      location: entity.location,
       creator: entity.creator,
       assigneeId: entity.assigneeId,
       statusId: entity.statusId,

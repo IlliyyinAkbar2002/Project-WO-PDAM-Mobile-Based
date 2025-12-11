@@ -5,11 +5,13 @@ import 'package:mobile_intern_pdam/core/widget/location_search_modal.dart';
 
 class LocationPicker extends StatefulWidget {
   final int? workOrderId;
-  final Function(double, double) onLocationSelected;
+  final Function(double lat, double lng, {int? locationId, int? radiusMeter})
+  onLocationSelected;
   final bool isStatic;
   final bool isReadOnly;
   final double? longitude;
   final double? latitude;
+  final int? locationId;
 
   const LocationPicker({
     super.key,
@@ -19,6 +21,7 @@ class LocationPicker extends StatefulWidget {
     this.isReadOnly = false,
     this.longitude,
     this.latitude,
+    this.locationId,
   });
 
   @override
@@ -61,6 +64,7 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
       _selectedLocation = position;
       _moveCamera(position);
     });
+    // Tap di peta = lokasi kustom tanpa locationId
     widget.onLocationSelected(position.latitude, position.longitude);
   }
 
@@ -78,9 +82,12 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
         _selectedLocation = newPosition;
         _moveCamera(newPosition);
       });
+      // Pilih dari MasterLocation = ada locationId dan radiusMeter
       widget.onLocationSelected(
         selectedLocation.latitude,
         selectedLocation.longitude,
+        locationId: selectedLocation.id,
+        radiusMeter: selectedLocation.radiusMeter,
       );
     }
   }

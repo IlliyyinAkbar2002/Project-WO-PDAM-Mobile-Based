@@ -2,10 +2,7 @@ import 'dart:convert';
 import '../../domain/entities/location_type_entity.dart';
 
 class LocationTypeModel extends LocationTypeEntity {
-  const LocationTypeModel({
-    super.id,
-    required super.locationType,
-  });
+  const LocationTypeModel({super.id, required super.locationType});
 
   factory LocationTypeModel.fromJson(String source) =>
       LocationTypeModel.fromMap(json.decode(source));
@@ -14,30 +11,18 @@ class LocationTypeModel extends LocationTypeEntity {
 
   factory LocationTypeModel.fromMap(Map<String, dynamic> map) {
     print("📢 parsing jenis lokasi: $map");
-    return LocationTypeModel(
-      id: map['id'],
-      locationType: map['nama'],
-    );
+    return LocationTypeModel(id: map['id'], locationType: map['nama']);
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'nama': locationType,
-    };
+    return {'id': id, 'nama': locationType};
   }
 
   LocationTypeEntity toEntity() {
-    return LocationTypeEntity(
-      id: id,
-      locationType: locationType,
-    );
+    return LocationTypeEntity(id: id, locationType: locationType);
   }
 
   factory LocationTypeModel.fromEntity(LocationTypeEntity entity) {
-    return LocationTypeModel(
-      id: entity.id,
-      locationType: entity.locationType,
-    );
+    return LocationTypeModel(id: entity.id, locationType: entity.locationType);
   }
 }
