@@ -30,6 +30,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final int? progressId;
   final int? workOrderTypeId;
   final LatLng? lngLat;
+  final String? locationName; // Nama lokasi dari MasterLocation
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
 
   const WorkOrderReportPage({
@@ -40,6 +41,7 @@ class WorkOrderReportPage extends StatefulWidget {
     required this.progressId,
     this.workOrderTypeId,
     this.lngLat,
+    this.locationName,
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
   });
 
@@ -163,6 +165,17 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             final submitTime =
                 progressDetails.first.workOrderProgress?.submitTime;
 
+            // Ambil images dari workOrderProgress.documentation
+            final images =
+                progressDetails.first.workOrderProgress?.documentation
+                    ?.map((doc) => doc.url)
+                    .where(
+                      (urlValue) => urlValue != null && urlValue.isNotEmpty,
+                    )
+                    .cast<dynamic>()
+                    .toList() ??
+                [];
+
             // Hitung formData di luar setState
             final formData = <String, dynamic>{};
             for (var detail in progressDetails) {
@@ -179,6 +192,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 _descriptionController.text = description;
                 _submitTime = submitTime;
                 _formData = formData;
+                _images = images;
                 isDataLoaded = true;
               });
               _checkDataLoaded();
@@ -212,8 +226,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          Text(widget.mode, style: textTheme.displaySmall),
-                          const SizedBox(height: 20),
+                          // Text(widget.mode, style: textTheme.displaySmall),
+                          // const SizedBox(height: 16),
+                          // Map dan info lokasi
+                          if (widget.lngLat != null) _buildLocationMap(),
+                          const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -277,22 +294,25 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                 )
                               : widget.mode == 'Selesai' && !widget.isAssignee
                               ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: color.danger,
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: color.danger,
+                                        ),
+                                        onPressed: () {},
+                                        child: const Text('Tolak'),
                                       ),
-                                      onPressed: () {},
-                                      child: const Text('Tolak'),
                                     ),
                                     const SizedBox(width: 8),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: color.status[2],
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: color.status[2],
+                                        ),
+                                        onPressed: () {},
+                                        child: const Text('Terima'),
                                       ),
-                                      onPressed: () {},
-                                      child: const Text('Terima'),
                                     ),
                                   ],
                                 )
@@ -322,6 +342,53 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       onFieldChanged: _onFieldChanged,
       customWidgets: CustomFieldWidgets.fields,
       readOnly: !_inRange,
+    );
+  }
+
+  /// Widget untuk menampilkan map lokasi work order
+  Widget _buildLocationMap() {
+    final location = widget.lngLat!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Google Map
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            height: 165,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(target: location, zoom: 15),
+              markers: {
+                Marker(
+                  markerId: const MarkerId("work_order_location"),
+                  position: location,
+                ),
+              },
+              zoomControlsEnabled: true,
+              scrollGesturesEnabled: false,
+              zoomGesturesEnabled: false,
+              rotateGesturesEnabled: false,
+              tiltGesturesEnabled: false,
+              myLocationButtonEnabled: false,
+              mapToolbarEnabled: false,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Info lokasi
+        Text(
+          widget.locationName ?? "Lokasi Work Order",
+          style: textTheme.titleMedium?.copyWith(
+            color: color.primary[500],
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        // Text(
+        //   "Long ${location.longitude.toStringAsFixed(6)}  Lat ${location.latitude.toStringAsFixed(6)}",
+        //   style: textTheme.bodySmall?.copyWith(color: color.foreground[600]),
+        // ),
+      ],
     );
   }
 

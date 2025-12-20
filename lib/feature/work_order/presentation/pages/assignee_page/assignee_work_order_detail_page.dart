@@ -25,6 +25,7 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
   final int? status;
   final bool isOvertime;
   final LatLng? lngLat;
+  final String? locationName; // Nama lokasi dari MasterLocation
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
 
   const AssigneeWorkOrderDetailPage({
@@ -34,6 +35,7 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     this.status,
     this.isOvertime = false,
     this.lngLat,
+    this.locationName,
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
   });
 
@@ -99,6 +101,7 @@ class _AssigneeWorkOrderDetailPageState
                             isAssignee: widget.isAssignee,
                             progressId: progressIndex.id,
                             lngLat: widget.lngLat,
+                            locationName: widget.locationName,
                             radiusMeter: widget.radiusMeter,
                           ),
                         ),

@@ -26,7 +26,7 @@ class AppConfig {
   );
   static final String baseStorageUrl = _getEnv(
     'BACKEND_URL',
-    '$backendDomain/storage/app/public/',
+    '$backendDomain/storage/',
   );
 
   // Google Maps API Key - safe getter with fallback
