@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-// Removed: location package - using only Geolocator to avoid conflicts
 import 'package:mobile_intern_pdam/config/theme/dynamic_form_config.dart';
 import 'package:mobile_intern_pdam/core/utils/app_snackbar.dart';
 import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
