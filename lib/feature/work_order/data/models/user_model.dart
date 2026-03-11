@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:mobile_intern_pdam/feature/work_order/data/models/employee_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/employee_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
   const UserModel({

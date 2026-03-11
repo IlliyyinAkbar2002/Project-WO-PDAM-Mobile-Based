@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/role_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/role_entity.dart';
 
 class RoleModel extends RoleEntity {
   const RoleModel({super.id, super.name, super.description});

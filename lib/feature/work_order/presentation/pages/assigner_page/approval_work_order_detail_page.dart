@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_intern_pdam/core/widget/custom_app_bar.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/spl_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/widgets/button_interaction.dart';
+import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/button_interaction.dart';
 
 class ApprovalWorkOrderDetailPage extends StatefulWidget {
   final int? workOrderId;

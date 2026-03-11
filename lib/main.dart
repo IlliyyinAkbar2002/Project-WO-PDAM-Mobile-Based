@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:mobile_intern_pdam/config/theme/app_theme.dart';
-import 'package:mobile_intern_pdam/core/resource/remote_data_source.dart';
-import 'package:mobile_intern_pdam/core/utils/app_snackbar.dart';
-import 'package:mobile_intern_pdam/core/utils/auth_storage.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/login.dart';
+import 'package:project_mobile_pdam/config/theme/app_theme.dart';
+import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
 import 'service_locator.dart' as di;
 
 void main() async {

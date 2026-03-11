@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/employee_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/employee_entity.dart';
 
 class UserEntity extends Equatable {
   final int? id;

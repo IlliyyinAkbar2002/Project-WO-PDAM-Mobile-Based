@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_intern_pdam/config/app_config.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/core/utils/auth_storage.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/auth_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/landing_page.dart'
+import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/auth_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing_page.dart'
     as admin;
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

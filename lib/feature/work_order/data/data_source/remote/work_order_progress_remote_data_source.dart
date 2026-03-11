@@ -4,9 +4,9 @@ import 'package:path/path.dart' as p;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/core/resource/remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
 
 class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
   WorkOrderProgressRemoteDataSource() : super();

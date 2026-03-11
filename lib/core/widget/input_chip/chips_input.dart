@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/core/widget/custom_form.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 
 class ChipsInput<T> extends StatefulWidget {
   const ChipsInput({

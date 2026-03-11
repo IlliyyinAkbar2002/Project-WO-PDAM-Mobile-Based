@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/documentation_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/documentation_entity.dart';
 
 class DocumentationModel extends DocumentationEntity {
   const DocumentationModel({super.id, super.workOrderProgressId, super.url});

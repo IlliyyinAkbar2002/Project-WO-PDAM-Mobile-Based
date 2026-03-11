@@ -1,6 +1,6 @@
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/location_type_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
 class FormFieldsConfig {
   static List<Map<String, dynamic>> getWorkOrderFields({

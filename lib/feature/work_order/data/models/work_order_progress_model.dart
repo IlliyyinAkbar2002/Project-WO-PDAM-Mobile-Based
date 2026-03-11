@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/documentation_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/progress_detail_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/documentation_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 
 class WorkOrderProgressModel extends WorkOrderProgressEntity {
   final List<XFile>? photos;

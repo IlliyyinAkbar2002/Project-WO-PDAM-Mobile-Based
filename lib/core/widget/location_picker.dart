@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/core/widget/location_search_modal.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/widget/location_search_modal.dart';
 
 class LocationPicker extends StatefulWidget {
   final int? workOrderId;

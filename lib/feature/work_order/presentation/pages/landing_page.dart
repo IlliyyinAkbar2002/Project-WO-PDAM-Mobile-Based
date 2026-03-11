@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/config/theme/app_color.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assigner_page/assigner_work_order_page.dart';
-import 'package:mobile_intern_pdam/core/utils/auth_storage.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/login.dart';
+import 'package:project_mobile_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assigner_page/assigner_work_order_page.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
 
 part 'widgets/_landing_page_header.dart';
 part 'widgets/_landing_page_body.dart';

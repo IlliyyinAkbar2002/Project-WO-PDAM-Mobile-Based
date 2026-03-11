@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:another_flushbar/flushbar.dart';
-import 'package:mobile_intern_pdam/core/widget/app_count_down.dart';
+import 'package:project_mobile_pdam/core/widget/app_count_down.dart';
 
 class AppSnackbar {
   static final List<GlobalKey<ScaffoldMessengerState>> scaffoldMessengerKeys =

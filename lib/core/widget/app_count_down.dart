@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state.dart';
+import 'package:project_mobile_pdam/core/widget/app_state.dart';
 
 class AppCountDown extends StatefulWidget {
   final Duration duration;

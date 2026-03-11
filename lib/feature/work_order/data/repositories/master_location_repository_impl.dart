@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/master_location_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/master_location_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
 
 class MasterLocationRepositoryImpl implements MasterLocationRepository {
   final MasterLocationRemoteDataSource remoteDataSource;

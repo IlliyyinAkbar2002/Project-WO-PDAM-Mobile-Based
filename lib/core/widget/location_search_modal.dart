@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 
 class LocationSearchModal extends StatefulWidget {
   final Function(MasterLocationEntity) onLocationSelected;

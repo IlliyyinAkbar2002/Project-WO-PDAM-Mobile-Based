@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:mobile_intern_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/config/app_config.dart';
 import '/core/utils/debug_log.dart';
 
 enum ContentType { json, form, multipart }

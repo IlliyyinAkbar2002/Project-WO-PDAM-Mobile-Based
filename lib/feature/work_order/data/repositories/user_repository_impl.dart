@@ -1,8 +1,8 @@
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/user_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/user_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/user_repository.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remoteDataSource;

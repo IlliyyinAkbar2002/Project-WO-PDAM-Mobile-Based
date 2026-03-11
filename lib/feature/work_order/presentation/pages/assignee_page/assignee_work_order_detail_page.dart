@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/core/widget/custom_app_bar.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assignee_page/work_order_report_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/progress_card.dart';
 
 final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},

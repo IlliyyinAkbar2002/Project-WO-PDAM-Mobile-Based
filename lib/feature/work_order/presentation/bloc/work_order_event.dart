@@ -1,6 +1,6 @@
-import 'package:mobile_intern_pdam/feature/work_order/data/models/work_order_progress_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/spl_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/spl_entity.dart';
 
 import '/feature/work_order/domain/entities/work_order_entity.dart';
 

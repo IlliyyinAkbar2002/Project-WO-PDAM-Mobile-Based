@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_intern_pdam/core/common/input_chip/bloc/chip_field_event.dart';
-import 'package:mobile_intern_pdam/core/common/input_chip/bloc/chip_field_state.dart';
+import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_event.dart';
+import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_state.dart';
 
 class ChipFieldBloc extends Bloc<ChipFieldEvent, ChipFieldState> {
   ChipFieldBloc() : super(ChipFieldInitial()) {

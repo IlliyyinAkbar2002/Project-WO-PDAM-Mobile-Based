@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/employee_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/employee_entity.dart';
 
 class EmployeeModel extends EmployeeEntity {
   const EmployeeModel({

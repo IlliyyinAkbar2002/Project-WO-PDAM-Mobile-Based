@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/core/resource/remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/location_type_model.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/location_type_model.dart';
 
 class LocationTypeRemoteDataSource extends RemoteDatasource {
   LocationTypeRemoteDataSource() : super();

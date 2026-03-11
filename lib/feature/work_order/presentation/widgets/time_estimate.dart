@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 
 class TimeEstimate extends StatefulWidget {
   final bool isOvertime;

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/documentation_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/documentation_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
 
 class WorkOrderProgressEntity extends Equatable {
   final int? id;

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:mobile_intern_pdam/core/utils/debug_log.dart';
+import 'package:project_mobile_pdam/core/utils/debug_log.dart';
 
 class AppConfig {
   // Use safe getters so the app won't crash if dotenv hasn't been loaded
@@ -21,7 +21,7 @@ class AppConfig {
   // Use default backend domain if not provided in .env
   static final String backendDomain = _getEnv(
     'BACKEND_DOMAIN',
-    'http://192.168.1.2:8080',
+    'https://dimissory-unpervading-leonarda.ngrok-free.dev',
     // 'http://172.30.4.100:8080',
   );
   static final String baseStorageUrl = _getEnv(
