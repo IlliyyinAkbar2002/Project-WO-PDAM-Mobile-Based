@@ -19,8 +19,8 @@ class RemoteDatasource {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          // Add X-Requested-With to indicate API request (not web browser)
           'X-Requested-With': 'XMLHttpRequest',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -121,10 +121,10 @@ class RemoteDatasource {
             ? 'application/x-www-form-urlencoded'
             : 'multipart/form-data',
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       };
     } catch (e) {
-      // If authTokenGetter not set, return headers without auth
       DebugLog.warning(message: '⚠️ Failed to get auth token: $e');
       return {
         'Content-Type': contentType == null || contentType == ContentType.json
@@ -133,6 +133,7 @@ class RemoteDatasource {
             ? 'application/x-www-form-urlencoded'
             : 'multipart/form-data',
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       };
     }
   }

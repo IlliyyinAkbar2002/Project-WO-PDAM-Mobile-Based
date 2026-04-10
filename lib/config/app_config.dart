@@ -22,7 +22,6 @@ class AppConfig {
   static final String backendDomain = _getEnv(
     'BACKEND_DOMAIN',
     'https://dimissory-unpervading-leonarda.ngrok-free.dev',
-    // 'http://172.30.4.100:8080',
   );
   static final String baseStorageUrl = _getEnv(
     'BACKEND_URL',
