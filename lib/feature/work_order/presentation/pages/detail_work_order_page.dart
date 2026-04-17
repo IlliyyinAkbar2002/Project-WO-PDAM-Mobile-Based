@@ -59,6 +59,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   bool _isManager = false;
 
   bool isDataLoaded = false;
+  bool _isSubmitting = false;
   bool get isDetailMode => widget.workOrderId != null;
 
   @override
@@ -124,6 +125,21 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         }
         if (state is UsersLoaded) {
           assignees = state.users;
+        }
+        // Tangani hasil POST /v1/workorder secara eksplisit supaya snackbar
+        // "berhasil" hanya tampil kalau server benar-benar menyimpan WO.
+        // Sebelumnya success dipanggil optimistik, sehingga 422/500 dari
+        // backend tidak terlihat dan list jadi kosong tanpa feedback.
+        if (state is WorkOrderCreated && _isSubmitting) {
+          _isSubmitting = false;
+          AppSnackbar.showSuccess("Work order berhasil dibuat.");
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          }
+        }
+        if (state is WorkOrderError && _isSubmitting) {
+          _isSubmitting = false;
+          AppSnackbar.showError(state.message);
         }
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
@@ -260,7 +276,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     if (widget.workOrderId == null) {
       return ButtonInteraction(
         status: null,
-        onDefaultPressed: _validateAndSubmit,
+        onDefaultPressed: _isSubmitting ? null : _validateAndSubmit,
       );
     }
 
@@ -362,21 +378,14 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       requiresApproval: widget.isOvertime,
     );
 
-    // Kirim ke backend
+    // Tandai bahwa kita sedang menunggu response. Snackbar sukses/error
+    // akan dipicu lewat BlocListener setelah WorkOrderCreated / WorkOrderError.
+    setState(() {
+      _isSubmitting = true;
+    });
+
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(CreateWorkOrderEvent(workOrder));
-
-    // Beri notifikasi ke user
-    AppSnackbar.showSuccess("Work order berhasil dibuat.");
-    _onSubmit();
-  }
-
-  Future<void> _onSubmit() async {
-    await Future.delayed(const Duration(seconds: 1)); // Simulasi API call
-
-    if (mounted) {
-      Navigator.pop(context); // ✅ Hanya dipanggil jika widget masih ada
-    }
   }
 
   String _formatEndDateTime(DateTime dateTime) {

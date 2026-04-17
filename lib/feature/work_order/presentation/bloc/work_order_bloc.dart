@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/usecase/usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
@@ -265,11 +266,33 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(WorkOrderCreated(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal membuat pekerjaan: $e"));
     }
+  }
+
+  /// Ubah error mentah dari layer data menjadi pesan yang informatif.
+  /// Untuk [DioException] kita prefer body response dari server (422/500) karena
+  /// Laravel mengirim `{ message: "...", errors: {...} }` atau `{ error: "..." }`.
+  String _friendlyErrorMessage(dynamic error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map) {
+        final errors = data['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) return first.first.toString();
+          return first.toString();
+        }
+        final message = data['message'] ?? data['error'];
+        if (message != null) return message.toString();
+      }
+      if (data is String && data.isNotEmpty) return data;
+      return error.message ?? 'Terjadi kesalahan jaringan.';
+    }
+    return error?.toString() ?? 'Terjadi kesalahan tidak diketahui.';
   }
 
   Future<void> _onUpdateWorkOrderEvent(

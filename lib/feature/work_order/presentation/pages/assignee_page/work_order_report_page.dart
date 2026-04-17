@@ -88,14 +88,18 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
     }
 
-    // Check distance jika diperlukan
-    if (widget.lngLat != null && widget.isAssignee) {
-      _checkDistance();
-    } else {
-      setState(() {
-        _isCheckingDistance = false;
-      });
-    }
+    // Check distance dinonaktifkan - langsung set dalam jangkauan
+    // if (widget.lngLat != null && widget.isAssignee) {
+    //   _checkDistance();
+    // } else {
+    //   setState(() {
+    //     _isCheckingDistance = false;
+    //   });
+    // }
+    setState(() {
+      _inRange = true;
+      _isCheckingDistance = false;
+    });
   }
 
   void _onFieldChanged(String key, dynamic value) {
@@ -245,7 +249,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                   hintText: "Masukkan deskripsi pekerjaan",
                                   maxLines: 5,
                                   controller: _descriptionController,
-                                  readOnly: !_inRange || isDetailMode,
+                                  readOnly: isDetailMode,
                                 ),
                                 Text(
                                   "Dokumentasi",
@@ -253,7 +257,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                 ),
                                 ImagePickerField(
                                   initialImages: _images,
-                                  enabled: _inRange || !isDetailMode,
+                                  enabled: !isDetailMode,
                                   onChanged: (newImages) {
                                     setState(() {
                                       _images = newImages;
@@ -271,15 +275,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _getColor(),
                                   ),
-                                  onPressed: !_inRange
-                                      ? null
-                                      : (widget.mode != 'Mulai'
-                                            ? (widget.status == 7
-                                                  ? _onSubmit
-                                                  : null)
-                                            : (widget.status != 7
-                                                  ? _onSubmit
-                                                  : null)),
+                                  onPressed: widget.mode != 'Mulai'
+                                      ? (widget.status == 7
+                                            ? _onSubmit
+                                            : null)
+                                      : (widget.status != 7
+                                            ? _onSubmit
+                                            : null),
                                   child: Text(
                                     widget.mode,
                                     style: textTheme.labelLarge?.copyWith(
@@ -309,7 +311,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
                                         ),
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          _onSubmit();
+                                        },
                                         child: const Text('Terima'),
                                       ),
                                     ),
@@ -340,7 +344,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       formData: _formData,
       onFieldChanged: _onFieldChanged,
       customWidgets: CustomFieldWidgets.fields,
-      readOnly: !_inRange,
+      readOnly: false,
     );
   }
 
@@ -416,7 +420,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       }
 
       debugPrint("✅ Deskripsi: ${_descriptionController.text}");
-      debugPrint("✅ Gambar: ${_images.map((x) => x.path).toList()}");
+      debugPrint("✅ Gambar: ${_images.map((x) => x is XFile ? x.path : x.toString()).toList()}");
       debugPrint("✅ Form Dinamis: $_formData");
       debugPrint(
         "📤 Submit ke backend dengan progressId: ${widget.progressId}",
@@ -479,9 +483,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       final workOrderProgress = WorkOrderProgressModel(
         id: widget.progressId,
         description: _descriptionController.text,
-        photos: _images
-            .map((image) => XFile(image.path)) // Konversi ke XFile
-            .toList(),
+        photos: _images.whereType<XFile>().toList(),
         submitTime: DateTime.now().toUtc(),
         progressDetails: progressDetails,
       );

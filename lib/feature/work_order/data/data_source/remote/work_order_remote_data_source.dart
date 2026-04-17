@@ -82,14 +82,39 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       print("📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder");
       print("📤 Data yang dikirim: ${workOrder.toMap()}");
 
-      // Use parent class's post() method which includes auth headers
       final response = await post(
         path: '/v1/workorder',
         data: workOrder.toMap(),
       );
       print("📥 Response: ${response.statusCode} - ${response.data}");
-      final data = WorkOrderModel.fromMap(response.data);
+
+      // Backend membungkus respons sebagai { "message": "...", "data": <wo|[wo,...]> }.
+      // `data` bisa berupa array (service selalu membuat 1 WO per petugas) atau
+      // object tunggal kalau controller di-refactor di masa depan. Tangani keduanya.
+      final dynamic raw = response.data is Map<String, dynamic>
+          ? (response.data['data'] ?? response.data)
+          : response.data;
+
+      final Map<String, dynamic> first = raw is List
+          ? (raw.isNotEmpty ? Map<String, dynamic>.from(raw.first) : {})
+          : Map<String, dynamic>.from(raw as Map);
+
+      if (first.isEmpty) {
+        return DataFailed(
+          DioException(
+            error: 'Server mengembalikan data kosong setelah membuat WO.',
+            requestOptions: RequestOptions(path: '/v1/workorder'),
+          ),
+        );
+      }
+
+      final data = WorkOrderModel.fromMap(first);
       return DataSuccess(data);
+    } on DioException catch (e) {
+      print(
+        "❌ Gagal membuat WO: ${e.response?.statusCode} - ${e.response?.data}",
+      );
+      return DataFailed(e);
     } catch (e) {
       return DataFailed(
         DioException(

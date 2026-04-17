@@ -39,6 +39,21 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
     }
   }
 
+  @override
+  void didUpdateWidget(covariant ImagePickerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.singleImage) {
+      if (widget.initialImage != oldWidget.initialImage) {
+        _singleImage = widget.initialImage;
+      }
+    } else {
+      if (widget.initialImages != oldWidget.initialImages &&
+          widget.initialImages.length != _imageFiles.length) {
+        _imageFiles = List.from(widget.initialImages);
+      }
+    }
+  }
+
   void _pickImagesFromGallery() async {
     if (widget.singleImage) {
       final pickedFile = await _picker.pickImage(source: ImageSource.gallery);

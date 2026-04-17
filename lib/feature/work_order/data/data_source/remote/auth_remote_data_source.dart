@@ -6,6 +6,61 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/auth_response
 class AuthRemoteDataSource extends RemoteDatasource {
   AuthRemoteDataSource() : super();
 
+  /// Register new employee (self-registration).
+  /// Backend endpoint: POST /api/v1/auth/register
+  /// Expected fields:
+  ///   - name (string, max 255)
+  ///   - email (string, unique)
+  ///   - password (string, min 8)
+  ///   - telepon (string, max 20)
+  ///   - jenis_kelamin ("Laki-laki" | "Perempuan")
+  ///   - tanggal_lahir (YYYY-MM-DD)
+  Future<DataState<AuthResponseModel>> register({
+    required String name,
+    required String email,
+    required String password,
+    required String telepon,
+    required String jenisKelamin,
+    required String tanggalLahir,
+  }) async {
+    try {
+      print('📝 Attempting register for: $email');
+      print('📡 Full URL: ${dio.options.baseUrl}/v1/auth/register');
+
+      final response = await post(
+        path: '/v1/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'telepon': telepon,
+          'jenis_kelamin': jenisKelamin,
+          'tanggal_lahir': tanggalLahir,
+        },
+      );
+
+      print('✅ Register response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      final data = AuthResponseModel.fromMap(response.data);
+      return DataSuccess(data);
+    } on DioException catch (e) {
+      print('❌ Register DioException Type: ${e.type}');
+      print('❌ Error Message: ${e.message}');
+      print('❌ Response Status: ${e.response?.statusCode}');
+      print('❌ Response Data: ${e.response?.data}');
+      return DataFailed(e);
+    } catch (e) {
+      print('❌ Register Unexpected Error: $e');
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(path: '/v1/auth/register'),
+        ),
+      );
+    }
+  }
+
   Future<DataState<AuthResponseModel>> login({
     required String email,
     required String password,

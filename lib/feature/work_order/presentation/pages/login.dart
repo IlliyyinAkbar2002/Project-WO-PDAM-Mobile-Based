@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landin
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -339,19 +340,28 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildRegisterLink() {
     return Center(
-      child: RichText(
-        text: const TextSpan(
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
-          children: [
-            TextSpan(text: 'Belum punya akun? '),
-            TextSpan(
-              text: 'Daftar Sekarang',
-              style: TextStyle(
-                color: Color(0xFF00897B), // Teal-green
-                fontWeight: FontWeight.w500,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const RegisterPage()),
+          );
+        },
+        child: RichText(
+          text: const TextSpan(
+            style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+            children: [
+              TextSpan(text: 'Belum punya akun? '),
+              TextSpan(
+                text: 'Daftar Sekarang',
+                style: TextStyle(
+                  color: Color(0xFF00897B), // Teal-green
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
