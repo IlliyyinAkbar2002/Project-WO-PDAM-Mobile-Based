@@ -580,11 +580,40 @@ class _LoginPageState extends State<LoginPage> {
       print('Type: ${e.type}');
       print('Message: ${e.message}');
 
-      String errorMsg = 'Gagal terhubung ke server';
-      if (e.type == DioExceptionType.connectionTimeout) {
-        errorMsg = 'Timeout - Server tidak merespon';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMsg = 'Error - Tidak dapat terhubung ke http://192.168.1.5:7';
+      final targetUrl = '${AppConfig.backendDomain}/api/ping';
+      String errorMsg;
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+          errorMsg = 'Timeout - Server tidak merespon\n$targetUrl';
+          break;
+        case DioExceptionType.receiveTimeout:
+          errorMsg = 'Timeout - Server lambat merespon\n$targetUrl';
+          break;
+        case DioExceptionType.sendTimeout:
+          errorMsg = 'Timeout - Gagal mengirim request\n$targetUrl';
+          break;
+        case DioExceptionType.connectionError:
+          errorMsg =
+              'Tidak dapat terhubung ke server\n$targetUrl\n'
+              'Cek koneksi internet device & status server.\n'
+              'Detail: ${e.message ?? '-'}';
+          break;
+        case DioExceptionType.badResponse:
+          errorMsg =
+              'Server merespon dengan error\n'
+              'Status: ${e.response?.statusCode}\n$targetUrl';
+          break;
+        case DioExceptionType.cancel:
+          errorMsg = 'Request dibatalkan';
+          break;
+        case DioExceptionType.badCertificate:
+          errorMsg = 'Sertifikat SSL tidak valid\n$targetUrl';
+          break;
+        case DioExceptionType.unknown:
+          errorMsg =
+              'Gagal terhubung ke server\n$targetUrl\n'
+              'Detail: ${e.message ?? '-'}';
+          break;
       }
 
       if (!mounted) return;
@@ -593,7 +622,7 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(
           content: Text('❌ $errorMsg'),
           backgroundColor: const Color(0xFFF44336),
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
         ),
       );
     }

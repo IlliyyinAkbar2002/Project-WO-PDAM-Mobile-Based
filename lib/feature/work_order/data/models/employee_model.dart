@@ -7,12 +7,10 @@ class EmployeeModel extends EmployeeEntity {
     super.id,
     super.name,
     super.nip,
-    // super.birthDate,
-    // super.gender,
-    // super.address,
-    // super.phone,
-    // super.departmentId,
-    // super.positionId,
+    super.jabatanId,
+    super.jabatan,
+    super.departemenId,
+    super.departemen,
   });
 
   factory EmployeeModel.fromJson(String source) =>
@@ -30,7 +28,20 @@ class EmployeeModel extends EmployeeEntity {
     final nip = map['nip'] ?? map['employee_id'] ?? map['employee_number'];
     final id = map['id'] ?? map['pegawai_id'];
 
-    print("🔧 Extracted values - id: $id, nama: $name, nip: $nip");
+    // Kontrak baru `/v1/pegawai/filter` memuat `jabatan_id`, `jabatan`,
+    // `departemen_id`, dan `departemen` langsung di dalam `pegawai`.
+    // Nama alternatif (`position_id`/`position`) di-handle untuk kompatibel
+    // dengan transformasi `fetchMe()` yang masih memakai gaya lama.
+    final jabatanId = map['jabatan_id'] ?? map['position_id'];
+    final jabatan = map['jabatan'] ?? map['position'];
+    final departemenId = map['departemen_id'] ?? map['department_id'];
+    final departemen = map['departemen'] ?? map['department'];
+
+    print(
+      "🔧 Extracted values - id: $id, nama: $name, nip: $nip, "
+      "jabatan_id: $jabatanId, jabatan: $jabatan, "
+      "departemen_id: $departemenId, departemen: $departemen",
+    );
 
     if (name == null) {
       print(
@@ -47,14 +58,10 @@ class EmployeeModel extends EmployeeEntity {
       id: id,
       name: name,
       nip: nip,
-      // birthDate: map['tanggal_lahir'] != null
-      //     ? DateTime.tryParse(map['tanggal_lahir'])
-      //     : null,
-      // gender: map['jenis_kelamin'],
-      // address: map['alamat'],
-      // phone: map['telepon'],
-      // departmentId: map['departemen_id'],
-      // positionId: map['jabatan_id'],
+      jabatanId: jabatanId,
+      jabatan: jabatan,
+      departemenId: departemenId,
+      departemen: departemen,
     );
   }
 
@@ -63,12 +70,10 @@ class EmployeeModel extends EmployeeEntity {
       'id': id,
       'nama': name,
       'nip': nip,
-      // 'tanggal_lahir': birthDate?.toIso8601String(),
-      // 'jenis_kelamin': gender,
-      // 'alamat': address,
-      // 'telepon': phone,
-      // 'departemen_id': departmentId,
-      // 'jabatan_id': positionId,
+      'jabatan_id': jabatanId,
+      'jabatan': jabatan,
+      'departemen_id': departemenId,
+      'departemen': departemen,
     };
   }
 
@@ -77,12 +82,10 @@ class EmployeeModel extends EmployeeEntity {
       id: id,
       name: name,
       nip: nip,
-      // birthDate: birthDate,
-      // gender: gender,
-      // address: address,
-      // phone: phone,
-      // departmentId: departmentId,
-      // positionId: positionId,
+      jabatanId: jabatanId,
+      jabatan: jabatan,
+      departemenId: departemenId,
+      departemen: departemen,
     );
   }
 
@@ -91,12 +94,10 @@ class EmployeeModel extends EmployeeEntity {
       id: entity.id,
       name: entity.name,
       nip: entity.nip,
-      // birthDate: entity.birthDate,
-      // gender: entity.gender,
-      // address: entity.address,
-      // phone: entity.phone,
-      // departmentId: entity.departmentId,
-      // positionId: entity.positionId,
+      jabatanId: entity.jabatanId,
+      jabatan: entity.jabatan,
+      departemenId: entity.departemenId,
+      departemen: entity.departemen,
     );
   }
 }

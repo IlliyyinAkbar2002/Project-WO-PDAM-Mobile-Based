@@ -6,15 +6,6 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/auth_response
 class AuthRemoteDataSource extends RemoteDatasource {
   AuthRemoteDataSource() : super();
 
-  /// Register new employee (self-registration).
-  /// Backend endpoint: POST /api/v1/auth/register
-  /// Expected fields:
-  ///   - name (string, max 255)
-  ///   - email (string, unique)
-  ///   - password (string, min 8)
-  ///   - telepon (string, max 20)
-  ///   - jenis_kelamin ("Laki-laki" | "Perempuan")
-  ///   - tanggal_lahir (YYYY-MM-DD)
   Future<DataState<AuthResponseModel>> register({
     required String name,
     required String email,

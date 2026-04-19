@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/resource/api_error_interceptor.dart';
 import '/core/utils/debug_log.dart';
 
 enum ContentType { json, form, multipart }
@@ -25,6 +26,9 @@ class RemoteDatasource {
       ),
     );
     _addDefaultInterceptors();
+    // TKT-08: parse body {message, errors} dari Laravel jadi ApiException
+    // supaya Bloc/UI bisa branching lewat `isValidation`, `isNotFound`, dst.
+    dio.interceptors.add(ApiErrorInterceptor());
   }
 
   static void setAuthTokenGetter(Function getter) {

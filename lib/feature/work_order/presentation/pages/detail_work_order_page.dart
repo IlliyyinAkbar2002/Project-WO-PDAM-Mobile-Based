@@ -78,8 +78,35 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     } else {
       bloc.add(GetWorkOrderTypesEvent());
       bloc.add(GetLocationTypesEvent());
-      bloc.add(GetUsersEvent());
+      bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
     }
+  }
+
+  List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
+    final employee = user?['employee'];
+    final dynamic rawPositionId =
+        (employee is Map) ? employee['position_id'] : null;
+
+    final int? callerJabatanId = rawPositionId is int
+        ? rawPositionId
+        : int.tryParse(rawPositionId?.toString() ?? '');
+
+    if (callerJabatanId == null) {
+      debugPrint(
+        "⚠️ Caller jabatan_id tidak ditemukan; serahkan filter ke backend.",
+      );
+      return null;
+    }
+
+    const int lookahead = 20;
+    final ids = List<int>.generate(
+      lookahead,
+      (index) => callerJabatanId + index + 1,
+    );
+    debugPrint(
+      "🔒 Caller jabatan_id=$callerJabatanId → assignable jabatanIds=$ids",
+    );
+    return ids;
   }
 
   void _onFieldChanged(String key, dynamic value) {
@@ -126,10 +153,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         if (state is UsersLoaded) {
           assignees = state.users;
         }
-        // Tangani hasil POST /v1/workorder secara eksplisit supaya snackbar
-        // "berhasil" hanya tampil kalau server benar-benar menyimpan WO.
-        // Sebelumnya success dipanggil optimistik, sehingga 422/500 dari
-        // backend tidak terlihat dan list jadi kosong tanpa feedback.
+
         if (state is WorkOrderCreated && _isSubmitting) {
           _isSubmitting = false;
           AppSnackbar.showSuccess("Work order berhasil dibuat.");
@@ -158,10 +182,14 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
               "endDateTime": state.workOrder.endDateTime,
-              // "assignees": state.workOrder.assignees,
-              "assignee": state.workOrder.assignee != null
-                  ? [state.workOrder.assignee!]
-                  : [],
+              // TKT-07: gunakan `assignees` (list) langsung dari
+              // `petugas_list`. Fallback ke single `assignee` bila
+              // response dari backend masih berupa shape lama.
+              "assignee":
+                  state.workOrder.assignees ??
+                  (state.workOrder.assignee != null
+                      ? [state.workOrder.assignee!]
+                      : <UserEntity>[]),
             };
             debugPrint("✅ formData Updated: $formData");
             debugPrint(

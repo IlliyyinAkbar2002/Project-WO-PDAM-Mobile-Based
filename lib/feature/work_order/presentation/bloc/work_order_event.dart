@@ -123,7 +123,17 @@ class GetLocationTypeDetailEvent extends WorkOrderEvent {
 }
 
 //user
-class GetUsersEvent extends WorkOrderEvent {}
+class GetUsersEvent extends WorkOrderEvent {
+  /// Filter opsional berdasar departemen. Null = tidak memfilter.
+  final int? departemenId;
+
+  /// Filter opsional daftar jabatan yang boleh dipilih. Server akan
+  /// melakukan clamp terhadap hirarki user yang login, sehingga FE
+  /// aman mengirim superset; id di luar izin akan di-discard backend.
+  final List<int>? jabatanIds;
+
+  GetUsersEvent({this.departemenId, this.jabatanIds});
+}
 
 class GetUserDetailEvent extends WorkOrderEvent {
   final int id;

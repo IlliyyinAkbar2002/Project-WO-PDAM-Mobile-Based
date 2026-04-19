@@ -44,6 +44,33 @@ class WorkOrderModel extends WorkOrderEntity {
     print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
     print("📍 Data location yang diterima: ${map['location']}");
 
+    // TKT-07: `petugas` (object) diganti `petugas_list` (array).
+    // Urutan fallback:
+    //   1. petugas_list (kontrak baru, Many-to-Many)
+    //   2. penerima_tugas (nama lama kalau ada)
+    //   3. petugas (object tunggal, response legacy) → bungkus jadi list
+    List<UserModel>? assignees;
+    if (map['petugas_list'] is List) {
+      assignees = (map['petugas_list'] as List)
+          .whereType<Map>()
+          .map((user) => UserModel.fromMap(Map<String, dynamic>.from(user)))
+          .toList();
+    } else if (map['penerima_tugas'] is List) {
+      assignees = (map['penerima_tugas'] as List)
+          .whereType<Map>()
+          .map((user) => UserModel.fromMap(Map<String, dynamic>.from(user)))
+          .toList();
+    } else if (map['petugas'] is Map) {
+      assignees = [
+        UserModel.fromMap(Map<String, dynamic>.from(map['petugas'])),
+      ];
+    }
+
+    // Untuk backward-compat kode UI yang masih baca `assignee` single,
+    // isi otomatis dari elemen pertama `assignees`.
+    final UserModel? assignee =
+        (assignees != null && assignees.isNotEmpty) ? assignees.first : null;
+
     return WorkOrderModel(
       id: map['id'],
       title: map['judul_pekerjaan'],
@@ -66,21 +93,17 @@ class WorkOrderModel extends WorkOrderEntity {
           ? MasterLocationModel.fromMap(map['location'])
           : null,
       creator: map['pic_id'],
-      assigneeId: map['petugas_id'],
+      // `petugas_id` (FK tunggal) sudah dihapus di backend (TKT-07),
+      // tapi id tunggal masih berguna utk backward-compat UI lain.
+      assigneeId: map['petugas_id'] ?? assignee?.id,
       statusId: map['status_id'],
       workOrderTypeId: map['jenis_workorder_id'],
       splId: map['lembur_spl_id'],
       locationTypeId: map['jenis_lokasi_id'],
       requiresApproval:
           (map['tipe_workorder_id'] != null && map['tipe_workorder_id'] == 2),
-      assignees: map['penerima_tugas'] != null
-          ? List<UserModel>.from(
-              map['penerima_tugas'].map((user) => UserModel.fromMap(user)),
-            )
-          : null,
-      assignee: map['petugas'] != null
-          ? UserModel.fromMap(map['petugas'])
-          : null,
+      assignees: assignees,
+      assignee: assignee,
       locationType: map['jenis_lokasi'] != null
           ? LocationTypeModel.fromMap(map['jenis_lokasi'])
           : null,
@@ -157,6 +180,7 @@ class WorkOrderModel extends WorkOrderEntity {
       requiresApproval: entity.requiresApproval,
       assigneeIds: entity.assigneeIds,
       assignee: entity.assignee,
+      assignees: entity.assignees,
     );
   }
 }

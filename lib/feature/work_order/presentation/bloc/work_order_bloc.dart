@@ -437,7 +437,12 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   ) async {
     emit(WorkOrderLoading());
     try {
-      final dataState = await getUsersUsecase(const NoParams());
+      final dataState = await getUsersUsecase(
+        GetUsersParams(
+          departemenId: event.departemenId,
+          jabatanIds: event.jabatanIds,
+        ),
+      );
       print("UserBloc - Loaded Users: $dataState");
       if (dataState is DataSuccess) {
         emit(UsersLoaded(dataState.data!));

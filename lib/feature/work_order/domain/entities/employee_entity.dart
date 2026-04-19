@@ -4,23 +4,19 @@ class EmployeeEntity extends Equatable {
   final int? id;
   final String? name;
   final String? nip;
-  // final DateTime? birthDate;
-  // final String? gender;
-  // final String? address;
-  // final String? phone;
-  // final int? departmentId;
-  // final int? positionId;
+  final int? jabatanId;
+  final String? jabatan;
+  final int? departemenId;
+  final String? departemen;
 
   const EmployeeEntity({
     this.id,
     this.name,
     this.nip,
-    // this.birthDate,
-    // this.gender,
-    // this.address,
-    // this.phone,
-    // this.departmentId,
-    // this.positionId,
+    this.jabatanId,
+    this.jabatan,
+    this.departemenId,
+    this.departemen,
   });
 
   @override
@@ -28,32 +24,29 @@ class EmployeeEntity extends Equatable {
         id,
         name,
         nip,
-        // birthDate,
-        // address,
-        // phone,
-        // departmentId,
-        // positionId,
+        jabatanId,
+        jabatan,
+        departemenId,
+        departemen,
       ];
 
   EmployeeEntity copyWith({
     int? id,
     String? name,
     String? nip,
-    // DateTime? birthDate,
-    // String? address,
-    // String? phone,
-    // int? departmentId,
-    // int? positionId,
+    int? jabatanId,
+    String? jabatan,
+    int? departemenId,
+    String? departemen,
   }) {
     return EmployeeEntity(
       id: id ?? this.id,
       name: name ?? this.name,
       nip: nip ?? this.nip,
-      // birthDate: birthDate ?? this.birthDate,
-      // address: address ?? this.address,
-      // phone: phone ?? this.phone,
-      // departmentId: departmentId ?? this.departmentId,
-      // positionId: positionId ?? this.positionId,
+      jabatanId: jabatanId ?? this.jabatanId,
+      jabatan: jabatan ?? this.jabatan,
+      departemenId: departemenId ?? this.departemenId,
+      departemen: departemen ?? this.departemen,
     );
   }
 }

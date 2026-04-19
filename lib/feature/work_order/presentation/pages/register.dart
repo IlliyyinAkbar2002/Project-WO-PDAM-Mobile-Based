@@ -126,7 +126,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Pendaftaran Karyawan',
+          'Recruitment Karyawan',
           style: TextStyle(
             fontSize: 13,
             color: Colors.white.withOpacity(0.75),

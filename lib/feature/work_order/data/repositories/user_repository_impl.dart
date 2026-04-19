@@ -10,10 +10,15 @@ class UserRepositoryImpl implements UserRepository {
   UserRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<DataState<List<UserEntity>>> getUsers() async {
+  Future<DataState<List<UserEntity>>> getUsers({
+    int? departemenId,
+    List<int>? jabatanIds,
+  }) async {
     try {
-      // Panggil data dari remote data source
-      final response = await remoteDataSource.fetchUsers();
+      final response = await remoteDataSource.fetchUsers(
+        departemenId: departemenId,
+        jabatanIds: jabatanIds,
+      );
       print("UserRepository - Fetched Users: $response");
       if (response is DataSuccess<List<UserModel>>) {
         final entities = response.data!
