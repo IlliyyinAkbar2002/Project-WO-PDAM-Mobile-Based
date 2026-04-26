@@ -3,6 +3,8 @@ part of '../landing_page.dart';
 class _LandingPageHeader extends StatelessWidget {
   const _LandingPageHeader();
 
+
+
   String _getEmployeeName() {
     final user = AuthStorage.getUserSync();
     return user?['employee']?['name'] ?? 'Unknown User';
@@ -54,10 +56,11 @@ class _LandingPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColor>()!;
     final textTheme = Theme.of(context).textTheme;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+      padding: EdgeInsets.fromLTRB(24, 24 + statusBarHeight, 24, 48),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

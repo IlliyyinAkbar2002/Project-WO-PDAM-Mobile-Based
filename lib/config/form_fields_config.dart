@@ -68,29 +68,31 @@ class FormFieldsConfig {
     required bool isDetailMode,
     required bool isOvertime,
     required bool isAssignee,
+    bool isAssignMode = false,
     int? status,
   }) {
+    final bool readOnlyInDetail = isDetailMode && !isAssignMode;
     return [
       {
         "type": "text",
         "key": "title",
         "label": "Judul Pekerjaan",
         "hint": "Masukkan judul",
-        "isReadOnly": isDetailMode,
+        "isReadOnly": readOnlyInDetail,
       },
       {
         "type": "text",
         "key": "jobType",
         "label": "Jenis Pekerjaan",
         "hint": "Pilih jenis pekerjaan",
-        "isReadOnly": isDetailMode,
+        "isReadOnly": readOnlyInDetail,
       },
       {
         "type": "text",
         "key": "locationType",
         "label": "Jenis Lokasi",
         "hint": "Statis / Dinamis",
-        "isReadOnly": isDetailMode,
+        "isReadOnly": readOnlyInDetail,
       },
       {
         "key": "locationPicker",
@@ -99,7 +101,7 @@ class FormFieldsConfig {
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
-        "isReadOnly": isDetailMode,
+        "isReadOnly": readOnlyInDetail,
       },
       {
         "key": "timeEstimate",
@@ -110,7 +112,7 @@ class FormFieldsConfig {
         "duration": (formData) => formData["duration"],
         "durationUnit": (formData) => formData["durationUnit"],
         "endDateTime": (formData) => formData["endDateTime"],
-        "isReadOnly": isDetailMode,
+        "isReadOnly": readOnlyInDetail,
         "status": status,
       },
       // {
@@ -128,8 +130,24 @@ class FormFieldsConfig {
         "type": "custom",
         "key": "assignee",
         "options": assigneeOptions,
-        "isReadOnly": isDetailMode,
+        "isReadOnly": !isAssignMode,
         "showIf": !isAssignee,
+      },
+      {
+        "type": "text",
+        "key": "nomorMeter",
+        "label": "Nomor Meter",
+        "hint": "Contoh: MTR-001",
+        "isReadOnly": !isAssignMode,
+        "showIf": isAssignMode,
+      },
+      {
+        "type": "text",
+        "key": "kondisiMeterAwal",
+        "label": "Kondisi Meter Awal",
+        "hint": "Contoh: Normal",
+        "isReadOnly": !isAssignMode,
+        "showIf": isAssignMode,
       },
     ];
   }

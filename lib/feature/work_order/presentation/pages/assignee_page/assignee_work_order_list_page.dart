@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
@@ -35,11 +36,15 @@ class _AssigneeWorkOrderListPageState
   }
 
   void _fetchWorkOrders() {
+    const activeStatuses = <int>[
+      WorkOrderStatusId.ditugaskanKeStaff,
+      WorkOrderStatusId.inProgress,
+      WorkOrderStatusId.pengecekan,
+    ];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
         userId: widget.userId,
-        excludeStatus: const [1, 4, 6],
-        status: _currentFilter?.statusIds,
+        status: _currentFilter?.statusIds ?? activeStatuses,
         type: _currentFilter?.isOvertime == null
             ? null
             : (_currentFilter!.isOvertime! ? 2 : 1),
@@ -124,7 +129,11 @@ class _AssigneeWorkOrderListPageState
     return Expanded(
       child: WorkOrderList(
         isAssignee: true,
-        excludeStatus: const [1, 4, 6],
+        status: const [
+          WorkOrderStatusId.ditugaskanKeStaff,
+          WorkOrderStatusId.inProgress,
+          WorkOrderStatusId.pengecekan,
+        ],
         userId: widget.userId,
       ),
     );
@@ -145,7 +154,11 @@ class _AssigneeWorkOrderListPageState
               SearchWorkOrdersEvent(
                 value,
                 userId: widget.userId,
-                excludeStatus: const [1, 4, 6],
+                status: const [
+                  WorkOrderStatusId.ditugaskanKeStaff,
+                  WorkOrderStatusId.inProgress,
+                  WorkOrderStatusId.pengecekan,
+                ],
               ),
             );
           });

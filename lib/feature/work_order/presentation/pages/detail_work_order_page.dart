@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -10,6 +12,7 @@ import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
@@ -57,9 +60,16 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   int? picId;
 
   bool _isManager = false;
+  late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
+  String? _detailErrorMessage;
 
   bool isDataLoaded = false;
   bool _isSubmitting = false;
+  // Guard supaya pop/snackbar sukses hanya dieksekusi tepat satu kali, walau
+  // BlocListener sempat re-fire (mis. state WorkOrderCreated terulang karena
+  // state-object belum di-equatable). Tanpa ini, `Navigator.pop` bisa
+  // dipanggil dua kali -> assertion `_RouteLifecycle.popping`.
+  bool _hasClosedAfterCreate = false;
   bool get isDetailMode => widget.workOrderId != null;
 
   @override
@@ -69,17 +79,24 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     final user = AuthStorage.getUserSync();
     _isManager = user?['role_id'] == 2;
+    _workOrderRemoteDataSource = WorkOrderRemoteDataSource();
 
     formData["isOvertime"] = widget.isOvertime;
 
     if (isDetailMode) {
-      bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
-      bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
+      _reloadDetail();
     } else {
       bloc.add(GetWorkOrderTypesEvent());
       bloc.add(GetLocationTypesEvent());
       bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
     }
+  }
+
+  void _reloadDetail() {
+    if (!isDetailMode) return;
+    final bloc = context.read<WorkOrderBloc>();
+    bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+    bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -116,33 +133,34 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   }
 
   void _checkDataLoaded() {
+    // Hindari `setState` berulang: hanya panggil kalau status berubah.
+    final bool ready;
     if (isDetailMode) {
-      // Mode Detail (Pastikan semua field dari formData sudah terisi)
-      if (formData.containsKey("assignee") &&
+      ready =
+          formData.containsKey("assignee") &&
           formData.containsKey("title") &&
           formData.containsKey("startDateTime") &&
           formData.containsKey("duration") &&
           formData.containsKey("durationUnit") &&
-          formData.containsKey("endDateTime")) {
-        setState(() {
-          isDataLoaded = true;
-        });
-      }
+          formData.containsKey("endDateTime");
     } else {
-      // Mode Pembuatan WO (Hanya butuh dropdown dan daftar user)
-      if (workOrderTypes.isNotEmpty &&
+      ready =
+          workOrderTypes.isNotEmpty &&
           locationTypes.isNotEmpty &&
-          assignees.isNotEmpty) {
-        setState(() {
-          isDataLoaded = true;
-        });
-      }
+          assignees.isNotEmpty;
+    }
+
+    if (ready && !isDataLoaded && mounted) {
+      setState(() {
+        isDataLoaded = true;
+      });
     }
   }
 
   @override
   Widget buildPage(BuildContext context) {
     return BlocListener<WorkOrderBloc, WorkOrderState>(
+      listenWhen: (previous, current) => previous != current,
       listener: (context, state) {
         if (state is WorkOrderTypesLoaded) {
           workOrderTypes = state.workOrderTypes;
@@ -154,22 +172,58 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           assignees = state.users;
         }
 
-        if (state is WorkOrderCreated && _isSubmitting) {
-          _isSubmitting = false;
-          AppSnackbar.showSuccess("Work order berhasil dibuat.");
-          if (mounted && Navigator.of(context).canPop()) {
-            Navigator.of(context).pop(true);
+        if (state is WorkOrderCreated &&
+            _isSubmitting &&
+            !_hasClosedAfterCreate) {
+          // One-shot: pastikan success flow (snackbar + pop) hanya dieksekusi
+          // sekali meskipun listener re-fire.
+          _hasClosedAfterCreate = true;
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
           }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            AppSnackbar.showSuccess("Work order berhasil dibuat.");
+            final route = ModalRoute.of(context);
+            // Hanya pop kalau route ini masih aktif (isCurrent) dan belum
+            // sedang di-pop oleh proses lain. Ini mencegah assertion
+            // `entry.currentState == _RouteLifecycle.popping` yang terjadi
+            // saat Navigator.pop dipanggil pada route yang sudah dispatch pop.
+            if (route != null &&
+                route.isActive &&
+                route.isCurrent &&
+                Navigator.of(context).canPop()) {
+              Navigator.of(context).pop(true);
+            }
+          });
         }
         if (state is WorkOrderError && _isSubmitting) {
-          _isSubmitting = false;
-          AppSnackbar.showError(state.message);
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            AppSnackbar.showError(state.message);
+          });
+        }
+        if (state is WorkOrderError &&
+            isDetailMode &&
+            !_isSubmitting &&
+            !formData.containsKey("title")) {
+          setState(() {
+            _detailErrorMessage = state.message;
+          });
         }
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
           picId = state.workOrder.creator;
           setState(() {
+            _detailErrorMessage = null;
             formData = {
               "title": state.workOrder.title,
               "jobType": state.workOrder.workOrderType?.name,
@@ -182,9 +236,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
               "endDateTime": state.workOrder.endDateTime,
-              // TKT-07: gunakan `assignees` (list) langsung dari
-              // `petugas_list`. Fallback ke single `assignee` bila
-              // response dari backend masih berupa shape lama.
               "assignee":
                   state.workOrder.assignees ??
                   (state.workOrder.assignee != null
@@ -206,6 +257,31 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             progresses = state.progresses;
           }
           print("picId: ${widget.picId}, creatorId: $picId");
+          if (isDetailMode && !isDataLoaded) {
+            if (_detailErrorMessage != null) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _detailErrorMessage!,
+                        textAlign: TextAlign.center,
+                        style: textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _reloadDetail,
+                        child: const Text('Muat Ulang Detail'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
+          }
           return (widget.enableInnerScroll)
               ? Scaffold(
                   appBar: (widget.workOrderId != null)
@@ -229,12 +305,19 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   }
 
   Widget _buildFormContent(List<WorkOrderProgressEntity>? progresses) {
+    final bool canAssignStaff =
+        isDetailMode &&
+        !_isManager &&
+        !widget.isAssignee &&
+        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
+
     final formFields = (isDetailMode)
         ? FormFieldsConfig.getDetailWorkOrderFields(
             assigneeOptions: assignees,
             isDetailMode: isDetailMode,
             isAssignee: widget.isAssignee,
             isOvertime: formData["isOvertime"] ?? false,
+            isAssignMode: canAssignStaff,
             status: widget.status,
           )
         : FormFieldsConfig.getWorkOrderFields(
@@ -271,10 +354,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                           type: progressIndex.progressType!,
                           index: progressIndex.order!,
                           description: progressIndex.description,
-                          dateTime:
-                              progressIndex.updatedAt == progressIndex.createdAt
-                              ? null
-                              : _formatEndDateTime(progressIndex.updatedAt!),
+                          dateTime: _resolveProgressDateTime(progressIndex),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -293,18 +373,27 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                 ],
               )
             : const SizedBox(),
-        widget.isAssignee ? const SizedBox() : _buildActionButtons(),
+        widget.isAssignee
+            ? const SizedBox()
+            : _buildActionButtons(canAssignStaff: canAssignStaff),
         // Text("${widget.status}")
       ],
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons({required bool canAssignStaff}) {
     // If creating a new work order, show submit button
     if (widget.workOrderId == null) {
       return ButtonInteraction(
         status: null,
         onDefaultPressed: _isSubmitting ? null : _validateAndSubmit,
+      );
+    }
+
+    if (canAssignStaff) {
+      return ButtonInteraction(
+        status: null,
+        onDefaultPressed: _isSubmitting ? null : _validateAndAssignStaff,
       );
     }
 
@@ -342,6 +431,11 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   }
 
   void _validateAndSubmit() {
+    // Cegah double-submit: kalau request sebelumnya belum selesai, abaikan.
+    if (_isSubmitting) {
+      debugPrint("⏳ Submit sedang berjalan, abaikan klik Ajukan tambahan.");
+      return;
+    }
     // Cek apakah semua field sudah terisi
     if (formData["title"] == null || formData["title"].trim().isEmpty) {
       AppSnackbar.showError("Judul tidak boleh kosong.");
@@ -414,6 +508,73 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(CreateWorkOrderEvent(workOrder));
+  }
+
+  Future<void> _validateAndAssignStaff() async {
+    if (_isSubmitting || widget.workOrderId == null) return;
+
+    final List<UserEntity> selectedAssignees =
+        (formData["assignee"] as List<UserEntity>?) ?? <UserEntity>[];
+    final List<int> staffIds = selectedAssignees
+        .map((user) => user.id)
+        .whereType<int>()
+        .toList();
+
+    if (staffIds.isEmpty) {
+      AppSnackbar.showError("Minimal 1 petugas harus dipilih.");
+      return;
+    }
+
+    final nomorMeter = (formData["nomorMeter"] ?? "").toString().trim();
+    final kondisiMeterAwal = (formData["kondisiMeterAwal"] ?? "")
+        .toString()
+        .trim();
+
+    if (nomorMeter.isEmpty) {
+      AppSnackbar.showError("Nomor meter wajib diisi.");
+      return;
+    }
+    if (kondisiMeterAwal.isEmpty) {
+      AppSnackbar.showError("Kondisi meter awal wajib diisi.");
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final result = await _workOrderRemoteDataSource.assignStaff(
+      workOrderId: widget.workOrderId!,
+      staffIds: staffIds,
+      nomorMeter: nomorMeter,
+      kondisiMeterAwal: kondisiMeterAwal,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (result is DataSuccess<void>) {
+      AppSnackbar.showSuccess("Assign staff berhasil.");
+      context.read<WorkOrderBloc>().add(GetWorkOrderDetailEvent(widget.workOrderId!));
+      context.read<WorkOrderBloc>().add(
+        GetProgressByWorkOrderIdEvent(widget.workOrderId!),
+      );
+      return;
+    }
+
+    final message = (result as DataFailed).error?.toString() ??
+        "Gagal assign staff.";
+    AppSnackbar.showError(message);
+  }
+
+  String? _resolveProgressDateTime(WorkOrderProgressEntity progress) {
+    final DateTime? sourceTime =
+        progress.submitTime ?? progress.updatedAt ?? progress.createdAt;
+    if (sourceTime == null) return null;
+    return _formatEndDateTime(sourceTime);
   }
 
   String _formatEndDateTime(DateTime dateTime) {

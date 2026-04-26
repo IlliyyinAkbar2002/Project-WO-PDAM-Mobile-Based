@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
@@ -12,6 +13,27 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
   WorkOrderProgressRemoteDataSource() : super();
 
   String basename(String path) => p.basename(path);
+
+  Map<String, dynamic> _extractProgressPayload(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final dynamic payload = raw['data'] ?? raw;
+      if (payload is Map<String, dynamic>) {
+        return payload;
+      }
+      if (payload is List && payload.isNotEmpty && payload.first is Map) {
+        return Map<String, dynamic>.from(payload.first as Map);
+      }
+      if (raw.containsKey('id')) {
+        return raw;
+      }
+    }
+
+    if (raw is List && raw.isNotEmpty && raw.first is Map) {
+      return Map<String, dynamic>.from(raw.first as Map);
+    }
+
+    throw const FormatException('Format detail progress tidak dikenali.');
+  }
 
   Future<DataState<List<WorkOrderProgressModel>>> fetchProgressByWorkOrderId(
     int workOrderId,
@@ -22,18 +44,41 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         path: '/v1/progress-workorder',
         queryParameters: {'workorder_id': workOrderId},
       );
-      if (response.data is Map<String, dynamic>) {
-        final progressModel = WorkOrderProgressModel.fromMap(response.data);
-        return DataSuccess([progressModel]); // Bungkus dalam List
-      } else {
-        // Jika response.data adalah List (opsional, untuk fleksibilitas)
-        final data = (response.data as List)
+      final dynamic raw = response.data;
+
+      if (raw is Map<String, dynamic>) {
+        final dynamic payload = raw['data'] ?? raw;
+        if (payload is List) {
+          final data = payload
+              .whereType<Map>()
+              .map<WorkOrderProgressModel>(
+                (json) => WorkOrderProgressModel.fromMap(
+                  Map<String, dynamic>.from(json),
+                ),
+              )
+              .toList();
+          return DataSuccess(data);
+        }
+
+        final progressModel = WorkOrderProgressModel.fromMap(
+          Map<String, dynamic>.from(raw),
+        );
+        return DataSuccess([progressModel]);
+      }
+
+      if (raw is List) {
+        final data = raw
+            .whereType<Map>()
             .map<WorkOrderProgressModel>(
-              (json) => WorkOrderProgressModel.fromMap(json),
+              (json) => WorkOrderProgressModel.fromMap(
+                Map<String, dynamic>.from(json),
+              ),
             )
             .toList();
         return DataSuccess(data);
       }
+
+      return const DataSuccess(<WorkOrderProgressModel>[]);
     } catch (e) {
       return DataFailed(
         DioException(
@@ -50,7 +95,8 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     try {
       // Use parent class's get() method which includes auth headers
       final response = await get(path: '/v1/progress-workorder/$id');
-      final data = WorkOrderProgressModel.fromMap(response.data);
+      final payload = _extractProgressPayload(response.data);
+      final data = WorkOrderProgressModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(
@@ -72,7 +118,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
       // Tambah fields
       formData.fields.addAll([
-        const MapEntry('_method', 'PUT'),
         MapEntry('hasil_pengerjaan', workOrderProgress.description ?? ''),
         MapEntry(
           'waktu_submit',
@@ -193,14 +238,99 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         "📤 Sending files: ${formData.files.map((e) => e.key).toList()}",
       );
 
-      // Use parent class's post() method which includes auth headers
-      final response = await post(
-        path: '/v1/progress-workorder/${workOrderProgress.id}',
-        data: formData,
-        contentType: ContentType.multipart,
-      );
+      late final Response response;
+      final bool isStart = workOrderProgress.id == null &&
+          workOrderProgress.tipeProgressId == 1;
+      final bool isSubmit = workOrderProgress.id == null &&
+          (workOrderProgress.tipeProgressId == 2 ||
+              workOrderProgress.tipeProgressId == 3);
+      final bool isReview = workOrderProgress.reviewAction != null;
 
-      final data = WorkOrderProgressModel.fromMap(response.data);
+      if (isReview) {
+        if (workOrderProgress.id == null) {
+          return DataFailed(
+            DioException(
+              error: 'progressId wajib diisi untuk endpoint review progress.',
+              requestOptions: RequestOptions(
+                path: '/v1/progress-workorder/review',
+              ),
+            ),
+          );
+        }
+        formData.fields.addAll([
+          MapEntry('progress_workorder_id', workOrderProgress.id.toString()),
+          MapEntry('progress_id', workOrderProgress.id.toString()),
+          MapEntry('action', workOrderProgress.reviewAction!),
+          MapEntry('review_action', workOrderProgress.reviewAction!),
+          if ((workOrderProgress.description ?? '').trim().isNotEmpty)
+            MapEntry('alasan_penolakan', workOrderProgress.description!.trim()),
+          if ((workOrderProgress.description ?? '').trim().isNotEmpty)
+            MapEntry('catatan', workOrderProgress.description!.trim()),
+        ]);
+        response = await post(
+          path: '/v1/progress-workorder/review',
+          data: formData,
+          contentType: ContentType.multipart,
+        );
+      } else if (isStart) {
+        if (workOrderProgress.workOrderId == null) {
+          return DataFailed(
+            DioException(
+              error: 'workOrderId wajib diisi untuk endpoint start progress.',
+              requestOptions: RequestOptions(path: '/v1/progress-workorder/start'),
+            ),
+          );
+        }
+        const progressKode = TipeProgressId.kodeMulai;
+        formData.fields.addAll([
+          MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
+          const MapEntry('tipe_progress_kode', progressKode),
+          const MapEntry('tipe_progress', progressKode),
+        ]);
+        response = await post(
+          path: '/v1/progress-workorder/start',
+          data: formData,
+          contentType: ContentType.multipart,
+        );
+      } else if (isSubmit) {
+        if (workOrderProgress.workOrderId == null) {
+          return DataFailed(
+            DioException(
+              error: 'workOrderId wajib diisi untuk endpoint submit progress.',
+              requestOptions: RequestOptions(
+                path: '/v1/progress-workorder/submit',
+              ),
+            ),
+          );
+        }
+        final progressKode = workOrderProgress.tipeProgressId == TipeProgressId.selesai
+            ? TipeProgressId.kodeSelesai
+            : TipeProgressId.kodeProgress;
+        formData.fields.addAll([
+          MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
+          MapEntry('tipe_progress_kode', progressKode),
+          MapEntry('tipe_progress', progressKode),
+        ]);
+        response = await post(
+          path: '/v1/progress-workorder/submit',
+          data: formData,
+          contentType: ContentType.multipart,
+        );
+      } else {
+        // Fallback endpoint lama (kompatibilitas)
+        response = await post(
+          path: '/v1/progress-workorder/${workOrderProgress.id}',
+          data: formData,
+          contentType: ContentType.multipart,
+        );
+      }
+
+      final dynamic payload = response.data is Map<String, dynamic>
+          ? (response.data['data'] ?? response.data)
+          : response.data;
+      final data = payload is Map<String, dynamic>
+          ? WorkOrderProgressModel.fromMap(payload)
+          : workOrderProgress;
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(

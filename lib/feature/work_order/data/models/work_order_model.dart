@@ -40,6 +40,22 @@ class WorkOrderModel extends WorkOrderEntity {
   String toJson() => json.encode(toMap());
 
   factory WorkOrderModel.fromMap(Map<String, dynamic> map) {
+    int? parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
+    int? parseIdFromAny(dynamic value) {
+      final direct = parseInt(value);
+      if (direct != null) return direct;
+      if (value is Map) {
+        return parseInt(value['id']);
+      }
+      return null;
+    }
+
     print("📢 Parsing Work Order: $map");
     print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
     print("📍 Data location yang diterima: ${map['location']}");
@@ -71,13 +87,20 @@ class WorkOrderModel extends WorkOrderEntity {
     final UserModel? assignee =
         (assignees != null && assignees.isNotEmpty) ? assignees.first : null;
 
+    final dynamic rawJenisWorkorder =
+        map['jenis_workorder'] ?? map['workorder_type'];
+    final dynamic rawJenisLokasi = map['jenis_lokasi'] ?? map['location_type'];
+    final dynamic rawStatus = map['status'] ?? map['status_workorder'];
+
     return WorkOrderModel(
       id: map['id'],
-      title: map['judul_pekerjaan'],
-      startDateTime: map['waktu_penugasan'] != null
+      title: map['nama_workorder'] ?? map['judul_pekerjaan'],
+      startDateTime: map['tanggal_mulai'] != null
+          ? DateTime.tryParse(map['tanggal_mulai'])
+          : map['waktu_penugasan'] != null
           ? DateTime.tryParse(map['waktu_penugasan'])
           : null,
-      duration: map['estimasi_durasi'],
+      duration: parseInt(map['estimasi_durasi']),
       durationUnit: map['unit_waktu'],
       endDateTime: map['estimasi_selesai'] != null
           ? DateTime.tryParse(map['estimasi_selesai'])
@@ -88,36 +111,54 @@ class WorkOrderModel extends WorkOrderEntity {
       latitude: map['latitude'] != null
           ? double.tryParse(map['latitude'].toString())
           : null,
-      locationId: map['location_id'],
+      locationId: parseIdFromAny(map['location_id']),
       location: map['location'] != null
           ? MasterLocationModel.fromMap(map['location'])
           : null,
-      creator: map['pic_id'],
+      creator: parseIdFromAny(map['created_by_user_id']) ?? parseIdFromAny(map['pic_id']),
       // `petugas_id` (FK tunggal) sudah dihapus di backend (TKT-07),
       // tapi id tunggal masih berguna utk backward-compat UI lain.
-      assigneeId: map['petugas_id'] ?? assignee?.id,
-      statusId: map['status_id'],
-      workOrderTypeId: map['jenis_workorder_id'],
-      splId: map['lembur_spl_id'],
-      locationTypeId: map['jenis_lokasi_id'],
+      assigneeId:
+          parseIdFromAny(map['assigned_to']) ??
+          parseIdFromAny(map['petugas_id']) ??
+          assignee?.id,
+      statusId: parseIdFromAny(map['status_id']),
+      workOrderTypeId:
+          parseIdFromAny(map['jenis_workorder_id']) ??
+          parseIdFromAny(rawJenisWorkorder),
+      splId: parseIdFromAny(map['lembur_spl_id']),
+      locationTypeId:
+          parseIdFromAny(map['jenis_lokasi_id']) ??
+          parseIdFromAny(rawJenisLokasi),
       requiresApproval:
-          (map['tipe_workorder_id'] != null && map['tipe_workorder_id'] == 2),
+          parseIdFromAny(map['tipe_workorder_id']) == 2,
       assignees: assignees,
       assignee: assignee,
-      locationType: map['jenis_lokasi'] != null
-          ? LocationTypeModel.fromMap(map['jenis_lokasi'])
+      locationType: rawJenisLokasi is Map
+          ? LocationTypeModel.fromMap(Map<String, dynamic>.from(rawJenisLokasi))
           : null,
-      workOrderType: map['jenis_workorder'] != null
-          ? WorkOrderTypeModel.fromMap(map['jenis_workorder'])
+      workOrderType: rawJenisWorkorder is Map
+          ? WorkOrderTypeModel.fromMap(
+              Map<String, dynamic>.from(rawJenisWorkorder),
+            )
           : null,
-      status: map['status'] != null ? StatusModel.fromMap(map['status']) : null,
+      status: rawStatus is Map
+          ? StatusModel.fromMap(Map<String, dynamic>.from(rawStatus))
+          : null,
     );
   }
 
   Map<String, dynamic> toMap() {
+    // Kontrak terbaru backend memakai `assigned_to` (single user id).
+    // `petugas_id` tetap dikirim sebagai fallback kompatibilitas.
+    final List<int> ids = assigneeIds ?? const <int>[];
+    final int? assignedTo =
+        assigneeId ?? (ids.isNotEmpty ? ids.first : assignee?.id);
     return {
-      'judul_pekerjaan': title,
-      'waktu_penugasan': startDateTime?.toIso8601String(),
+      'nama_workorder': title,
+      'judul_pekerjaan': title, // fallback legacy
+      'tanggal_mulai': startDateTime?.toIso8601String(),
+      'waktu_penugasan': startDateTime?.toIso8601String(), // fallback legacy
       'estimasi_durasi': duration,
       'unit_waktu': durationUnit,
       'estimasi_selesai': endDateTime?.toIso8601String(),
@@ -129,7 +170,8 @@ class WorkOrderModel extends WorkOrderEntity {
       'jenis_workorder_id': workOrderTypeId,
       'jenis_lokasi_id': locationTypeId,
       'tipe_workorder_id': requiresApproval ? 2 : 1,
-      'petugas_id': assigneeIds,
+      'assigned_to': assignedTo,
+      'petugas_id': ids,
     };
   }
 

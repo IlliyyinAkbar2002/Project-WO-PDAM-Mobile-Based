@@ -6,6 +6,27 @@ import '/core/resource/remote_data_source.dart';
 class WorkOrderRemoteDataSource extends RemoteDatasource {
   WorkOrderRemoteDataSource() : super();
 
+  Map<String, dynamic> _extractWorkOrderPayload(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final dynamic data = raw['data'];
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      if (data is List && data.isNotEmpty && data.first is Map) {
+        return Map<String, dynamic>.from(data.first as Map);
+      }
+      if (raw.containsKey('id')) {
+        return Map<String, dynamic>.from(raw);
+      }
+    }
+
+    if (raw is List && raw.isNotEmpty && raw.first is Map) {
+      return Map<String, dynamic>.from(raw.first as Map);
+    }
+
+    throw const FormatException('Format detail work order tidak dikenali.');
+  }
+
   Future<DataState<List<WorkOrderModel>>> fetchWorkOrders(
     int page,
     int limit,
@@ -63,7 +84,10 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     try {
       // Use parent class's get() method which includes auth headers
       final response = await get(path: '/v1/workorder/$id');
-      final data = WorkOrderModel.fromMap(response.data);
+      final Map<String, dynamic> payload = _extractWorkOrderPayload(
+        response.data,
+      );
+      final data = WorkOrderModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(
@@ -88,9 +112,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       );
       print("📥 Response: ${response.statusCode} - ${response.data}");
 
-      // Backend membungkus respons sebagai { "message": "...", "data": <wo|[wo,...]> }.
-      // `data` bisa berupa array (service selalu membuat 1 WO per petugas) atau
-      // object tunggal kalau controller di-refactor di masa depan. Tangani keduanya.
+      
       final dynamic raw = response.data is Map<String, dynamic>
           ? (response.data['data'] ?? response.data)
           : response.data;
@@ -156,6 +178,43 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         DioException(
           error: e,
           requestOptions: RequestOptions(path: '/v1/workorder/$id'),
+        ),
+      );
+    }
+  }
+
+  Future<DataState<void>> assignStaff({
+    required int workOrderId,
+    required List<int> staffIds,
+    required String nomorMeter,
+    required String kondisiMeterAwal,
+  }) async {
+    try {
+      final petugas = staffIds.asMap().entries.map((entry) {
+        return {
+          'user_id': entry.value,
+          'peran': entry.key == 0 ? 'koordinator' : 'anggota',
+        };
+      }).toList();
+
+      await post(
+        path: '/v1/workorder/$workOrderId/assign-staff',
+        data: {
+          'form_kategori': {
+            'nomor_meter': nomorMeter,
+            'kondisi_meter_awal': kondisiMeterAwal,
+          },
+          'petugas': petugas,
+        },
+      );
+      return const DataSuccess(null);
+    } catch (e) {
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(
+            path: '/v1/workorder/$workOrderId/assign-staff',
+          ),
         ),
       );
     }

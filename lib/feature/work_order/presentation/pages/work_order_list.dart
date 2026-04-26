@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -240,7 +241,10 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
               status!,
               style: TextStyle(
                 fontSize: 12,
-                color: workOrder.statusId != 2 && workOrder.statusId != 8
+                color: workOrder.statusId != 2 &&
+                        workOrder.statusId != 8 &&
+                        workOrder.statusId !=
+                            WorkOrderStatusId.ditugaskanKeStaff
                     ? color.foreground[100]
                     : color.primary[500],
               ),

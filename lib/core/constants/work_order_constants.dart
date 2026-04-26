@@ -1,11 +1,3 @@
-/// Konstanta untuk master data Work Order.
-///
-/// Nilai id di sini **harus** selaras dengan seeder backend (lihat
-/// migration TKT-02 / TKT-03). Id dipaksa eksplisit lewat seeder, jadi
-/// aman dipakai sebagai sumber kebenaran di sisi Flutter.
-///
-/// Mengikuti kontrak yang dijelaskan di `Guide_mobile_flutter.md`
-/// (TKT-01..TKT-08).
 class TipeProgressId {
   static const int mulai = 1;
   static const int progress = 2;
@@ -19,10 +11,6 @@ class TipeProgressId {
   static bool isProgress(int? id) => id == progress;
   static bool isSelesai(int? id) => id == selesai;
 
-  /// Label human-readable untuk UI Flutter. `order` dipakai untuk
-  /// membentuk label "Progress N" (N = order+1) bagi progress antara.
-  /// Nilai default memang "Mulai"/"Selesai" agar kompatibel dengan
-  /// komponen UI lama yang masih bergantung pada string literal.
   static String label(int? id, {int? order}) {
     switch (id) {
       case mulai:
@@ -75,4 +63,21 @@ class WorkOrderActionKode {
   static const String freeze = 'FREEZE';
   static const String resume = 'RESUME';
   static const String extend = 'EXTEND';
+}
+
+/// Mirror id status WO yang dipakai di mobile.
+///
+/// Catatan:
+/// - Beberapa id berikut adalah status flow lama yang masih dipakai di UI.
+/// - Id status baru mengikuti seeder backend terbaru yang sudah dipakai saat
+///   smoke test API (mis. 12, 16, 17).
+class WorkOrderStatusId {
+  static const int pengecekan = 5;
+  static const int selesai = 6;
+  static const int inProgress = 7;
+
+  static const int ditugaskanKeSpv = 12;
+  static const int ditugaskanKeStaff = 13;
+  static const int menungguApprovalManager = 16;
+  static const int ditolakManager = 17;
 }

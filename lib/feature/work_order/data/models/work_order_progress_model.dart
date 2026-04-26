@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 class WorkOrderProgressModel extends WorkOrderProgressEntity {
   final List<XFile>? photos;
   final List<ProgressDetailModel>? progressDetails;
+  final String? reviewAction;
   const WorkOrderProgressModel({
     super.id,
     super.order,
@@ -24,6 +25,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     super.updatedAt,
     this.progressDetails,
     this.photos,
+    this.reviewAction,
   });
 
   factory WorkOrderProgressModel.fromJson(String source) =>
@@ -153,6 +155,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       progressDetails: entity.progressDetail
           ?.map((e) => ProgressDetailModel.fromEntity(e))
           .toList(),
+      reviewAction: null,
     );
   }
 }

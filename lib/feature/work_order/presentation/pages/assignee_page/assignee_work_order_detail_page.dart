@@ -67,8 +67,8 @@ class _AssigneeWorkOrderDetailPageState
         builder: (context, state) {
           if (state is ProgressesLoaded) {
             final progresses = state.progresses;
-            final progress = progresses[0];
-            final progressDetails = progress.progressDetail;
+            final bool hasMulai = progresses.any((item) => item.isMulai);
+            final bool hasSelesai = progresses.any((item) => item.isSelesai);
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -83,14 +83,13 @@ class _AssigneeWorkOrderDetailPageState
                 const SizedBox(height: 16),
                 Text("Pelaporan Work Order", style: textTheme.displayMedium),
                 const SizedBox(height: 8),
+                if (!hasMulai) _buildActionButton('Mulai'),
                 ...progresses.map(
                   (progressIndex) => ProgressCard(
                     type: progressIndex.progressType!,
                     index: progressIndex.order!,
                     description: progressIndex.description,
-                    dateTime: progressIndex.updatedAt == progressIndex.createdAt
-                        ? null
-                        : _formatEndDateTime(progressIndex.updatedAt!),
+                    dateTime: _resolveProgressDateTime(progressIndex),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -109,6 +108,10 @@ class _AssigneeWorkOrderDetailPageState
                     },
                   ),
                 ),
+                if (hasMulai && !hasSelesai) ...[
+                  const SizedBox(height: 8),
+                  _buildActionButton('Selesai'),
+                ],
               ],
             );
           }
@@ -131,5 +134,43 @@ class _AssigneeWorkOrderDetailPageState
   String _formatEndDateTime(DateTime dateTime) {
     final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm \'WIB\'');
     return formatter.format(dateTime);
+  }
+
+  String? _resolveProgressDateTime(WorkOrderProgressEntity progress) {
+    final DateTime? sourceTime =
+        progress.submitTime ?? progress.updatedAt ?? progress.createdAt;
+    if (sourceTime == null) return null;
+    return _formatEndDateTime(sourceTime);
+  }
+
+  Widget _buildActionButton(String mode) {
+    return ElevatedButton(
+      onPressed: () async {
+        final bool? shouldRefresh = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WorkOrderReportPage(
+              mode: mode,
+              status: widget.status,
+              isAssignee: widget.isAssignee,
+              progressId: null,
+              workOrderId: widget.workOrderId,
+              lngLat: widget.lngLat,
+              locationName: widget.locationName,
+              radiusMeter: widget.radiusMeter,
+            ),
+          ),
+        );
+        if (shouldRefresh == true && mounted && widget.workOrderId != null) {
+          context.read<WorkOrderBloc>().add(
+            GetProgressByWorkOrderIdEvent(widget.workOrderId!),
+          );
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: mode == 'Mulai' ? color.status[2] : color.primary[500],
+      ),
+      child: Text(mode),
+    );
   }
 }

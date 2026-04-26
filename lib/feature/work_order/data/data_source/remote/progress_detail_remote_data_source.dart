@@ -6,6 +6,35 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/progress_deta
 class ProgressDetailRemoteDataSource extends RemoteDatasource {
   ProgressDetailRemoteDataSource() : super();
 
+  List<ProgressDetailModel> _extractProgressDetails(dynamic raw) {
+    final dynamic payload = raw is Map<String, dynamic> ? (raw['data'] ?? raw) : raw;
+
+    if (payload is List) {
+      return payload
+          .whereType<Map>()
+          .map<ProgressDetailModel>(
+            (json) => ProgressDetailModel.fromMap(Map<String, dynamic>.from(json)),
+          )
+          .toList();
+    }
+
+    if (payload is Map<String, dynamic>) {
+      if (payload.isEmpty) return const <ProgressDetailModel>[];
+
+      // Jika backend mengirim map tunggal detail-progress.
+      if (payload.containsKey('id') || payload.containsKey('detail_form_id')) {
+        return [ProgressDetailModel.fromMap(payload)];
+      }
+
+      // Jika ternyata ada nested data lagi.
+      if (payload['data'] is List || payload['data'] is Map<String, dynamic>) {
+        return _extractProgressDetails(payload['data']);
+      }
+    }
+
+    return const <ProgressDetailModel>[];
+  }
+
   Future<DataState<List<ProgressDetailModel>>> fetchProgressDetails(
     int workOrderProgressId,
   ) async {
@@ -15,18 +44,8 @@ class ProgressDetailRemoteDataSource extends RemoteDatasource {
         path: '/v1/detail-progress',
         queryParameters: {'progress_workorder_id': workOrderProgressId},
       );
-      if (response.data is Map<String, dynamic>) {
-        final progressDetailModel = ProgressDetailModel.fromMap(response.data);
-        return DataSuccess([progressDetailModel]); // Bungkus dalam List
-      } else {
-        // Jika response.data adalah List (opsional, untuk fleksibilitas)
-        final data = (response.data as List)
-            .map<ProgressDetailModel>(
-              (json) => ProgressDetailModel.fromMap(json),
-            )
-            .toList();
-        return DataSuccess(data);
-      }
+      final data = _extractProgressDetails(response.data);
+      return DataSuccess(data);
     } catch (e) {
       return DataFailed(
         DioException(

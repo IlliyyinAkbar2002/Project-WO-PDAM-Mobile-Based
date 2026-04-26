@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
@@ -33,10 +34,15 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
   }
 
   void _fetchWorkOrders() {
+    const historyStatuses = <int>[
+      WorkOrderStatusId.selesai,
+      WorkOrderStatusId.menungguApprovalManager,
+      WorkOrderStatusId.ditolakManager,
+    ];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
         userId: widget.userId,
-        status: const [6],
+        status: _currentFilter?.statusIds ?? historyStatuses,
         type: _currentFilter?.isOvertime == null
             ? null
             : (_currentFilter!.isOvertime! ? 2 : 1),
@@ -112,7 +118,14 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
             ),
           ),
           Expanded(
-            child: WorkOrderList(status: const [6], userId: widget.userId),
+            child: WorkOrderList(
+              status: const [
+                WorkOrderStatusId.selesai,
+                WorkOrderStatusId.menungguApprovalManager,
+                WorkOrderStatusId.ditolakManager,
+              ],
+              userId: widget.userId,
+            ),
           ),
         ],
       ),
@@ -134,7 +147,11 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
               SearchWorkOrdersEvent(
                 value,
                 userId: widget.userId,
-                excludeStatus: const [6],
+                status: const [
+                  WorkOrderStatusId.selesai,
+                  WorkOrderStatusId.menungguApprovalManager,
+                  WorkOrderStatusId.ditolakManager,
+                ],
               ),
             );
           });

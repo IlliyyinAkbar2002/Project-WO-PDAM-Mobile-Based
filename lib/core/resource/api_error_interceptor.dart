@@ -2,12 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/core/resource/api_exception.dart';
 import 'package:project_mobile_pdam/core/utils/debug_log.dart';
 
-/// Interceptor yang mem-parse body error standar Laravel (TKT-08)
-/// menjadi [ApiException] yang lebih mudah dikonsumsi di Bloc/UI.
-///
-/// Setelah interceptor ini terpasang, setiap `DioException.error` akan
-/// berisi instance [ApiException] (selain error transport seperti
-/// koneksi putus — yang error-nya tetap bertipe asli dari Dio).
 class ApiErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {

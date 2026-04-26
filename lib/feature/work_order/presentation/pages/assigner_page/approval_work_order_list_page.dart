@@ -35,7 +35,7 @@ class _ApprovalWorkOrderListPageState
   void _fetchWorkOrders() {
     _workOrderBloc.add(
       GetWorkOrdersEvent(
-        status: const [1],
+        status: const [5],
         picId: widget.picId,
         userId: _currentFilter?.assigneeId ?? widget.userId,
         type: _currentFilter?.isOvertime == null
@@ -114,10 +114,9 @@ class _ApprovalWorkOrderListPageState
           ),
           Expanded(
             child: WorkOrderList(
-              status: const [1],
+              status: const [5],
               picId: widget.picId,
               userId: widget.userId,
-              creatorId: widget.picId! + 1,
             ),
           ),
         ],

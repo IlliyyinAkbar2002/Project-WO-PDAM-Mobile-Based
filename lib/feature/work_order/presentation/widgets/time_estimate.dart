@@ -41,6 +41,14 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   String _selectedDurationType = '';
   final List<String> normalDurationOptions = ['Jam', 'Hari', 'Bulan'];
 
+  String _normalizeDurationUnit(String? value) {
+    final String normalized = (value ?? '').trim().toLowerCase();
+    if (normalized == 'jam') return 'Jam';
+    if (normalized == 'hari') return 'Hari';
+    if (normalized == 'bulan') return 'Bulan';
+    return '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -74,8 +82,9 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
         : null;
 
     _duration = widget.duration ?? 0;
-    _selectedDurationType =
-        widget.durationUnit ?? (widget.isOvertime ? "Jam" : "");
+    _selectedDurationType = widget.isOvertime
+        ? 'Jam'
+        : _normalizeDurationUnit(widget.durationUnit);
     endDateTime = widget.endDateTime;
 
     _dateController.text = selectedDate != null
@@ -87,7 +96,9 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
 
   void _updateDurationType() {
     setState(() {
-      _selectedDurationType = widget.isOvertime ? 'Jam' : '';
+      _selectedDurationType = widget.isOvertime
+          ? 'Jam'
+          : _normalizeDurationUnit(widget.durationUnit);
       _durationTypeController.text = _selectedDurationType; // Update text field
     });
   }
@@ -303,6 +314,12 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   }
 
   Widget _buildUnitDropdown() {
+    final String? selectedValue = normalDurationOptions.contains(
+      _selectedDurationType,
+    )
+        ? _selectedDurationType
+        : null;
+
     return Container(
       height: 32,
       decoration: BoxDecoration(
@@ -313,9 +330,7 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedDurationType.isNotEmpty
-              ? _selectedDurationType
-              : null,
+          value: selectedValue,
           hint: const Text(
             'H/J/B',
             style: TextStyle(

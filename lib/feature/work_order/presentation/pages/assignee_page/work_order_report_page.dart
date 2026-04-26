@@ -27,6 +27,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final int? status;
   final bool isAssignee;
   final int? progressId;
+  final int? workOrderId;
   final int? workOrderTypeId;
   final LatLng? lngLat;
   final String? locationName; // Nama lokasi dari MasterLocation
@@ -38,6 +39,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.status,
     this.isAssignee = false,
     required this.progressId,
+    this.workOrderId,
     this.workOrderTypeId,
     this.lngLat,
     this.locationName,
@@ -62,6 +64,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _inRange = true;
   bool _isCheckingDistance = true;
   bool isDataLoaded = false;
+  bool _isSubmitting = false;
+  bool _hasClosedAfterSubmit = false;
+  bool _requestedHeaderFallback = false;
 
   // Simulasi JSON form dinamis (sementara hardcoded)
 
@@ -80,6 +85,15 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   /// Menginisialisasi data setelah frame pertama selesai render
   void _initializeData() {
     if (!mounted) return;
+
+    if (widget.progressId == null) {
+      setState(() {
+        isDataLoaded = true;
+        _inRange = true;
+        _isCheckingDistance = false;
+      });
+      return;
+    }
 
     // Dispatch BLoC event untuk mengambil data
     if (widget.mode == 'Selesai') {
@@ -129,7 +143,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
             final submitTime = state.progress.submitTime;
-            final images = state.progress.documentation!
+            final images = (state.progress.documentation ?? [])
                 .map((doc) => doc.url)
                 .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
                 .cast<dynamic>()
@@ -142,6 +156,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 _descriptionController.text = description;
                 _submitTime = submitTime;
                 _images = images;
+                _requestedHeaderFallback = false;
                 isDataLoaded = true;
               });
             });
@@ -153,11 +168,21 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // 🔒 Safety check: Handle empty list to prevent "Bad state: No element" error
             if (progressDetails.isEmpty) {
               debugPrint("⚠️ ProgressDetails kosong, skip processing");
+              if (widget.mode == 'Selesai' &&
+                  widget.progressId != null &&
+                  !_requestedHeaderFallback) {
+                _requestedHeaderFallback = true;
+                _workOrderBloc.add(
+                  GetWorkOrderProgressDetailEvent(widget.progressId!),
+                );
+              }
               SchedulerBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
                 setState(() {
                   _progressDetails = [];
-                  isDataLoaded = true;
+                  // Untuk mode selesai, tunggu fallback header progres
+                  // agar deskripsi/dokumentasi tetap tampil saat detail kosong.
+                  isDataLoaded = widget.mode == 'Selesai' ? false : true;
                 });
               });
               return;
@@ -182,7 +207,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Hitung formData di luar setState
             final formData = <String, dynamic>{};
             for (var detail in progressDetails) {
-              formData[detail.id.toString()] = isDetailMode
+              final key =
+                  (detail.form?.id ?? detail.detailFormId ?? detail.id)
+                      ?.toString();
+              if (key == null) continue;
+              formData[key] = isDetailMode
                   ? detail.value
                   : _getOptionIdFromValue(detail);
             }
@@ -202,7 +231,26 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             });
           }
           if (state is WorkOrderProgressUpdated) {
+            if (_hasClosedAfterSubmit) return;
+            _hasClosedAfterSubmit = true;
+            if (mounted) {
+              setState(() {
+                _isSubmitting = false;
+              });
+            }
             AppSnackbar.showSuccess("Form berhasil disubmit.");
+            if (widget.isAssignee && !isDetailMode) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                final route = ModalRoute.of(context);
+                if (route != null &&
+                    route.isActive &&
+                    route.isCurrent &&
+                    Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop(true);
+                }
+              });
+            }
           }
         },
         child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
@@ -275,13 +323,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _getColor(),
                                   ),
-                                  onPressed: widget.mode != 'Mulai'
-                                      ? (widget.status == 7
-                                            ? _onSubmit
-                                            : null)
-                                      : (widget.status != 7
-                                            ? _onSubmit
-                                            : null),
+                                  onPressed: _onSubmit,
                                   child: Text(
                                     widget.mode,
                                     style: textTheme.labelLarge?.copyWith(
@@ -301,7 +343,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.danger,
                                         ),
-                                        onPressed: () {},
+                                        onPressed: () => _onReview('tolak'),
                                         child: const Text('Tolak'),
                                       ),
                                     ),
@@ -311,9 +353,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
                                         ),
-                                        onPressed: () {
-                                          _onSubmit();
-                                        },
+                                        onPressed: () => _onReview('accept'),
                                         child: const Text('Terima'),
                                       ),
                                     ),
@@ -409,12 +449,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onSubmit() {
+    if (_isSubmitting) return;
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
         AppSnackbar.showError("Deskripsi tidak boleh kosong.");
         return;
       }
-      if (_images.isEmpty) {
+      if (_images.isEmpty && widget.mode != 'Mulai') {
         AppSnackbar.showError("Minimal satu foto diperlukan.");
         return;
       }
@@ -426,7 +467,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         "📤 Submit ke backend dengan progressId: ${widget.progressId}",
       );
       final progressDetails = _progressDetails.map((detail) {
-        final formId = detail.form?.id.toString();
+        final formId =
+            (detail.form?.id ?? detail.detailFormId ?? detail.id)?.toString();
         final mandatoryField = detail.form?.isRequired;
         final dynamicValue = formId != null ? _formData[formId] : null;
         String? value;
@@ -482,6 +524,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
       final workOrderProgress = WorkOrderProgressModel(
         id: widget.progressId,
+        workOrderId: widget.workOrderId,
+        tipeProgressId: widget.mode == 'Mulai'
+            ? 1
+            : (widget.mode == 'Selesai' ? 3 : 2),
         description: _descriptionController.text,
         photos: _images.whereType<XFile>().toList(),
         submitTime: DateTime.now().toUtc(),
@@ -491,8 +537,23 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       debugPrint(
         "📩 Submitting Progress: photos=${workOrderProgress.photos?.map((p) => p.path).toList()}, details=${progressDetails.map((d) => d.detailFormId).toList()}",
       );
+      setState(() {
+        _isSubmitting = true;
+        _hasClosedAfterSubmit = false;
+      });
       _workOrderBloc.add(UpdateWorkOrderProgressEvent(workOrderProgress));
     }
+  }
+
+  void _onReview(String action) {
+    final reviewModel = WorkOrderProgressModel(
+      id: widget.progressId,
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
+      reviewAction: action,
+    );
+    _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
   }
 
   dynamic _getOptionIdFromValue(ProgressDetailEntity detail) {
