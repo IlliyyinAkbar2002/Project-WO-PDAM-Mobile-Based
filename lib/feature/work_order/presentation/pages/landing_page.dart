@@ -5,6 +5,9 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assign
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assigner_page/assigner_work_order_page.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/notifications.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 
 part 'widgets/_landing_page_header.dart';
 part 'widgets/_landing_page_body.dart';

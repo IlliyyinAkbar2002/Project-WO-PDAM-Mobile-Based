@@ -57,7 +57,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   List<WorkOrderProgressEntity> progresses = [];
   int? status;
   int? splId;
-  int? picId;
+  int? _creatorIdFromDetail;
 
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
@@ -221,7 +221,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
-          picId = state.workOrder.creator;
+          _creatorIdFromDetail = state.workOrder.creator;
           setState(() {
             _detailErrorMessage = null;
             formData = {
@@ -256,7 +256,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           if (state is ProgressesLoaded) {
             progresses = state.progresses;
           }
-          print("picId: ${widget.picId}, creatorId: $picId");
+          final effectivePicId = widget.picId ?? _creatorIdFromDetail;
+          debugPrint(
+            "routePicId: ${widget.picId}, creatorIdFromDetail: $_creatorIdFromDetail, effectivePicId: $effectivePicId",
+          );
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
               return Center(
@@ -420,9 +423,11 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   }
 
   void _buttonChoosen(String action) {
+    final isAccept = action == "Accept";
     final approval = SplModel(
       id: splId,
-      statusId: action == "Accept" ? 2 : 4,
+      statusId: isAccept ? 2 : 4,
+      decision: isAccept ? "accept" : "reject",
       verificatorId: widget.userId,
       // verificationDate: DateTime.now(),
     );

@@ -14,6 +14,17 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
   String basename(String path) => p.basename(path);
 
+  String _normalizeReviewDecision(String rawAction) {
+    final normalized = rawAction.trim().toLowerCase();
+    if (normalized == 'accept' || normalized == 'terima' || normalized == 'approve') {
+      return 'accept';
+    }
+    if (normalized == 'reject' || normalized == 'tolak') {
+      return 'reject';
+    }
+    return normalized;
+  }
+
   Map<String, dynamic> _extractProgressPayload(dynamic raw) {
     if (raw is Map<String, dynamic>) {
       final dynamic payload = raw['data'] ?? raw;
@@ -257,11 +268,13 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ),
           );
         }
+        final decision = _normalizeReviewDecision(workOrderProgress.reviewAction!);
         formData.fields.addAll([
           MapEntry('progress_workorder_id', workOrderProgress.id.toString()),
           MapEntry('progress_id', workOrderProgress.id.toString()),
-          MapEntry('action', workOrderProgress.reviewAction!),
-          MapEntry('review_action', workOrderProgress.reviewAction!),
+          MapEntry('decision', decision),
+          MapEntry('action', decision),
+          MapEntry('review_action', decision),
           if ((workOrderProgress.description ?? '').trim().isNotEmpty)
             MapEntry('alasan_penolakan', workOrderProgress.description!.trim()),
           if ((workOrderProgress.description ?? '').trim().isNotEmpty)

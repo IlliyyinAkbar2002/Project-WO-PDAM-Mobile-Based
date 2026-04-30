@@ -6,6 +6,7 @@ class SplModel extends SplEntity {
   const SplModel({
     super.id,
     super.statusId,
+    super.decision,
     super.verificatorId,
     super.createdAt,
     super.verificationDate,
@@ -21,6 +22,7 @@ class SplModel extends SplEntity {
     return SplModel(
       id: map['id'],
       statusId: map['status_id'],
+      decision: map['decision']?.toString(),
       verificatorId: map['verifikator_id'],
       createdAt: map['waktu_pengajuan'] != null
           ? DateTime.parse(map['waktu_pengajuan'])
@@ -33,18 +35,22 @@ class SplModel extends SplEntity {
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    final payload = {
       'status_id': statusId,
+      if (decision != null) 'decision': decision,
       'verifikator_id': verificatorId,
       // 'waktu_verifikasi': verificationDate?.toIso8601String(),
       'alasan_ditolak': reason,
     };
+    payload.removeWhere((key, value) => value == null);
+    return payload;
   }
 
   SplEntity toEntity() {
     return SplEntity(
       id: id,
       statusId: statusId,
+      decision: decision,
       verificatorId: verificatorId,
       createdAt: createdAt,
       verificationDate: verificationDate,
@@ -56,6 +62,7 @@ class SplModel extends SplEntity {
     return SplModel(
       id: entity.id,
       statusId: entity.statusId,
+      decision: entity.decision,
       verificatorId: entity.verificatorId,
       createdAt: entity.createdAt,
       verificationDate: entity.verificationDate,
