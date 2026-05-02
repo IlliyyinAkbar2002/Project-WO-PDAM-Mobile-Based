@@ -76,7 +76,7 @@ class ProfileViewDataResolver {
     final address = (employee['address'] ?? '-').toString();
 
     final split = _splitName(fullName);
-    final roleName = _roleName(user['role_id']);
+    final roleName = resolvePositionLabel(user);
     final birthDate = _formatBirthDate(employee['birth_date']);
 
     return ProfileViewData(
@@ -105,10 +105,25 @@ class ProfileViewDataResolver {
     return (words.first, words.sublist(1).join(' '));
   }
 
-  static String _roleName(dynamic roleId) {
-    if (roleId == 2) return 'Supervisor';
-    if (roleId == 3) return 'Staff';
+  static String resolvePositionLabel(Map<String, dynamic> user) {
+    final employee =
+        (user['employee'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final roleId = _toInt(user['role_id']);
+    final positionId = _toInt(employee['position_id']);
+
+    if (roleId == 1) return 'Superadmin';
+    if (roleId == 2) return 'Manager';
+    if (roleId == 3) {
+      if (positionId == 4) return 'SPV';
+      return 'Staff';
+    }
     return 'User';
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   static String _formatBirthDate(dynamic rawBirthDate) {

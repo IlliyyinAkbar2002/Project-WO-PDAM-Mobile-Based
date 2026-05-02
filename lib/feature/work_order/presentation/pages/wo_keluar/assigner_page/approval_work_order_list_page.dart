@@ -38,9 +38,7 @@ class _ApprovalWorkOrderListPageState
         status: const [5],
         picId: widget.picId,
         userId: _currentFilter?.assigneeId ?? widget.userId,
-        type: _currentFilter?.isOvertime == null
-            ? null
-            : (_currentFilter!.isOvertime! ? 2 : 1),
+        type: _currentFilter?.workOrderTypeId,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')

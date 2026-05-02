@@ -156,6 +156,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
           ?.map((e) => ProgressDetailModel.fromEntity(e))
           .toList(),
       reviewAction: null,
+
     );
   }
 }

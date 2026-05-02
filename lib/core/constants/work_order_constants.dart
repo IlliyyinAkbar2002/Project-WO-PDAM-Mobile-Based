@@ -81,3 +81,11 @@ class WorkOrderStatusId {
   static const int menungguApprovalManager = 16;
   static const int ditolakManager = 17;
 }
+
+/// ID jenis WO untuk query `type` pada GET `/v1/workorder` (sesuai `jenis-workorder`).
+/// Pastikan urutan/id cocok dengan data di backend — ubah konstanta jika berbeda.
+class WorkOrderListFilterTypeId {
+  static const int infrastruktur = 1;
+  static const int jaringan = 2;
+  static const int meter = 3;
+}

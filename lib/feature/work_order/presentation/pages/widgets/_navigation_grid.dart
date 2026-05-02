@@ -66,21 +66,12 @@ class _NavigationGrid extends StatelessWidget {
                     );
                   },
                   onWorkOrderMasuk: () {
-                    if (selectedUserId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please select User ID first'),
-                          backgroundColor: colors.warning,
-                        ),
-                      );
-                      return;
-                    }
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            AssigneeWorkOrderPage(userId: selectedUserId!),
+                            AssignerWorkOrderMasukPage(picId: selectedPicId),
                       ),
                     );
                   },
@@ -148,14 +139,90 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.home_outlined,
         label: 'Our Assets',
         onTap: () {
-          // TODO: Navigate to settings page
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
+          if (roleId != 3) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Our Assets hanya tersedia untuk Staff/SPV'),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+          final isSpv = roleId == 3 && positionId == 4;
+
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: false,
+            useSafeArea: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.black.withOpacity(0.3),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            builder: (ctx) {
+              if (isSpv) {
+                return _OurAssetsBottomSheet(
+                  title: 'Melihat stok barang',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PeminjamanItemListPage(),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              return _OurAssetsBottomSheet(
+                title: 'Peminjaman barang',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PeminjamanItemListPage(),
+                    ),
+                  );
+                },
+              );
+            },
+          );
         },
       ),
       _NavigationItem(
         icon: Icons.description_outlined,
-        label: 'Document Request',
+        label: 'Pengajuan Lembur',
         onTap: () {
-          // TODO: Navigate to help page
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+
+          // Pengajuan lembur hanya untuk jabatan SPV dan Staff (users role_id = 3)
+          if (roleId != 3) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Pengajuan lembur hanya tersedia untuk SPV dan Staff',
+                ),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PengajuanLemburPage(),
+            ),
+          );
         },
       ),
       _NavigationItem(
@@ -363,6 +430,97 @@ class _TaskMenuItem extends StatelessWidget {
                 const Icon(Icons.chevron_right, color: Color(0xFF475569)),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OurAssetsBottomSheet extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _OurAssetsBottomSheet({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.35,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F7F7),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          border: Border.all(color: const Color(0xFFC7C7C7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: Column(
+            children: [
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0x4D3C3C43),
+                  borderRadius: BorderRadius.circular(2.5),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _OurAssetsMenuItem(label: title, onTap: onTap),
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OurAssetsMenuItem extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _OurAssetsMenuItem({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFC7C7C7)),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF1A1D21),
+                  ),
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            ],
           ),
         ),
       ),

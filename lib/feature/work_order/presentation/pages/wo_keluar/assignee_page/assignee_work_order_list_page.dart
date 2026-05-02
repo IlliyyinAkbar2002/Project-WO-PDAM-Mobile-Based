@@ -10,15 +10,17 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/work_order_list.dart';
 
-class HistoryWorkOrderPage extends StatefulWidget {
+class AssigneeWorkOrderListPage extends StatefulWidget {
   final int userId;
-  const HistoryWorkOrderPage({super.key, required this.userId});
+  const AssigneeWorkOrderListPage({super.key, required this.userId});
 
   @override
-  State<HistoryWorkOrderPage> createState() => _HistoryWorkOrderPageState();
+  State<AssigneeWorkOrderListPage> createState() =>
+      _AssigneeWorkOrderListPageState();
 }
 
-class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
+class _AssigneeWorkOrderListPageState
+    extends AppStatePage<AssigneeWorkOrderListPage> {
   final _searchController = TextEditingController();
   late WorkOrderBloc _workOrderBloc;
   Timer? _debounce;
@@ -34,18 +36,16 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
   }
 
   void _fetchWorkOrders() {
-    const historyStatuses = <int>[
-      WorkOrderStatusId.selesai,
-      WorkOrderStatusId.menungguApprovalManager,
-      WorkOrderStatusId.ditolakManager,
+    const activeStatuses = <int>[
+      WorkOrderStatusId.ditugaskanKeStaff,
+      WorkOrderStatusId.inProgress,
+      WorkOrderStatusId.pengecekan,
     ];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
         userId: widget.userId,
-        status: _currentFilter?.statusIds ?? historyStatuses,
-        type: _currentFilter?.isOvertime == null
-            ? null
-            : (_currentFilter!.isOvertime! ? 2 : 1),
+        status: _currentFilter?.statusIds ?? activeStatuses,
+        type: _currentFilter?.workOrderTypeId,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -117,17 +117,22 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
               ],
             ),
           ),
-          Expanded(
-            child: WorkOrderList(
-              status: const [
-                WorkOrderStatusId.selesai,
-                WorkOrderStatusId.menungguApprovalManager,
-                WorkOrderStatusId.ditolakManager,
-              ],
-              userId: widget.userId,
-            ),
-          ),
+          _buildWorkOrderList(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWorkOrderList() {
+    return Expanded(
+      child: WorkOrderList(
+        isAssignee: true,
+        status: const [
+          WorkOrderStatusId.ditugaskanKeStaff,
+          WorkOrderStatusId.inProgress,
+          WorkOrderStatusId.pengecekan,
+        ],
+        userId: widget.userId,
       ),
     );
   }
@@ -148,9 +153,9 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
                 value,
                 userId: widget.userId,
                 status: const [
-                  WorkOrderStatusId.selesai,
-                  WorkOrderStatusId.menungguApprovalManager,
-                  WorkOrderStatusId.ditolakManager,
+                  WorkOrderStatusId.ditugaskanKeStaff,
+                  WorkOrderStatusId.inProgress,
+                  WorkOrderStatusId.pengecekan,
                 ],
               ),
             );

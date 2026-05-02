@@ -51,12 +51,8 @@ class _LandingPageHeader extends StatelessWidget {
   }
 
   String _getRoleName() {
-    final user = AuthStorage.getUserSync();
-    final roleId = user?['role_id'];
-
-    if (roleId == 2) return 'Supervisor';
-    if (roleId == 3) return 'Staff';
-    return 'User';
+    final user = AuthStorage.getUserSync() ?? <String, dynamic>{};
+    return ProfileViewDataResolver.resolvePositionLabel(user);
   }
 
   Future<void> _showProfileMenu(

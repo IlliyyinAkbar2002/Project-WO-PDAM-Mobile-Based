@@ -2,29 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
-import 'package:project_mobile_pdam/core/widget/speed_dial_fab.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assigner_page/create_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assigner_page/dynamic_form_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/work_order_list.dart';
 
-class AssignerWorkOrderListPage extends StatefulWidget {
-  final int? picId;
-  final int? userId;
-
-  const AssignerWorkOrderListPage({super.key, this.picId, this.userId});
+class HistoryWorkOrderPage extends StatefulWidget {
+  final int userId;
+  const HistoryWorkOrderPage({super.key, required this.userId});
 
   @override
-  State<AssignerWorkOrderListPage> createState() =>
-      _AssignerWorkOrderListPageState();
+  State<HistoryWorkOrderPage> createState() => _HistoryWorkOrderPageState();
 }
 
-class _AssignerWorkOrderListPageState
-    extends AppStatePage<AssignerWorkOrderListPage> {
+class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
   final _searchController = TextEditingController();
   late WorkOrderBloc _workOrderBloc;
   Timer? _debounce;
@@ -40,14 +34,16 @@ class _AssignerWorkOrderListPageState
   }
 
   void _fetchWorkOrders() {
+    const historyStatuses = <int>[
+      WorkOrderStatusId.selesai,
+      WorkOrderStatusId.menungguApprovalManager,
+      WorkOrderStatusId.ditolakManager,
+    ];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
-        picId: widget.picId,
-        status: _currentFilter?.statusIds,
-        userId: _currentFilter?.assigneeId,
-        type: _currentFilter?.isOvertime == null
-            ? null
-            : (_currentFilter!.isOvertime! ? 2 : 1),
+        userId: widget.userId,
+        status: _currentFilter?.statusIds ?? historyStatuses,
+        type: _currentFilter?.workOrderTypeId,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -120,66 +116,14 @@ class _AssignerWorkOrderListPageState
             ),
           ),
           Expanded(
-            child: WorkOrderList(picId: widget.picId, userId: widget.userId),
-          ),
-        ],
-      ),
-      floatingActionButton: SpeedDialFab(
-        backgroundColor: const Color(0xff2d499b),
-        items: [
-          SpeedDialItem(
-            label: 'Dynamic Form',
-            // Icon: document with lightning bolt (dynamic form dari web)
-            iconAsset: 'assets/DynamicForm.png',
-            fallbackIcon: Icons.bolt_outlined,
-            backgroundColor: const Color(0xFF3B82F6),
-            onTap: () async {
-              final bloc = context.read<WorkOrderBloc>();
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DynamicFormPage(
-                    picId: widget.picId,
-                    userId: widget.userId,
-                  ),
-                ),
-              );
-              if (mounted) {
-                bloc.add(
-                  GetWorkOrdersEvent(
-                    picId: widget.picId,
-                    userId: widget.userId,
-                  ),
-                );
-              }
-            },
-          ),
-          SpeedDialItem(
-            label: 'Static Form',
-            // Icon: checklist with plus sign (form statis)
-            iconAsset: 'assets/FormStatis.png',
-            fallbackIcon: Icons.playlist_add_check_outlined,
-            backgroundColor: const Color(0xFF3B82F6),
-            onTap: () async {
-              final bloc = context.read<WorkOrderBloc>();
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreateWorkOrderPage(
-                    picId: widget.picId,
-                    userId: widget.userId,
-                  ),
-                ),
-              );
-              if (mounted) {
-                bloc.add(
-                  GetWorkOrdersEvent(
-                    picId: widget.picId,
-                    userId: widget.userId,
-                  ),
-                );
-              }
-            },
+            child: WorkOrderList(
+              status: const [
+                WorkOrderStatusId.selesai,
+                WorkOrderStatusId.menungguApprovalManager,
+                WorkOrderStatusId.ditolakManager,
+              ],
+              userId: widget.userId,
+            ),
           ),
         ],
       ),
@@ -198,7 +142,15 @@ class _AssignerWorkOrderListPageState
           if (_debounce?.isActive ?? false) _debounce!.cancel();
           _debounce = Timer(const Duration(milliseconds: 500), () {
             _workOrderBloc.add(
-              SearchWorkOrdersEvent(value, picId: widget.picId),
+              SearchWorkOrdersEvent(
+                value,
+                userId: widget.userId,
+                status: const [
+                  WorkOrderStatusId.selesai,
+                  WorkOrderStatusId.menungguApprovalManager,
+                  WorkOrderStatusId.ditolakManager,
+                ],
+              ),
             );
           });
         },

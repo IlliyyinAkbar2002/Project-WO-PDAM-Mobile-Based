@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
@@ -10,44 +8,49 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/work_order_list.dart';
 
-class AssigneeWorkOrderListPage extends StatefulWidget {
-  final int userId;
-  const AssigneeWorkOrderListPage({super.key, required this.userId});
+class AssignerWorkOrderListPage extends StatefulWidget {
+  final int? picId;
+  final int? userId;
+
+  /// Status WO yang tidak ditampilkan di daftar ini (mis. WO Masuk saja).
+  final List<int>? excludeStatus;
+
+  const AssignerWorkOrderListPage({
+    super.key,
+    this.picId,
+    this.userId,
+    this.excludeStatus,
+  });
 
   @override
-  State<AssigneeWorkOrderListPage> createState() =>
-      _AssigneeWorkOrderListPageState();
+  State<AssignerWorkOrderListPage> createState() =>
+      _AssignerWorkOrderListPageState();
 }
 
-class _AssigneeWorkOrderListPageState
-    extends AppStatePage<AssigneeWorkOrderListPage> {
-  final _searchController = TextEditingController();
-  late WorkOrderBloc _workOrderBloc;
-  Timer? _debounce;
+class _AssignerWorkOrderListPageState
+  extends AppStatePage<AssignerWorkOrderListPage> {
+    final _searchController = TextEditingController();
+    late WorkOrderBloc _workOrderBloc;
+    Timer? _debounce;
 
   // Filter state
-  FilterResult? _currentFilter;
+    FilterResult? _currentFilter;
 
-  @override
-  void initState() {
-    super.initState();
-    _workOrderBloc = context.read<WorkOrderBloc>();
-    _fetchWorkOrders();
-  }
+    @override
+    void initState() {
+      super.initState();
+      _workOrderBloc = context.read<WorkOrderBloc>();
+      _fetchWorkOrders();
+    }
 
   void _fetchWorkOrders() {
-    const activeStatuses = <int>[
-      WorkOrderStatusId.ditugaskanKeStaff,
-      WorkOrderStatusId.inProgress,
-      WorkOrderStatusId.pengecekan,
-    ];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
-        userId: widget.userId,
-        status: _currentFilter?.statusIds ?? activeStatuses,
-        type: _currentFilter?.isOvertime == null
-            ? null
-            : (_currentFilter!.isOvertime! ? 2 : 1),
+        picId: widget.picId,
+        excludeStatus: widget.excludeStatus,
+        status: _currentFilter?.statusIds,
+        userId: _currentFilter?.assigneeId,
+        type: _currentFilter?.workOrderTypeId,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -66,7 +69,6 @@ class _AssigneeWorkOrderListPageState
       ),
       builder: (context) => const CustomFilterDialog(),
     );
-
     if (result != null) {
       setState(() {
         _currentFilter = result;
@@ -119,22 +121,14 @@ class _AssigneeWorkOrderListPageState
               ],
             ),
           ),
-          _buildWorkOrderList(),
+          Expanded(
+            child: WorkOrderList(
+              picId: widget.picId,
+              userId: widget.userId,
+              excludeStatus: widget.excludeStatus,
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildWorkOrderList() {
-    return Expanded(
-      child: WorkOrderList(
-        isAssignee: true,
-        status: const [
-          WorkOrderStatusId.ditugaskanKeStaff,
-          WorkOrderStatusId.inProgress,
-          WorkOrderStatusId.pengecekan,
-        ],
-        userId: widget.userId,
       ),
     );
   }
@@ -153,12 +147,8 @@ class _AssigneeWorkOrderListPageState
             _workOrderBloc.add(
               SearchWorkOrdersEvent(
                 value,
-                userId: widget.userId,
-                status: const [
-                  WorkOrderStatusId.ditugaskanKeStaff,
-                  WorkOrderStatusId.inProgress,
-                  WorkOrderStatusId.pengecekan,
-                ],
+                picId: widget.picId,
+                excludeStatus: widget.excludeStatus,
               ),
             );
           });

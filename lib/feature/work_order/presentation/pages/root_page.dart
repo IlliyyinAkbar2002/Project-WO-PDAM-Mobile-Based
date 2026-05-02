@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assigner_page/assigner_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_page.dart';
 
 List<int> picIdList = [1, 2, 3];
 

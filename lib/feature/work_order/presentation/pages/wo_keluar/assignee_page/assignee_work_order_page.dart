@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignee_page/history_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_list_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/history_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_list_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/work_order_filter.dart';
 
 class AssigneeWorkOrderPage extends StatefulWidget {
