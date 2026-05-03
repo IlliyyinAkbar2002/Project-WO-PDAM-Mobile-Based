@@ -31,7 +31,30 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.check_circle_outline,
         label: 'Approval',
         onTap: () {
-          // TODO: Navigate to approval page
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
+          final isSpv = roleId == 3 && positionId == 4;
+          final isManajer = roleId == 2;
+
+          if (!isSpv && !isManajer) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Approval hanya tersedia untuk Supervisor / Manajer',
+                ),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PersetujuanPeminjamanBarangPage(),
+            ),
+          );
         },
       ),
       _NavigationItem(

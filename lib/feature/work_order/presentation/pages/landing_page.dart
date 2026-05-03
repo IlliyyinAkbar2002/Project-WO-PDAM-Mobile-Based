@@ -5,6 +5,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_kel
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_masuk/assigner_page/assigner_work_order_masuk_page.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/extrawork/pengajuan_lembur.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
