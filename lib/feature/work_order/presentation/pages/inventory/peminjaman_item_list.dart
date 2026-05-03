@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/inventory/pengajuan_item.dart';
@@ -70,9 +71,15 @@ class PeminjamanItemListPage extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: SafeArea(
         child: Column(
           children: [
             _InventoryHeader(onBackToDashboard: () => _navigateToRoleDashboard(context)),
@@ -113,6 +120,7 @@ class PeminjamanItemListPage extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

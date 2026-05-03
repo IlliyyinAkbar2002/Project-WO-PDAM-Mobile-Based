@@ -1,29 +1,49 @@
 part of '../landing_page.dart';
-
 class _LandingPageHeader extends StatelessWidget {
   const _LandingPageHeader();
 
   String _getEmployeeName() {
     final user = AuthStorage.getUserSync();
-    return user?['employee']?['name'] ?? 'Unknown User';
+    return (user?['employee']?['name'] ?? user?['name'] ?? 'Unknown User')
+        .toString();
   }
 
   String _getEmployeeId() {
     final user = AuthStorage.getUserSync();
-    return user?['employee']?['employee_id'] ?? '';
+    return (user?['employee']?['employee_id'] ?? '').toString();
+  }
+
+  String _getRoleLabel() {
+    final user = AuthStorage.getUserSync() ?? <String, dynamic>{};
+    return ProfileViewDataResolver.resolvePositionLabel(user);
+  }
+
+  /// Ambil 1-2 huruf inisial dari nama untuk avatar.
+  String _getInitials(String name) {
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return '?';
+    final parts = cleaned.split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts.first.characters.take(2).toString().toUpperCase();
+    }
+    final first = parts.first.characters.firstOrNull ?? '';
+    final last = parts.last.characters.firstOrNull ?? '';
+    return '$first$last'.toUpperCase();
   }
 
   void _handleLogout(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
+        final dangerColor =
+            Theme.of(dialogContext).extension<AppColor>()!.danger;
         return AlertDialog(
           title: Text(
             'Logout',
             style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
-              color: Theme.of(dialogContext).extension<AppColor>()!.danger,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: dangerColor,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           content: const Text('Are you sure you want to logout?'),
           actions: [
@@ -34,14 +54,14 @@ class _LandingPageHeader extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await AuthStorage.clearAuth();
+                if (!dialogContext.mounted) return;
                 Navigator.of(dialogContext).pop();
+                if (!context.mounted) return;
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
                 );
               },
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xffff574d),
-              ),
+              style: TextButton.styleFrom(foregroundColor: dangerColor),
               child: const Text('Logout'),
             ),
           ],
@@ -50,20 +70,17 @@ class _LandingPageHeader extends StatelessWidget {
     );
   }
 
-  String _getRoleName() {
-    final user = AuthStorage.getUserSync() ?? <String, dynamic>{};
-    return ProfileViewDataResolver.resolvePositionLabel(user);
-  }
-
   Future<void> _showProfileMenu(
     BuildContext context,
     GlobalKey profileKey,
   ) async {
     final colors = Theme.of(context).extension<AppColor>()!;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final profileBox = profileKey.currentContext?.findRenderObject() as RenderBox?;
-    final profilePosition = profileBox?.localToGlobal(Offset.zero, ancestor: overlay) ?? Offset.zero;
-    final profileSize = profileBox?.size ?? const Size(64, 64);
+    final profileBox =
+        profileKey.currentContext?.findRenderObject() as RenderBox?;
+    final profilePosition =
+        profileBox?.localToGlobal(Offset.zero, ancestor: overlay) ?? Offset.zero;
+    final profileSize = profileBox?.size ?? const Size(56, 56);
 
     await showGeneralDialog(
       context: context,
@@ -76,7 +93,7 @@ class _LandingPageHeader extends StatelessWidget {
           children: [
             Positioned(
               top: profilePosition.dy + profileSize.height + 10,
-              right: 16,
+              left: profilePosition.dx,
               child: Material(
                 color: Colors.transparent,
                 child: Container(
@@ -85,6 +102,13 @@ class _LandingPageHeader extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: colors.background[100],
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -98,7 +122,8 @@ class _LandingPageHeader extends StatelessWidget {
                               ProfileViewDataResolver.resolveOrDefault();
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => ProfilePage.safe(data: profileData),
+                              builder: (_) =>
+                                  ProfilePage.safe(data: profileData),
                             ),
                           );
                         },
@@ -130,8 +155,8 @@ class _LandingPageHeader extends StatelessWidget {
                       _ProfileActionItem(
                         icon: Icons.logout,
                         label: 'Logout',
-                        iconColor: const Color(0xffff4354),
-                        textColor: const Color(0xffff4354),
+                        iconColor: colors.danger,
+                        textColor: colors.danger,
                         onTap: () {
                           Navigator.of(dialogContext).pop();
                           _handleLogout(context);
@@ -153,156 +178,308 @@ class _LandingPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColor>()!;
     final textTheme = Theme.of(context).textTheme;
     final statusBarHeight = MediaQuery.of(context).padding.top;
     final profileAvatarKey = GlobalKey();
 
+    final name = _getEmployeeName();
+    final employeeId = _getEmployeeId();
+    final role = _getRoleLabel();
+    final initials = _getInitials(name);
+
+    // Warna spesifik dari Figma yang tidak ada di token AppColor.
+    const headerNavy = Color(0xFF0B2A6B);
+    const headerNavyTop = Color(0xFF112F73);
+    const onlineGreen = Color(0xFF00D492);
+    const roleBadgeYellow = Color(0xFFFFF4B8);
+    const logoutRed = Color(0xFFE63946);
+    const notifRed = Color(0xFFE63946);
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(24, 24 + statusBarHeight, 24, 48),
-      decoration: BoxDecoration(
+      padding: EdgeInsets.fromLTRB(20, statusBarHeight + 16, 20, 24),
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [colors.primary[500]!, colors.primary[700]!],
+          colors: [headerNavyTop, headerNavy],
         ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1A1C398E),
+            blurRadius: 15,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Baris atas: avatar + nama/role/ID + notifikasi
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              GestureDetector(
+                key: profileAvatarKey,
+                onTap: () => _showProfileMenu(context, profileAvatarKey),
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      'PDAM Surya Sembada',
-                      style: textTheme.titleLarge?.copyWith(
-                        color: colors.background[100],
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _getEmployeeName(),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colors.background[100]!.withOpacity(0.9),
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (_getEmployeeId().isNotEmpty)
-                      Text(
-                        _getEmployeeId(),
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colors.background[100]!.withOpacity(0.8),
-                          fontSize: 12,
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF2E7BFF), Color(0xFF0B2A6B)],
                         ),
                       ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _getRoleName(),
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colors.background[100]!.withOpacity(0.8),
-                        fontSize: 12,
+                      alignment: Alignment.center,
+                      child: Text(
+                        initials,
+                        style: textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Logout Button - matching Figma design
-                    Container(
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: const Color(0xffff574d),
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _handleLogout(context),
-                          borderRadius: BorderRadius.circular(9999),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 3.5,
-                            ),
-                            child: const Text(
-                              'Logout',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: onlineGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: headerNavy, width: 2),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Column(
-                children: [
-                  GestureDetector(
-                    key: profileAvatarKey,
-                    onTap: () => _showProfileMenu(context, profileAvatarKey),
-                    child: Stack(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        letterSpacing: -0.4,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            border: Border.all(
-                              color: colors.background[100]!.withOpacity(0.3),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(32),
+                            color: roleBadgeYellow,
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                          child: CircleAvatar(
-                            radius: 32,
-                            backgroundColor: colors.primary[300],
-                            child: Icon(
-                              Icons.person,
-                              size: 36,
-                              color: colors.background[100],
+                          child: Text(
+                            role.toUpperCase(),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: headerNavy,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.55,
+                              height: 1.5,
                             ),
                           ),
                         ),
-                        Positioned(
-                          top: -4,
-                          right: -4,
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: const Color(0xffff574d),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: colors.primary[500]!,
-                                width: 2,
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.notifications,
-                                size: 12,
-                                color: Colors.white,
+                        if (employeeId.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'ID · $employeeId',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 12,
+                                height: 1.5,
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _NotificationButton(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                badgeColor: notifRed,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Baris bawah: salam + tombol logout
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome back,',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Have a productive day',
+                      style: textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.4,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              _LogoutPillButton(
+                color: logoutRed,
+                onTap: () => _handleLogout(context),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NotificationButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color badgeColor;
+
+  const _NotificationButton({required this.onTap, required this.badgeColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Center(
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 10,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutPillButton extends StatelessWidget {
+  final Color color;
+  final VoidCallback onTap;
+
+  const _LogoutPillButton({required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(999),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.logout_rounded, color: Colors.white, size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Logout',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

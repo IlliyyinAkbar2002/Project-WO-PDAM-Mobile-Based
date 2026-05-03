@@ -5,90 +5,143 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColor>()!;
     final textTheme = Theme.of(context).textTheme;
 
+    const navy = Color(0xFF0B2A6B);
+    const muted = Color(0xFF90A1B9);
+    const iconBg = Color(0xFFEAF1FF);
+    const iconColor = Color(0xFF2E7BFF);
+    const liveBg = Color(0xFFFFF4B8);
+    const successText = Color(0xFF009966);
+    const trendStart = Color(0xFF2E7BFF);
+    const trendEnd = Color(0xFF0B2A6B);
+    const borderColor = Color(0xFFF1F5F9);
+
     return Container(
-      height: 147,
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1E293B), // slate-900
-            const Color(0xFF0F172A), // slate-950
-          ],
-        ),
+        color: Colors.white,
+        border: Border.all(color: borderColor, width: 1.5),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: borderColor.withOpacity(0.6),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Decorative pattern
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.2,
-              child: CustomPaint(painter: _DecorativePatternPainter()),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.assignment_outlined,
+                  color: iconColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'WORK ORDERS',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: muted,
+                        fontSize: 11,
+                        letterSpacing: 1.54,
+                        fontWeight: FontWeight.w500,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Field Operations',
+                      style: textTheme.titleLarge?.copyWith(
+                        color: navy,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.4,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: liveBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Live',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: navy,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
           ),
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(24),
+          const SizedBox(height: 16),
+          IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _StatBlock(label: 'Active Orders', value: '12'),
+                      SizedBox(height: 8),
+                      _StatBlock(label: "Today's Focus", value: 'Area A'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'WORK ORDERS',
-                        style: textTheme.headlineLarge?.copyWith(
-                          color: const Color(0xFF67E8F9), // cyan-300
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20,
-                          letterSpacing: 0.5,
+                        '+8% this week',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: successText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'AKTIF HARI INI',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colors.background[100]!.withOpacity(0.7),
-                          fontSize: 12,
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 40,
+                        width: 120,
+                        child: CustomPaint(
+                          painter: _TrendLinePainter(
+                            startColor: trendStart,
+                            endColor: trendEnd,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Opacity(
-                  opacity: 0.3,
-                  child: Icon(
-                    Icons.assignment_outlined,
-                    size: 80,
-                    color: colors.background[100],
-                  ),
-                ),
               ],
-            ),
-          ),
-          // Small decorative icons
-          Positioned(
-            top: 16,
-            right: 20,
-            child: Opacity(
-              opacity: 0.6,
-              child: Icon(
-                Icons.trending_up,
-                size: 20,
-                color: colors.background[100],
-              ),
             ),
           ),
         ],
@@ -97,25 +150,99 @@ class _StatsCard extends StatelessWidget {
   }
 }
 
-class _DecorativePatternPainter extends CustomPainter {
+class _StatBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatBlock({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: textTheme.labelSmall?.copyWith(
+            color: const Color(0xFF90A1B9),
+            fontSize: 11,
+            letterSpacing: 0.55,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: textTheme.titleLarge?.copyWith(
+            color: const Color(0xFF0B2A6B),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Painter sederhana untuk trendline statistik. Bukan grafik real-time;
+/// hanya representasi visual seperti pada mockup Figma.
+class _TrendLinePainter extends CustomPainter {
+  final Color startColor;
+  final Color endColor;
+
+  _TrendLinePainter({required this.startColor, required this.endColor});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+    final points = <Offset>[
+      Offset(0, size.height * 0.75),
+      Offset(size.width * 0.18, size.height * 0.55),
+      Offset(size.width * 0.32, size.height * 0.65),
+      Offset(size.width * 0.48, size.height * 0.35),
+      Offset(size.width * 0.62, size.height * 0.50),
+      Offset(size.width * 0.78, size.height * 0.20),
+      Offset(size.width, size.height * 0.10),
+    ];
+
+    final fillPath = Path()..moveTo(points.first.dx, size.height);
+    for (final p in points) {
+      fillPath.lineTo(p.dx, p.dy);
+    }
+    fillPath
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          endColor.withOpacity(0.15),
+          endColor.withOpacity(0.0),
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawPath(fillPath, fillPaint);
+
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final p in points.skip(1)) {
+      linePath.lineTo(p.dx, p.dy);
+    }
+    final linePaint = Paint()
+      ..shader = LinearGradient(colors: [startColor, endColor])
+          .createShader(Offset.zero & size)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    // Draw some decorative lines
-    final path = Path();
-    path.moveTo(size.width * 0.7, 0);
-    path.lineTo(size.width, size.height * 0.3);
-
-    path.moveTo(size.width * 0.8, 0);
-    path.lineTo(size.width, size.height * 0.5);
-
-    canvas.drawPath(path, paint);
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(linePath, linePaint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _TrendLinePainter oldDelegate) =>
+      oldDelegate.startColor != startColor || oldDelegate.endColor != endColor;
 }

@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/auth_remote_data_source.dart';
@@ -18,14 +21,19 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  static const Color _navy = Color(0xFF1A3C5E);
-  static const Color _teal = Color(0xFF0097A7);
-  static const Color _inputFill = Color(0xFFF5F9FC);
-  static const Color _inputBorder = Color(0xFFDDDDDD);
-  static const Color _orange = Color(0xFFFF6B2B);
-  static const Color _orangeDark = Color(0xFFF44336);
-  static const Color _hint = Color(0xFF9AA6B2);
-  static const Color _muted = Color(0xFF7A8894);
+  static const Color _navy = Color(0xFF022F2E);
+  static const Color _teal = Color(0xFF0B4F4A);
+  static const Color _accentGreen = Color(0xFF16A34A);
+  static const Color _buttonStart = Color(0xFFFB923C);
+  static const Color _buttonEnd = Color(0xFFFB7185);
+  static const Color _hint = Color(0xFF99A1AF);
+  static const Color _muted = Color(0xFF6A7282);
+  static const Color _glassWhite70 = Color(0xB3FFFFFF);
+  static const Color _glassWhite50 = Color(0x80FFFFFF);
+  static const Color _glassWhite30 = Color(0x4DFFFFFF);
+  static const Color _glassBorder80 = Color(0xCCFFFFFF);
+  static const Color _glassBorder70 = Color(0xB3FFFFFF);
+  static const Color _glassBorder50 = Color(0x80FFFFFF);
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -53,188 +61,290 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
-      child: Scaffold(
-        backgroundColor: _navy,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+    );
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          _buildGradientBackground(),
+          _buildDecorativeBlobs(),
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom -
+                      48,
+                ),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(height: 8),
-                    _buildHeader(),
-                    const SizedBox(height: 24),
                     _buildRegisterCard(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     _buildFooter(),
                   ],
                 ),
               ),
-              if (_isLoading)
-                Container(
-                  color: Colors.black.withOpacity(0.35),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.18),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _teal,
-            boxShadow: [
-              BoxShadow(
-                color: _teal.withOpacity(0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.shield_outlined,
-            color: Colors.white,
-            size: 36,
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'PDAM Surya Sembada',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Recruitment Karyawan',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.white.withOpacity(0.75),
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRegisterCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
+            ),
         ],
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildGradientBackground() {
+    return const Positioned.fill(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(-0.9, -0.45),
+            end: Alignment(0.9, 0.45),
+            colors: [Color(0xFFCEFAFE), Color(0xFFF0FDFA), Color(0xFFDCFCE7)],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDecorativeBlobs() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            _buildInputField(
-              label: 'Nama Lengkap',
-              controller: _nameController,
-              hint: 'Masukkan nama lengkap',
-              prefixIcon: Icons.person_outline,
-              keyboardType: TextInputType.name,
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Nama lengkap harus diisi';
-                }
-                return null;
-              },
+            Positioned(
+              top: -90,
+              left: -40,
+              child: _buildBlob(size: 320, color: const Color(0x80A2F4FD)),
             ),
-            const SizedBox(height: 16),
-            _buildInputField(
-              label: 'Email',
-              controller: _emailController,
-              hint: 'contoh@email.com',
-              prefixIcon: Icons.mail_outline,
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Email harus diisi';
-                }
-                final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                if (!emailRegex.hasMatch(value.trim())) {
-                  return 'Format email tidak valid';
-                }
-                return null;
-              },
+            Positioned(
+              top: 170,
+              left: 10,
+              child: _buildBlob(size: 260, color: const Color(0x80B9F8CF)),
             ),
-            const SizedBox(height: 16),
-            _buildPasswordField(),
-            const SizedBox(height: 16),
-            _buildInputField(
-              label: 'Nomor Telepon',
-              controller: _phoneController,
-              hint: '08xxxxxxxxxx',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Nomor telepon harus diisi';
-                }
-                if (value.trim().length < 9) {
-                  return 'Nomor telepon tidak valid';
-                }
-                if (value.trim().length > 20) {
-                  return 'Nomor telepon maksimal 20 digit';
-                }
-                return null;
-              },
+            Positioned(
+              top: 330,
+              right: -100,
+              child: _buildBlob(size: 390, color: const Color(0x8096F7E4)),
             ),
-            const SizedBox(height: 16),
-            _buildGenderField(),
-            const SizedBox(height: 16),
-            _buildDateField(),
-            const SizedBox(height: 24),
-            _buildRegisterButton(),
-            const SizedBox(height: 16),
-            _buildLoginLink(),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildBlob({required double size, required Color color}) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
+  }
+
+  Widget _buildRegisterCard() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(40),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(26, 28, 26, 28),
+          decoration: BoxDecoration(
+            color: _glassWhite50,
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: _glassBorder70, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D1F2687),
+                blurRadius: 16,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLogo(),
+                const SizedBox(height: 18),
+                _buildCompanyInfo(),
+                const SizedBox(height: 24),
+                _buildInputField(
+                  label: 'Nama Lengkap',
+                  controller: _nameController,
+                  hint: 'Masukkan nama lengkap',
+                  prefixIcon: Icons.person_outline_rounded,
+                  keyboardType: TextInputType.name,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Nama lengkap harus diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _buildInputField(
+                  label: 'Email',
+                  controller: _emailController,
+                  hint: 'contoh@email.com',
+                  prefixIcon: Icons.mail_outline_rounded,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email harus diisi';
+                    }
+                    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                    if (!emailRegex.hasMatch(value.trim())) {
+                      return 'Format email tidak valid';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _buildPasswordField(),
+                const SizedBox(height: 14),
+                _buildInputField(
+                  label: 'Nomor Telepon',
+                  controller: _phoneController,
+                  hint: '08xxxxxxxxxxx',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Nomor telepon harus diisi';
+                    }
+                    if (value.trim().length < 9) {
+                      return 'Nomor telepon tidak valid';
+                    }
+                    if (value.trim().length > 20) {
+                      return 'Nomor telepon maksimal 20 digit';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _buildGenderField(),
+                const SizedBox(height: 14),
+                _buildDateField(),
+                const SizedBox(height: 22),
+                _buildRegisterButton(),
+                const SizedBox(height: 18),
+                _buildLoginLink(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Center(
+      child: Container(
+        width: 82,
+        height: 82,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.74),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.92),
+            width: 1.5,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: ClipOval(
+            child: SizedBox(
+              width: 58,
+              height: 58,
+              child: Image.asset(
+                'assets/images/logo_pdam.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.water_drop_rounded,
+                  color: _teal,
+                  size: 38,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompanyInfo() {
+    return const Column(
+      children: [
+        Text(
+          'PDAM Surya Sembada',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: _navy,
+            letterSpacing: -0.6,
+            height: 1.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 6),
+        Text(
+          'Recruitment Karyawan',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: _muted,
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   Widget _buildFieldLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(left: 2, bottom: 7),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: _navy,
+          color: _teal.withValues(alpha: 0.92),
+          letterSpacing: -0.15,
         ),
       ),
     );
@@ -247,35 +357,53 @@ class _RegisterPageState extends State<RegisterPage> {
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: _hint, fontSize: 13),
-      prefixIcon: Icon(prefixIcon, color: _teal, size: 20),
+      hintStyle: const TextStyle(
+        color: _hint,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
+      prefixIcon: Padding(
+        padding: const EdgeInsets.only(left: 18, right: 10),
+        child: Icon(prefixIcon, color: _hint, size: 22),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 50, minHeight: 22),
       suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: _inputFill,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 14,
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      errorBorder: InputBorder.none,
+      focusedErrorBorder: InputBorder.none,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+      errorStyle: const TextStyle(
+        color: Color(0xFFDC2626),
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
       ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _inputBorder),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _inputBorder),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _teal, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE57373)),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE57373), width: 1.5),
+    );
+  }
+
+  Widget _buildFieldShell({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _glassWhite70,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _glassBorder80, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 3,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: child,
+        ),
       ),
     );
   }
@@ -294,17 +422,24 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel(label),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
-          inputFormatters: inputFormatters,
-          style: const TextStyle(fontSize: 14, color: _navy),
-          decoration: _buildInputDecoration(
-            hint: hint,
-            prefixIcon: prefixIcon,
+        _buildFieldShell(
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            textCapitalization: textCapitalization,
+            inputFormatters: inputFormatters,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: _navy,
+            ),
+            cursorColor: _accentGreen,
+            decoration: _buildInputDecoration(
+              hint: hint,
+              prefixIcon: prefixIcon,
+            ),
+            validator: validator,
           ),
-          validator: validator,
         ),
       ],
     );
@@ -315,38 +450,45 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel('Password'),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: !_isPasswordVisible,
-          style: const TextStyle(fontSize: 14, color: _navy),
-          decoration: _buildInputDecoration(
-            hint: 'Masukkan password (min. 8 karakter)',
-            prefixIcon: Icons.lock_outline,
-            suffixIcon: IconButton(
-              splashRadius: 20,
-              icon: Icon(
-                _isPasswordVisible
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: _teal,
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isPasswordVisible = !_isPasswordVisible;
-                });
-              },
+        _buildFieldShell(
+          child: TextFormField(
+            controller: _passwordController,
+            obscureText: !_isPasswordVisible,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: _navy,
             ),
+            cursorColor: _accentGreen,
+            decoration: _buildInputDecoration(
+              hint: 'Masukkan password (min. 8 karakter)',
+              prefixIcon: Icons.lock_outline_rounded,
+              suffixIcon: IconButton(
+                splashRadius: 20,
+                icon: Icon(
+                  _isPasswordVisible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: _hint,
+                  size: 22,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Password harus diisi';
+              }
+              if (value.length < 8) {
+                return 'Password minimal 8 karakter';
+              }
+              return null;
+            },
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Password harus diisi';
-            }
-            if (value.length < 8) {
-              return 'Password minimal 8 karakter';
-            }
-            return null;
-          },
         ),
       ],
     );
@@ -357,39 +499,53 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel('Jenis Kelamin'),
-        DropdownButtonFormField<String>(
-          value: _selectedGender,
-          isExpanded: true,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _teal,
-            size: 22,
+        _buildFieldShell(
+          child: DropdownButtonFormField<String>(
+            initialValue: _selectedGender,
+            isExpanded: true,
+            dropdownColor: Colors.white,
+            icon: const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _hint,
+                size: 24,
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: _navy,
+            ),
+            decoration: _buildInputDecoration(
+              hint: 'Pilih jenis kelamin',
+              prefixIcon: Icons.wc_outlined,
+            ),
+            hint: const Text(
+              'Pilih jenis kelamin',
+              style: TextStyle(
+                color: _hint,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            // Backend expects literal "Laki-laki" / "Perempuan"
+            items: const [
+              DropdownMenuItem(value: 'Laki-laki', child: Text('Laki-laki')),
+              DropdownMenuItem(value: 'Perempuan', child: Text('Perempuan')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedGender = value;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Jenis kelamin harus dipilih';
+              }
+              return null;
+            },
           ),
-          style: const TextStyle(fontSize: 14, color: _navy),
-          decoration: _buildInputDecoration(
-            hint: 'Pilih jenis kelamin',
-            prefixIcon: Icons.wc_outlined,
-          ),
-          hint: const Text(
-            'Pilih jenis kelamin',
-            style: TextStyle(color: _hint, fontSize: 13),
-          ),
-          // Backend expects literal "Laki-laki" / "Perempuan"
-          items: const [
-            DropdownMenuItem(value: 'Laki-laki', child: Text('Laki-laki')),
-            DropdownMenuItem(value: 'Perempuan', child: Text('Perempuan')),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _selectedGender = value;
-            });
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Jenis kelamin harus dipilih';
-            }
-            return null;
-          },
         ),
       ],
     );
@@ -400,21 +556,28 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel('Tanggal Lahir'),
-        TextFormField(
-          controller: _dobController,
-          readOnly: true,
-          onTap: _pickDate,
-          style: const TextStyle(fontSize: 14, color: _navy),
-          decoration: _buildInputDecoration(
-            hint: 'DD/MM/YYYY',
-            prefixIcon: Icons.calendar_today_outlined,
+        _buildFieldShell(
+          child: TextFormField(
+            controller: _dobController,
+            readOnly: true,
+            onTap: _pickDate,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: _navy,
+            ),
+            cursorColor: _accentGreen,
+            decoration: _buildInputDecoration(
+              hint: 'DD/MM/YYYY',
+              prefixIcon: Icons.calendar_today_outlined,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Tanggal lahir harus diisi';
+              }
+              return null;
+            },
           ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Tanggal lahir harus diisi';
-            }
-            return null;
-          },
         ),
       ],
     );
@@ -456,49 +619,63 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildRegisterButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_orange, _orangeDark],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+    final bool disabled = _isLoading;
+    const borderRadius = BorderRadius.all(Radius.circular(999));
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: AnimatedOpacity(
+        opacity: disabled ? 0.8 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Container(
+          height: 54,
+          decoration: const BoxDecoration(
+            borderRadius: borderRadius,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x80FB7185),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: _orange.withOpacity(0.35),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: _isLoading ? null : _handleRegister,
-            child: Center(
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : const Text(
-                      'Daftar',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: borderRadius,
+            clipBehavior: Clip.antiAlias,
+            child: Ink(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_buttonStart, _buttonEnd],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: borderRadius,
+              ),
+              child: InkWell(
+                onTap: disabled ? null : _handleRegister,
+                child: Center(
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.4,
+                          ),
+                        )
+                      : const Text(
+                          'Daftar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.375,
+                            height: 1.5,
+                          ),
+                        ),
+                ),
+              ),
             ),
           ),
         ),
@@ -517,14 +694,20 @@ class _RegisterPageState extends State<RegisterPage> {
         behavior: HitTestBehavior.opaque,
         child: RichText(
           text: const TextSpan(
-            style: TextStyle(fontSize: 13, color: _muted),
+            style: TextStyle(
+              fontSize: 13,
+              color: _muted,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
             children: [
               TextSpan(text: 'Sudah punya akun? '),
               TextSpan(
                 text: 'Masuk Sekarang',
                 style: TextStyle(
-                  color: _teal,
-                  fontWeight: FontWeight.w600,
+                  color: _accentGreen,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
             ],
@@ -535,22 +718,157 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
-      child: Text(
-        '© 2024 PDAM Surya Sembada. Semua hak dilindungi.',
-        style: TextStyle(
-          color: Colors.white.withOpacity(0.6),
-          fontSize: 11,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(100),
+                onTap: _testConnection,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _glassWhite30,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: _glassBorder50, width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.monitor_heart_outlined,
+                        color: _teal,
+                        size: 16,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Test Koneksi API',
+                        style: TextStyle(
+                          color: _teal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.325,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-        textAlign: TextAlign.center,
-      ),
+        const SizedBox(height: 20),
+        const Text(
+          '© 2024 PDAM Surya Sembada. Semua hak dilindungi.',
+          style: TextStyle(
+            color: Color(0x660B4F4A),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.25,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Submit handler
-  // ---------------------------------------------------------------------------
+  void _testConnection() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Menguji koneksi ke server...'),
+        backgroundColor: Color(0xFF2196F3),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          headers: {'ngrok-skip-browser-warning': 'true'},
+        ),
+      );
+
+      final response = await dio.get('${AppConfig.backendDomain}/api/ping');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Koneksi berhasil!\nStatus: ${response.statusCode}'),
+          backgroundColor: _accentGreen,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } on DioException catch (e) {
+      final targetUrl = '${AppConfig.backendDomain}/api/ping';
+      String errorMsg;
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+          errorMsg = 'Timeout - Server tidak merespon\n$targetUrl';
+          break;
+        case DioExceptionType.receiveTimeout:
+          errorMsg = 'Timeout - Server lambat merespon\n$targetUrl';
+          break;
+        case DioExceptionType.sendTimeout:
+          errorMsg = 'Timeout - Gagal mengirim request\n$targetUrl';
+          break;
+        case DioExceptionType.connectionError:
+          errorMsg =
+              'Tidak dapat terhubung ke server\n$targetUrl\n'
+              'Cek koneksi internet device & status server.\n'
+              'Detail: ${e.message ?? '-'}';
+          break;
+        case DioExceptionType.badResponse:
+          errorMsg =
+              'Server merespon dengan error\n'
+              'Status: ${e.response?.statusCode}\n$targetUrl';
+          break;
+        case DioExceptionType.cancel:
+          errorMsg = 'Request dibatalkan';
+          break;
+        case DioExceptionType.badCertificate:
+          errorMsg = 'Sertifikat SSL tidak valid\n$targetUrl';
+          break;
+        case DioExceptionType.unknown:
+          errorMsg =
+              'Gagal terhubung ke server\n$targetUrl\n'
+              'Detail: ${e.message ?? '-'}';
+          break;
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: const Color(0xFFFB7185),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
@@ -591,7 +909,6 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
 
-      // -------- Register sukses, coba auto-login --------
       final loginResult = await authDataSource.login(
         email: email,
         password: password,
@@ -654,7 +971,10 @@ class _RegisterPageState extends State<RegisterPage> {
       await _showSuccessDialog();
       if (!mounted) return;
 
-      final targetPage = _resolveLandingPage(roleId: roleId, positionId: positionId);
+      final targetPage = _resolveLandingPage(
+        roleId: roleId,
+        positionId: positionId,
+      );
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => targetPage),
         (route) => false,
@@ -662,10 +982,7 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      await _showErrorDialog(
-        title: 'Terjadi Kesalahan',
-        message: e.toString(),
-      );
+      await _showErrorDialog(title: 'Terjadi Kesalahan', message: e.toString());
     }
   }
 
@@ -683,17 +1000,17 @@ class _RegisterPageState extends State<RegisterPage> {
     return const admin.LandingPage();
   }
 
-  // ---------------------------------------------------------------------------
-  // Alert dialogs
-  // ---------------------------------------------------------------------------
-
   Future<void> _showSuccessDialog() {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 56),
+        icon: const Icon(
+          Icons.check_circle,
+          color: Color(0xFF4CAF50),
+          size: 56,
+        ),
         title: const Text(
           'Pendaftaran Berhasil',
           textAlign: TextAlign.center,
@@ -773,7 +1090,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.error_outline, color: _orangeDark, size: 56),
+        icon: const Icon(Icons.error_outline, color: _buttonEnd, size: 56),
         title: Text(
           title,
           textAlign: TextAlign.center,
@@ -789,7 +1106,7 @@ class _RegisterPageState extends State<RegisterPage> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             style: TextButton.styleFrom(
-              backgroundColor: _orangeDark,
+              backgroundColor: _buttonEnd,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               shape: RoundedRectangleBorder(
@@ -802,10 +1119,6 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Error-message resolver (maps Laravel 422 payload into readable text)
-  // ---------------------------------------------------------------------------
 
   String _resolveRegisterErrorMessage(dynamic error) {
     if (error is DioException) {

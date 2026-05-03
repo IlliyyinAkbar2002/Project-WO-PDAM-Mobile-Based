@@ -14,6 +14,8 @@ class SpvLandingPage extends StatefulWidget {
 class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
   @override
   Widget buildPage(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColor>()!;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -21,47 +23,52 @@ class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: _colors.background[100],
+        backgroundColor: const Color(0xFFF1F5F9),
         body: SafeArea(
           top: false,
+          bottom: false,
           child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const LandingPageHeaderWidget(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
-                // Stats Card Section
-                Transform.translate(
-                  offset: const Offset(0, -28),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: LandingPageStatsCard(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Attendance Card Section
+                // Work Orders / Stats Card
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: LandingPageStatsCard(),
+                ),
+                const SizedBox(height: 16),
+
+                // Attendance Card
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
                   child: LandingPageAttendanceCard(),
                 ),
                 const SizedBox(height: 24),
 
-                // Quick Access Section
+                // Quick Access section
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Quick Access - Supervisor',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: _colors.foreground[900],
+                      LandingPageQuickAccessHeader(
+                        roleTitle: 'Supervisor',
+                        onViewAll: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Daftar lengkap menu belum tersedia.',
+                              ),
+                              backgroundColor: colors.primary[600],
                             ),
+                          );
+                        },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       const LandingPageNavigationGrid(
                         selectedPicId: null,
                         selectedUserId: null,
@@ -69,7 +76,6 @@ class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -77,6 +83,4 @@ class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
       ),
     );
   }
-
-  AppColor get _colors => Theme.of(context).extension<AppColor>()!;
 }

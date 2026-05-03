@@ -174,7 +174,7 @@ class _NavigationGrid extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const PeminjamanItemListPage(),
+                        builder: (context) => PeminjamanItemListPage(),
                       ),
                     );
                   },
@@ -188,7 +188,7 @@ class _NavigationGrid extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PeminjamanItemListPage(),
+                      builder: (context) => PeminjamanItemListPage(),
                     ),
                   );
                 },
@@ -201,26 +201,10 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.description_outlined,
         label: 'Pengajuan Lembur',
         onTap: () {
-          final user = AuthStorage.getUserSync();
-          final roleId = user?['role_id'] as int?;
-
-          // Pengajuan lembur hanya untuk jabatan SPV dan Staff (users role_id = 3)
-          if (roleId != 3) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                  'Pengajuan lembur hanya tersedia untuk SPV dan Staff',
-                ),
-                backgroundColor: colors.warning,
-              ),
-            );
-            return;
-          }
-
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const PengajuanLemburPage(),
+              builder: (context) => PengajuanLemburPage(),
             ),
           );
         },
@@ -239,7 +223,7 @@ class _NavigationGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.69,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -272,43 +256,39 @@ class _NavigationGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    const navy = Color(0xFF0B2A6B);
+    const tileBg = Color(0xFFEAF1FF);
+    const tileBorder = Color(0x99DBEAFE); // rgba(219,234,254,0.6)
+    const iconColor = Color(0xFF2E7BFF);
+
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDBEAFE), // blue-100
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              item.icon,
-              color: const Color(0xFF2563EB), // blue-600
-              size: 26,
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: tileBg,
+                border: Border.all(color: tileBorder, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(item.icon, color: iconColor, size: 24),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Flexible(
             child: Text(
               item.label,
               textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(
+              style: textTheme.labelSmall?.copyWith(
                 fontSize: 11,
-                color: const Color(0xFF374151), // gray-700
+                color: navy,
                 fontWeight: FontWeight.w500,
-                height: 1.1,
+                height: 1.25,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

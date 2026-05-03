@@ -91,6 +91,81 @@ class LandingPageNavigationList extends StatelessWidget {
   }
 }
 
+class LandingPageQuickAccessHeader extends StatelessWidget {
+  final String roleTitle;
+  final VoidCallback? onViewAll;
+
+  const LandingPageQuickAccessHeader({
+    super.key,
+    required this.roleTitle,
+    this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    const navy = Color(0xFF0B2A6B);
+    const muted = Color(0xFF90A1B9);
+    const linkColor = Color(0xFF2E7BFF);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QUICK ACCESS',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: muted,
+                    fontSize: 11,
+                    letterSpacing: 1.54,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  roleTitle,
+                  style: textTheme.titleLarge?.copyWith(
+                    color: navy,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.4,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onViewAll != null)
+            InkWell(
+              onTap: onViewAll,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 2,
+                ),
+                child: Text(
+                  'View all',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: linkColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
