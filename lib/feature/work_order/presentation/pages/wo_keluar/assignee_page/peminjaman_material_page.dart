@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MaterialState;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -18,7 +18,8 @@ class PeminjamanMaterialPage extends StatefulWidget {
   State<PeminjamanMaterialPage> createState() => _PeminjamanMaterialPageState();
 }
 
-class _PeminjamanMaterialPageState extends AppStatePage<PeminjamanMaterialPage> {
+class _PeminjamanMaterialPageState
+    extends AppStatePage<PeminjamanMaterialPage> {
   late MaterialBloc _materialBloc;
 
   @override
@@ -46,7 +47,9 @@ class _PeminjamanMaterialPageState extends AppStatePage<PeminjamanMaterialPage> 
           }
         },
         buildWhen: (previous, current) =>
-            current is MaterialLoading || current is PeminjamanLoaded || current is MaterialError,
+            current is MaterialLoading ||
+            current is PeminjamanLoaded ||
+            current is MaterialError,
         builder: (context, state) {
           if (state is MaterialLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -54,7 +57,9 @@ class _PeminjamanMaterialPageState extends AppStatePage<PeminjamanMaterialPage> 
 
           if (state is PeminjamanLoaded) {
             if (state.peminjamanList.isEmpty) {
-              return const Center(child: Text('Belum ada material yang dipinjam untuk WO ini.'));
+              return const Center(
+                child: Text('Belum ada material yang dipinjam untuk WO ini.'),
+              );
             }
             return ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -99,28 +104,42 @@ class _PeminjamanMaterialPageState extends AppStatePage<PeminjamanMaterialPage> 
               children: [
                 Expanded(
                   child: Text(
-                    item.material?.namaMaterial ?? 'Material #${item.materialId}',
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    item.material?.namaMaterial ??
+                        'Material #${item.materialId}',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusColor(item.status),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     item.status ?? 'UNKNOWN',
-                    style: TextStyle(color: color.foreground[100], fontSize: 12),
+                    style: TextStyle(
+                      color: color.foreground[100],
+                      fontSize: 12,
+                    ),
                   ),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Jumlah Pinjam: ${item.jumlahPinjam} ${item.material?.satuan ?? ""}'),
+            Text(
+              'Jumlah Pinjam: ${item.jumlahPinjam} ${item.material?.satuan ?? ""}',
+            ),
             if ((item.jumlahKembali ?? 0) > 0)
-              Text('Jumlah Kembali: ${item.jumlahKembali} ${item.material?.satuan ?? ""}'),
-            if (item.waktuPinjam != null) Text('Waktu Pinjam: ${item.waktuPinjam}'),
+              Text(
+                'Jumlah Kembali: ${item.jumlahKembali} ${item.material?.satuan ?? ""}',
+              ),
+            if (item.waktuPinjam != null)
+              Text('Waktu Pinjam: ${item.waktuPinjam}'),
             if (canReturn) ...[
               const SizedBox(height: 12),
               SizedBox(
@@ -131,8 +150,8 @@ class _PeminjamanMaterialPageState extends AppStatePage<PeminjamanMaterialPage> 
                   },
                   child: const Text('Kembalikan Material'),
                 ),
-              )
-            ]
+              ),
+            ],
           ],
         ),
       ),
