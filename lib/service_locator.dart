@@ -39,6 +39,14 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/material_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repository/material_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repository/material_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_master_materials.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_peminjaman_by_wo.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/pinjam_material.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/kembalikan_material.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/material/material_bloc.dart';
 import '/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import '/feature/work_order/data/repositories/work_order_repository_impl.dart';
 import '/feature/work_order/domain/repositories/work_order_repository.dart';
@@ -97,6 +105,11 @@ Future<void> init() async {
       () => MasterLocationRemoteDataSource(),
     );
     print("✅ MasterLocationRemoteDataSource terdaftar");
+
+    sl.registerLazySingleton<MaterialRemoteDataSource>(
+      () => MaterialRemoteDataSource(),
+    );
+    print("✅ MaterialRemoteDataSource terdaftar");
 
     // **2️⃣ Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
@@ -159,6 +172,13 @@ Future<void> init() async {
       ),
     );
     print("✅ MasterLocationRepository terdaftar");
+
+    sl.registerLazySingleton<MaterialRepository>(
+      () => MaterialRepositoryImpl(
+        sl<MaterialRemoteDataSource>(),
+      ),
+    );
+    print("✅ MaterialRepository terdaftar");
 
     // **4️⃣ Use Cases**
     sl.registerLazySingleton(
@@ -232,6 +252,12 @@ Future<void> init() async {
       () => GetMasterLocationsUsecase(sl<MasterLocationRepository>()),
     );
 
+    //material
+    sl.registerLazySingleton(() => GetMasterMaterials(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => GetPeminjamanByWo(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => PinjamMaterial(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => KembalikanMaterial(sl<MaterialRepository>()));
+
     print("✅ Semua use case terdaftar");
 
     // **5️⃣ Bloc**
@@ -280,6 +306,16 @@ Future<void> init() async {
     // Register ChipFieldBloc
     sl.registerFactory(() => ChipFieldBloc());
     print("✅ ChipFieldBloc terdaftar");
+
+    sl.registerFactory(
+      () => MaterialBloc(
+        getMasterMaterials: sl<GetMasterMaterials>(),
+        getPeminjamanByWo: sl<GetPeminjamanByWo>(),
+        pinjamMaterial: sl<PinjamMaterial>(),
+        kembalikanMaterial: sl<KembalikanMaterial>(),
+      ),
+    );
+    print("✅ MaterialBloc terdaftar");
 
     print("🎉 Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {

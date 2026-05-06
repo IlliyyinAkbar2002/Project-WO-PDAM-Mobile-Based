@@ -32,6 +32,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.locationType,
     super.workOrderType,
     super.status,
+    super.progresPersen,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -60,13 +61,26 @@ class WorkOrderModel extends WorkOrderEntity {
     print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
     print("📍 Data location yang diterima: ${map['location']}");
 
-    // TKT-07: `petugas` (object) diganti `petugas_list` (array).
+    // TKT-07: `petugas` (object) diganti `petugas_list` (array), lalu `assignment_members`.
     // Urutan fallback:
-    //   1. petugas_list (kontrak baru, Many-to-Many)
-    //   2. penerima_tugas (nama lama kalau ada)
-    //   3. petugas (object tunggal, response legacy) → bungkus jadi list
+    //   1. assignment_members (kontrak baru, hasManyThrough)
+    //   2. petugas_list (kontrak transisi, Many-to-Many)
+    //   3. penerima_tugas (nama lama kalau ada)
+    //   4. petugas (object tunggal, response legacy) → bungkus jadi list
     List<UserModel>? assignees;
-    if (map['petugas_list'] is List) {
+    if (map['assignment_members'] is List) {
+      assignees = (map['assignment_members'] as List)
+          .whereType<Map>()
+          .map((member) {
+            final userMap = member['user'];
+            if (userMap is Map) {
+              return UserModel.fromMap(Map<String, dynamic>.from(userMap));
+            }
+            return null;
+          })
+          .whereType<UserModel>()
+          .toList();
+    } else if (map['petugas_list'] is List) {
       assignees = (map['petugas_list'] as List)
           .whereType<Map>()
           .map((user) => UserModel.fromMap(Map<String, dynamic>.from(user)))
@@ -145,6 +159,7 @@ class WorkOrderModel extends WorkOrderEntity {
       status: rawStatus is Map
           ? StatusModel.fromMap(Map<String, dynamic>.from(rawStatus))
           : null,
+      progresPersen: parseInt(map['progres_persen']),
     );
   }
 
@@ -199,6 +214,7 @@ class WorkOrderModel extends WorkOrderEntity {
       locationType: locationType,
       workOrderType: workOrderType,
       status: status,
+      progresPersen: progresPersen,
     );
   }
 
@@ -223,6 +239,7 @@ class WorkOrderModel extends WorkOrderEntity {
       assigneeIds: entity.assigneeIds,
       assignee: entity.assignee,
       assignees: entity.assignees,
+      progresPersen: entity.progresPersen,
     );
   }
 }

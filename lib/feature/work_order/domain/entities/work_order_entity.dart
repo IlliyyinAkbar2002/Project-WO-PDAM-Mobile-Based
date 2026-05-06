@@ -30,6 +30,7 @@ class WorkOrderEntity extends Equatable {
   final LocationTypeEntity? locationType;
   final WorkOrderTypeEntity? workOrderType;
   final StatusEntity? status;
+  final int? progresPersen;
 
   const WorkOrderEntity({
     this.id,
@@ -55,6 +56,7 @@ class WorkOrderEntity extends Equatable {
     this.locationType,
     this.workOrderType,
     this.status,
+    this.progresPersen,
   });
 
   @override
@@ -82,6 +84,7 @@ class WorkOrderEntity extends Equatable {
     locationType,
     workOrderType,
     status,
+    progresPersen,
   ];
 
   WorkOrderEntity copyWith({
@@ -108,6 +111,7 @@ class WorkOrderEntity extends Equatable {
     LocationTypeEntity? locationType,
     WorkOrderTypeEntity? workOrderType,
     StatusEntity? status,
+    int? progresPersen,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -133,6 +137,7 @@ class WorkOrderEntity extends Equatable {
       locationType: locationType ?? this.locationType,
       workOrderType: workOrderType ?? this.workOrderType,
       status: status ?? this.status,
+      progresPersen: progresPersen ?? this.progresPersen,
     );
   }
 }

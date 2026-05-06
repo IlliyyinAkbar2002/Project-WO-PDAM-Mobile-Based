@@ -67,6 +67,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _isSubmitting = false;
   bool _hasClosedAfterSubmit = false;
   bool _requestedHeaderFallback = false;
+  Position? _currentPosition;
 
   // Simulasi JSON form dinamis (sementara hardcoded)
 
@@ -102,18 +103,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
     }
 
-    // Check distance dinonaktifkan - langsung set dalam jangkauan
-    // if (widget.lngLat != null && widget.isAssignee) {
-    //   _checkDistance();
-    // } else {
-    //   setState(() {
-    //     _isCheckingDistance = false;
-    //   });
-    // }
-    setState(() {
-      _inRange = true;
-      _isCheckingDistance = false;
-    });
+    if (widget.mode == 'Mulai' && widget.lngLat != null && widget.isAssignee) {
+      _checkDistance();
+    } else {
+      setState(() {
+        _inRange = true;
+        _isCheckingDistance = false;
+      });
+    }
   }
 
   void _onFieldChanged(String key, dynamic value) {
@@ -532,6 +529,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         photos: _images.whereType<XFile>().toList(),
         submitTime: DateTime.now().toUtc(),
         progressDetails: progressDetails,
+        latitude: _currentPosition?.latitude,
+        longitude: _currentPosition?.longitude,
+        accuracy: _currentPosition?.accuracy,
       );
 
       debugPrint(
@@ -685,6 +685,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         timeLimit: Duration(seconds: 10),
       ),
     );
+
+    _currentPosition = current;
 
     // Hitung jarak
     double distance = Geolocator.distanceBetween(

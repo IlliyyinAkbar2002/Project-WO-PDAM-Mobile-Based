@@ -520,7 +520,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     final List<UserEntity> selectedAssignees =
         (formData["assignee"] as List<UserEntity>?) ?? <UserEntity>[];
-    final List<int> staffIds = selectedAssignees
+    List<int> staffIds = selectedAssignees
         .map((user) => user.id)
         .whereType<int>()
         .toList();
@@ -529,6 +529,18 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       AppSnackbar.showError("Minimal 1 petugas harus dipilih.");
       return;
     }
+
+    final picIdStr = formData["picId"];
+    final picId = picIdStr != null ? int.tryParse(picIdStr.toString()) : null;
+
+    if (picId == null || !staffIds.contains(picId)) {
+      AppSnackbar.showError("Koordinator (PIC) harus dipilih dari anggota tim yang ditugaskan.");
+      return;
+    }
+
+    // Pindahkan PIC ke index 0 agar backend tahu itu koordinator
+    staffIds.remove(picId);
+    staffIds.insert(0, picId);
 
     final nomorMeter = (formData["nomorMeter"] ?? "").toString().trim();
     final kondisiMeterAwal = (formData["kondisiMeterAwal"] ?? "")

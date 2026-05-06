@@ -8,6 +8,8 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/peminjaman_material_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/progress_card.dart';
@@ -83,7 +85,28 @@ class _AssigneeWorkOrderDetailPageState
                 const SizedBox(height: 16),
                 Text("Pelaporan Work Order", style: textTheme.displayMedium),
                 const SizedBox(height: 8),
-                if (!hasMulai) _buildActionButton('Mulai'),
+                if (!hasMulai)
+                  Row(
+                    children: [
+                      Expanded(child: _buildActionButton('Mulai')),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PeminjamanMaterialPage(
+                                  workOrderId: widget.workOrderId ?? 0,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Pinjam Material'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ...progresses.map(
                   (progressIndex) => ProgressCard(
                     type: progressIndex.progressType!,
@@ -110,7 +133,27 @@ class _AssigneeWorkOrderDetailPageState
                 ),
                 if (hasMulai && !hasSelesai) ...[
                   const SizedBox(height: 8),
-                  _buildActionButton('Selesai'),
+                  Row(
+                    children: [
+                      Expanded(child: _buildActionButton('Selesai')),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PeminjamanMaterialPage(
+                                  workOrderId: widget.workOrderId ?? 0,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Kembalikan Material'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ],
             );

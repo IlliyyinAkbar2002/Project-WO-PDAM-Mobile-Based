@@ -251,6 +251,24 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
             ),
           ),
         ),
+        if (workOrder.progresPersen != null)
+          Container(
+            height: 15,
+            decoration: BoxDecoration(
+              color: color.primary[500],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '${workOrder.progresPersen}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color.foreground[100],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

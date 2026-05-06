@@ -11,6 +11,9 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
   final List<XFile>? photos;
   final List<ProgressDetailModel>? progressDetails;
   final String? reviewAction;
+  final double? latitude;
+  final double? longitude;
+  final double? accuracy;
   const WorkOrderProgressModel({
     super.id,
     super.order,
@@ -26,6 +29,9 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     this.progressDetails,
     this.photos,
     this.reviewAction,
+    this.latitude,
+    this.longitude,
+    this.accuracy,
   });
 
   factory WorkOrderProgressModel.fromJson(String source) =>
@@ -116,6 +122,9 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     return {
       'hasil_pengerjaan': description,
       'waktu_submit': submitTime?.toIso8601String(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'accuracy': accuracy,
       // submitted_by_user_id TIDAK dikirim — backend inject dari auth.
       'detail_progress':
           progressDetails?.map((detail) => detail.toMap()).toList() ?? [],
@@ -156,7 +165,9 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
           ?.map((e) => ProgressDetailModel.fromEntity(e))
           .toList(),
       reviewAction: null,
-
+      latitude: null,
+      longitude: null,
+      accuracy: null,
     );
   }
 }

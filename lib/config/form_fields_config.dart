@@ -134,6 +134,15 @@ class FormFieldsConfig {
         "showIf": !isAssignee,
       },
       {
+        "type": "dropdown",
+        "key": "picId",
+        "label": "Koordinator (PIC)",
+        "hint": "Pilih koordinator dari tim",
+        "options": assigneeOptions.map((e) => {"value": e.id, "label": e.employee?.name ?? e.email ?? 'Unknown'}).toList(),
+        "isReadOnly": !isAssignMode,
+        "showIf": isAssignMode,
+      },
+      {
         "type": "text",
         "key": "nomorMeter",
         "label": "Nomor Meter",

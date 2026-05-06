@@ -7,6 +7,7 @@ import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/material/material_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
 import 'service_locator.dart' as di;
 
@@ -44,11 +45,13 @@ class _AppState extends AppStatePage<App> {
   Widget buildPage(BuildContext context) {
     AppSnackbar.setTheme(ThemeManager.theme);
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (_) => di.sl<WorkOrderBloc>())],
+      providers: [
+        BlocProvider(create: (_) => di.sl<WorkOrderBloc>()),
+        BlocProvider(create: (_) => di.sl<MaterialBloc>()),
+      ],
       child: MaterialApp(
         theme: ThemeManager.theme,
         home: const LoginPage(),
-        // home: const LandingPage(),
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.light,
       ),
