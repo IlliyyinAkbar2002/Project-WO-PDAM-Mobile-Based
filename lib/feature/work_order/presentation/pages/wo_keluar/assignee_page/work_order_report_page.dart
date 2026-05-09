@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
@@ -391,26 +392,39 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Google Map
+        // OpenStreetMap
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
             height: 165,
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(target: location, zoom: 15),
-              markers: {
-                Marker(
-                  markerId: const MarkerId("work_order_location"),
-                  position: location,
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: location,
+                initialZoom: 15,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.none,
                 ),
-              },
-              zoomControlsEnabled: true,
-              scrollGesturesEnabled: false,
-              zoomGesturesEnabled: false,
-              rotateGesturesEnabled: false,
-              tiltGesturesEnabled: false,
-              myLocationButtonEnabled: false,
-              mapToolbarEnabled: false,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.project_mobile_pdam',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: location,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

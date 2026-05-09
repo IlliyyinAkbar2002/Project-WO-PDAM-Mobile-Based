@@ -138,7 +138,14 @@ class FormFieldsConfig {
         "key": "picId",
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
-        "options": assigneeOptions.map((e) => {"value": e.id, "label": e.employee?.name ?? e.email ?? 'Unknown'}).toList(),
+        "options": assigneeOptions
+            .map(
+              (e) => {
+                "value": e.id,
+                "label": e.employee?.name ?? e.email ?? 'Unknown',
+              },
+            )
+            .toList(),
         "isReadOnly": !isAssignMode,
         "showIf": isAssignMode,
       },

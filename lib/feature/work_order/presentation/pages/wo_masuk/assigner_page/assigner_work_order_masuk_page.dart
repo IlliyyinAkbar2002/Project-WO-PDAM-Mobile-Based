@@ -53,7 +53,13 @@ class _AssignerWorkOrderMasukPageState
     if (_selectedFilter == 0) {
       return AssignerWorkOrderListPage(
         picId: widget.picId,
-        excludeStatus: const [WorkOrderStatusId.menungguApprovalManager],
+        excludeStatus: const [
+          WorkOrderStatusId.menungguApprovalManager,
+          WorkOrderStatusId.ditugaskanKeStaff,
+          WorkOrderStatusId.inProgress,
+          WorkOrderStatusId.pengecekan,
+          WorkOrderStatusId.selesai,
+        ],
       );
     } else {
       return ApprovalWorkOrderListPage(picId: widget.picId);

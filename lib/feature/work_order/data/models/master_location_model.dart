@@ -19,9 +19,9 @@ class MasterLocationModel extends MasterLocationEntity {
     return MasterLocationModel(
       id: map['id'],
       nama: map['nama'] ?? '',
-      latitude: (map['latitude'] ?? 0).toDouble(),
-      longitude: (map['longitude'] ?? 0).toDouble(),
-      radiusMeter: map['radius_meter'] ?? 0,
+      latitude: _toDouble(map['latitude']),
+      longitude: _toDouble(map['longitude']),
+      radiusMeter: _toInt(map['radius_meter']),
     );
   }
 
@@ -53,5 +53,18 @@ class MasterLocationModel extends MasterLocationEntity {
       longitude: entity.longitude,
       radiusMeter: entity.radiusMeter,
     );
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 }

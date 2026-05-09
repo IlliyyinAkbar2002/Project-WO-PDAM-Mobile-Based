@@ -19,7 +19,7 @@ class MasterLocationRepositoryImpl implements MasterLocationRepository {
         final entities = response.data!
             .map((model) => model.toEntity())
             .toList();
-        return DataSuccess(entities);
+        return DataSuccess(_uniqueLocations(entities));
       } else {
         return DataFailed(response.error!);
       }
@@ -44,5 +44,22 @@ class MasterLocationRepositoryImpl implements MasterLocationRepository {
     } catch (e) {
       return DataFailed("Terjadi kesalahan: $e");
     }
+  }
+
+  List<MasterLocationEntity> _uniqueLocations(
+    List<MasterLocationEntity> locations,
+  ) {
+    final unique = <String, MasterLocationEntity>{};
+
+    for (final location in locations) {
+      final key = [
+        location.nama.trim().toLowerCase(),
+        location.latitude.toStringAsFixed(7),
+        location.longitude.toStringAsFixed(7),
+      ].join('|');
+      unique.putIfAbsent(key, () => location);
+    }
+
+    return unique.values.toList();
   }
 }

@@ -8,7 +8,7 @@ import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/material/material_bloc.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/login.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/auth/login.dart';
 import 'service_locator.dart' as di;
 
 void main() async {

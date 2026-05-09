@@ -14,6 +14,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dar
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
@@ -62,6 +63,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
   String? _detailErrorMessage;
+  bool _assignableUsersRequested = false;
 
   bool isDataLoaded = false;
   bool _isSubmitting = false;
@@ -88,8 +90,21 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     } else {
       bloc.add(GetWorkOrderTypesEvent());
       bloc.add(GetLocationTypesEvent());
-      bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
+      _loadAssignableUsers(bloc, user);
     }
+  }
+
+  void _loadAssignableUsers(WorkOrderBloc bloc, Map<String, dynamic>? user) {
+    if (_assignableUsersRequested) return;
+    _assignableUsersRequested = true;
+    bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
+  }
+
+  bool _shouldLoadAssignableUsersForDetail() {
+    return isDetailMode &&
+        !_isManager &&
+        !widget.isAssignee &&
+        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
   }
 
   void _reloadDetail() {
@@ -101,8 +116,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
     final employee = user?['employee'];
-    final dynamic rawPositionId =
-        (employee is Map) ? employee['position_id'] : null;
+    final dynamic rawPositionId = (employee is Map)
+        ? employee['position_id']
+        : null;
 
     final int? callerJabatanId = rawPositionId is int
         ? rawPositionId
@@ -231,6 +247,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "latitude": state.workOrder.latitude,
               "longitude": state.workOrder.longitude,
               "locationId": state.workOrder.locationId,
+              "locationName": state.workOrder.location?.nama,
               "radiusMeter": state.workOrder.location?.radiusMeter,
               "startDateTime": state.workOrder.startDateTime,
               "duration": state.workOrder.duration,
@@ -248,6 +265,12 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             );
             _checkDataLoaded();
           });
+          if (_shouldLoadAssignableUsersForDetail()) {
+            _loadAssignableUsers(
+              context.read<WorkOrderBloc>(),
+              AuthStorage.getUserSync(),
+            );
+          }
         }
         _checkDataLoaded();
       },
@@ -501,6 +524,15 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       longitude: formData["longitude"],
       locationId:
           formData["locationId"], // ID dari MasterLocation untuk radius check
+      location: formData["locationName"] != null
+          ? MasterLocationEntity(
+              id: formData["locationId"],
+              nama: formData["locationName"],
+              latitude: formData["latitude"] ?? 0,
+              longitude: formData["longitude"] ?? 0,
+              radiusMeter: formData["radiusMeter"] ?? 1000,
+            )
+          : null,
       creator: widget.picId,
       requiresApproval: widget.isOvertime,
     );
@@ -534,7 +566,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     final picId = picIdStr != null ? int.tryParse(picIdStr.toString()) : null;
 
     if (picId == null || !staffIds.contains(picId)) {
-      AppSnackbar.showError("Koordinator (PIC) harus dipilih dari anggota tim yang ditugaskan.");
+      AppSnackbar.showError(
+        "Koordinator (PIC) harus dipilih dari anggota tim yang ditugaskan.",
+      );
       return;
     }
 
@@ -575,15 +609,17 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     if (result is DataSuccess<void>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
-      context.read<WorkOrderBloc>().add(GetWorkOrderDetailEvent(widget.workOrderId!));
+      context.read<WorkOrderBloc>().add(
+        GetWorkOrderDetailEvent(widget.workOrderId!),
+      );
       context.read<WorkOrderBloc>().add(
         GetProgressByWorkOrderIdEvent(widget.workOrderId!),
       );
       return;
     }
 
-    final message = (result as DataFailed).error?.toString() ??
-        "Gagal assign staff.";
+    final message =
+        (result as DataFailed).error?.toString() ?? "Gagal assign staff.";
     AppSnackbar.showError(message);
   }
 

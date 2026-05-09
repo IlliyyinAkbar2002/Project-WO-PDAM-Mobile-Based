@@ -179,6 +179,7 @@ class WorkOrderModel extends WorkOrderEntity {
       'estimasi_selesai': endDateTime?.toIso8601String(),
       'longitude': longitude,
       'latitude': latitude,
+      'nama_lokasi': location?.nama,
       'location_id': locationId, // ID dari MasterLocation untuk radius check
       // pic_id tidak dikirim - backend akan otomatis menggunakan authenticated user
       'status_id': statusId,

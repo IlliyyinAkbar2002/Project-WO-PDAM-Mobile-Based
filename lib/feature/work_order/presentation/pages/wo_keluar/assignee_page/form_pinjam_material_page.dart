@@ -79,7 +79,7 @@ class _FormPinjamMaterialPageState extends AppStatePage<FormPinjamMaterialPage> 
                       labelText: 'Pilih Material',
                       border: OutlineInputBorder(),
                     ),
-                    value: _selectedMaterial,
+                    initialValue: _selectedMaterial,
                     items: materials.map((m) {
                       return DropdownMenuItem(
                         value: m,

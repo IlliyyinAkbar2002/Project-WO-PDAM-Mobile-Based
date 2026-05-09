@@ -10,8 +10,14 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/butt
 class ApprovalWorkOrderDetailPage extends StatefulWidget {
   final int? workOrderId;
   final int? splId;
+  final int? userId;
 
-  const ApprovalWorkOrderDetailPage({super.key, this.workOrderId, this.splId});
+  const ApprovalWorkOrderDetailPage({
+    super.key,
+    this.workOrderId,
+    this.splId,
+    this.userId,
+  });
 
   @override
   State<ApprovalWorkOrderDetailPage> createState() =>
@@ -33,18 +39,21 @@ class _ApprovalWorkOrderDetailPageState
               workOrderId: widget.workOrderId,
               enableInnerScroll: false,
             ),
-            ButtonInteraction(
-              status: 1,
-              // onPressed: _onSubmit,
-            ),
+            ButtonInteraction(status: 1, onPressed: _onSubmit),
           ],
         ),
       ),
     );
   }
 
-  void _onSubmit() {
-    final approval = SplModel(id: widget.splId, statusId: 2);
+  void _onSubmit(String action) {
+    final isAccept = action == 'Accept';
+    final approval = SplModel(
+      id: widget.splId,
+      statusId: isAccept ? 2 : 4,
+      decision: isAccept ? 'accept' : 'reject',
+      verificatorId: widget.userId,
+    );
 
     context.read<WorkOrderBloc>().add(UpdateSplEvent(approval));
   }

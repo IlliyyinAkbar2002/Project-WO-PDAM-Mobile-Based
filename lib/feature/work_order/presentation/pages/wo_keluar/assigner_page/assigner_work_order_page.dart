@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_list_page.dart';
@@ -49,7 +50,13 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
 
   Widget _getPage() {
     if (_selectedFilter == 0) {
-      return AssignerWorkOrderListPage(picId: widget.picId);
+      return AssignerWorkOrderListPage(
+        picId: widget.picId,
+        excludeStatus: const [
+          WorkOrderStatusId.menungguApprovalManager,
+          WorkOrderStatusId.ditugaskanKeSpv,
+        ],
+      );
     } else {
       return ApprovalWorkOrderListPage(picId: widget.picId);
     }

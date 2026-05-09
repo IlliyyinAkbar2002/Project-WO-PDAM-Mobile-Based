@@ -12,7 +12,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landin
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/register.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/auth/register.dart';
 
 class _LoginTokens {
   static const Color bgGradientStart = Color(0xFFCEFAFE); // rgb(206,250,254)
