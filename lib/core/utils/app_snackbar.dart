@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:another_flushbar/flushbar.dart';
-import 'package:mobile_intern_pdam/core/widget/app_count_down.dart';
+import 'package:project_mobile_pdam/core/widget/app_count_down.dart';
 
 class AppSnackbar {
   static final List<GlobalKey<ScaffoldMessengerState>> scaffoldMessengerKeys =
@@ -51,7 +51,17 @@ class AppSnackbar {
       borderRadius: BorderRadius.circular(10),
     );
     if (scaffoldMessengerKeys.isEmpty) return;
-    await _snackbar?.show(scaffoldMessengerKeys.last.currentContext!);
+    // Cari key dengan context yang masih valid. Terakhir kali di-push biasanya
+    // yang paling atas, tapi kalau baru saja di-pop, currentContext-nya null.
+    BuildContext? ctx;
+    for (final key in scaffoldMessengerKeys.reversed) {
+      if (key.currentContext != null) {
+        ctx = key.currentContext;
+        break;
+      }
+    }
+    if (ctx == null) return;
+    await _snackbar?.show(ctx);
   }
 
   static Future<bool?> showUndo(String message) async {
@@ -77,7 +87,15 @@ class AppSnackbar {
 
     if (scaffoldMessengerKeys.isEmpty) return false;
 
-    return (await _snackbar!.show(scaffoldMessengerKeys.last.currentContext!))
-        as bool?;
+    BuildContext? ctx;
+    for (final key in scaffoldMessengerKeys.reversed) {
+      if (key.currentContext != null) {
+        ctx = key.currentContext;
+        break;
+      }
+    }
+    if (ctx == null) return false;
+
+    return (await _snackbar!.show(ctx)) as bool?;
   }
 }

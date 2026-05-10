@@ -1,8 +1,8 @@
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/user_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/user_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/user_repository.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remoteDataSource;
@@ -10,10 +10,15 @@ class UserRepositoryImpl implements UserRepository {
   UserRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<DataState<List<UserEntity>>> getUsers() async {
+  Future<DataState<List<UserEntity>>> getUsers({
+    int? departemenId,
+    List<int>? jabatanIds,
+  }) async {
     try {
-      // Panggil data dari remote data source
-      final response = await remoteDataSource.fetchUsers();
+      final response = await remoteDataSource.fetchUsers(
+        departemenId: departemenId,
+        jabatanIds: jabatanIds,
+      );
       print("UserRepository - Fetched Users: $response");
       if (response is DataSuccess<List<UserModel>>) {
         final entities = response.data!

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_intern_pdam/config/app_config.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 
 class ImagePickerField extends StatefulWidget {
   final List<dynamic> initialImages; // Untuk multi-image
@@ -36,6 +36,21 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
       _singleImage = widget.initialImage;
     } else {
       _imageFiles = List.from(widget.initialImages);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ImagePickerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.singleImage) {
+      if (widget.initialImage != oldWidget.initialImage) {
+        _singleImage = widget.initialImage;
+      }
+    } else {
+      if (widget.initialImages != oldWidget.initialImages &&
+          widget.initialImages.length != _imageFiles.length) {
+        _imageFiles = List.from(widget.initialImages);
+      }
     }
   }
 

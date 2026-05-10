@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/core/widget/custom_form.dart';
-import 'package:mobile_intern_pdam/core/widget/image_picker.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/widget/custom_form.dart';
+import 'package:project_mobile_pdam/core/widget/image_picker.dart';
 
 class DynamicFormBuilder extends StatefulWidget {
   final List<Map<String, dynamic>> fields;

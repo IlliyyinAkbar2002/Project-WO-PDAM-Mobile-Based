@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/spl_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/spl_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/spl_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/spl_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/spl_repository.dart';
 
 class SplRepositoryImpl implements SplRepository {
   final SplRemoteDataSource remoteDataSource;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/utils/app_snackbar.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/widget/app_state.dart';
 
 abstract class AppStatePage<T extends StatefulWidget> extends AppState<T> {
   late final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;

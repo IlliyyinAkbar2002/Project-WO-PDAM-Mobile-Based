@@ -16,7 +16,7 @@ if (localPropertiesFile.exists()) {
 val mapsApiKey = localProperties.getProperty("maps_api_key") ?: throw IllegalStateException("Property 'maps_api_key' not found in local.properties")
 
 android {
-    namespace = "com.example.mobile_intern_pdam"
+    namespace = "com.example.Project_mobile_pdam"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

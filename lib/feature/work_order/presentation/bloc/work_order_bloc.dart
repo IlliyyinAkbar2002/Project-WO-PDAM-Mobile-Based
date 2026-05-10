@@ -1,21 +1,22 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_intern_pdam/core/usecase/usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_type_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_types_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progress_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
+import 'package:project_mobile_pdam/core/usecase/usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_type_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_types_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
 import '/feature/work_order/domain/usecases/get_work_orders_usecase.dart';
 import '/feature/work_order/domain/usecases/get_work_order_detail_usecase.dart';
 import '/feature/work_order/domain/usecases/create_work_order_usecase.dart';
@@ -265,11 +266,33 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(WorkOrderCreated(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal membuat pekerjaan: $e"));
     }
+  }
+
+  /// Ubah error mentah dari layer data menjadi pesan yang informatif.
+  /// Untuk [DioException] kita prefer body response dari server (422/500) karena
+  /// Laravel mengirim `{ message: "...", errors: {...} }` atau `{ error: "..." }`.
+  String _friendlyErrorMessage(dynamic error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map) {
+        final errors = data['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) return first.first.toString();
+          return first.toString();
+        }
+        final message = data['message'] ?? data['error'];
+        if (message != null) return message.toString();
+      }
+      if (data is String && data.isNotEmpty) return data;
+      return error.message ?? 'Terjadi kesalahan jaringan.';
+    }
+    return error?.toString() ?? 'Terjadi kesalahan tidak diketahui.';
   }
 
   Future<void> _onUpdateWorkOrderEvent(
@@ -414,7 +437,12 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   ) async {
     emit(WorkOrderLoading());
     try {
-      final dataState = await getUsersUsecase(const NoParams());
+      final dataState = await getUsersUsecase(
+        GetUsersParams(
+          departemenId: event.departemenId,
+          jabatanIds: event.jabatanIds,
+        ),
+      );
       print("UserBloc - Loaded Users: $dataState");
       if (dataState is DataSuccess) {
         emit(UsersLoaded(dataState.data!));

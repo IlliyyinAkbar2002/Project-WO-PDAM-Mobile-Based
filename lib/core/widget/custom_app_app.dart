@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/app_stateless_widget.dart';
+import 'package:project_mobile_pdam/core/widget/app_stateless_widget.dart';
 
 class CustomAppBar extends AppStatelessWidget implements PreferredSizeWidget {
   final String title;

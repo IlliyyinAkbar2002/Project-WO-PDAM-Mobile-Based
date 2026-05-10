@@ -1,41 +1,38 @@
 import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:mobile_intern_pdam/core/utils/debug_log.dart';
+import 'package:project_mobile_pdam/core/utils/debug_log.dart';
 
 class AppConfig {
-  // Use safe getters so the app won't crash if dotenv hasn't been loaded
-  static String _getEnv(String key, String fallback) {
-    try {
-      // flutter_dotenv exposes a safe "isInitialized" flag
-      if (dotenv.isInitialized) {
-        return dotenv.env[key] ?? fallback;
-      }
-    } catch (_) {
-      // ignore: avoiding crash when dotenv throws NotInitializedError
-    }
-    return fallback;
+  static bool _initialized = false;
+
+  static late final String environment;
+  static late final String backendDomain;
+  static late final String baseStorageUrl;
+  static late final String googleMapsApiKey;
+
+  static Future<void> init() async {
+    if (_initialized) return;
+
+    await dotenv.load(fileName: ".env");
+
+    environment = dotenv.env['ENVIRONMENT'] ?? 'development';
+    backendDomain = dotenv.env['BACKEND_DOMAIN'] ?? '';
+    baseStorageUrl = dotenv.env['BACKEND_URL'] ?? '$backendDomain/storage/';
+    googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API'] ?? '';
+
+    _initialized = true;
+
+    DebugLog.info(message: "AppConfig initialized: ${toJson()}");
+    DebugLog.info(message: "BACKEND_DOMAIN: $backendDomain");
   }
 
-  static final String environment = _getEnv('ENVIRONMENT', 'development');
-  // Use default backend domain if not provided in .env
-  static final String backendDomain = _getEnv(
-    'BACKEND_DOMAIN',
-    'http://192.168.1.6:8000',
-  );
-  static final String baseStorageUrl = _getEnv(
-    'BACKEND_URL',
-    '$backendDomain/storage/app/public/',
-  );
-
-  // Google Maps API Key - safe getter with fallback
-  static String get googleMapsApiKey => _getEnv(
-    'GOOGLE_MAPS_API',
-    'AIzaSyBmtfPnRIbGAAXra-XJOMQJ1fekZzLAyk4', // fallback to local.properties value
-  );
-
   static Map<String, dynamic> toMap() {
-    return {'environment': environment};
+    return {
+      'environment': environment,
+      'backendDomain': backendDomain,
+      'googleMapsApiKey': googleMapsApiKey.isNotEmpty ? '***' : 'NOT SET',
+    };
   }
 
   static String toJson() {

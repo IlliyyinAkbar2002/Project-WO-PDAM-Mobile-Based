@@ -1,11 +1,11 @@
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/form_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/location_type_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/spl_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/form_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/spl_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
 import '/feature/work_order/domain/entities/work_order_entity.dart';
 

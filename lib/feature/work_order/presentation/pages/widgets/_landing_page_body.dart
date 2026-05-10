@@ -44,6 +44,55 @@ class _LandingPageBody extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          // Featured shortcut cards
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _NavigationCard(
+                    title: 'Lembur',
+                    subtitle: 'Ajukan lembur kerja',
+                    icon: Icons.access_time_rounded,
+                    gradientColors: const [
+                      Color(0xFF2E7BFF),
+                      Color(0xFF0B2A6B),
+                    ],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PengajuanLemburPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _NavigationCard(
+                    title: 'Peminjaman',
+                    subtitle: 'Pinjam item inventory',
+                    icon: Icons.inventory_2_outlined,
+                    gradientColors: const [
+                      Color(0xFF00B894),
+                      Color(0xFF0B6E4F),
+                    ],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PeminjamanItemListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Quick Access Section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

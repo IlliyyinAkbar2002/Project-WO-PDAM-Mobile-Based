@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/form_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/work_order_progress_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/form_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
 
 class ProgressDetailModel extends ProgressDetailEntity {
   final XFile? image;

@@ -1,0 +1,101 @@
+class TipeProgressId {
+  static const int mulai = 1;
+  static const int progress = 2;
+  static const int selesai = 3;
+
+  static const String kodeMulai = 'MULAI';
+  static const String kodeProgress = 'PROGRESS';
+  static const String kodeSelesai = 'SELESAI';
+
+  static bool isMulai(int? id) => id == mulai;
+  static bool isProgress(int? id) => id == progress;
+  static bool isSelesai(int? id) => id == selesai;
+
+  static String label(int? id, {int? order}) {
+    switch (id) {
+      case mulai:
+        return 'Mulai';
+      case selesai:
+        return 'Selesai';
+      case progress:
+        if (order != null) return 'Progress ${order > 0 ? order : order + 1}';
+        return 'Progress';
+      default:
+        return '-';
+    }
+  }
+
+  static int? fromKode(String? kode) {
+    switch (kode?.toUpperCase()) {
+      case kodeMulai:
+        return mulai;
+      case kodeProgress:
+        return progress;
+      case kodeSelesai:
+        return selesai;
+      default:
+        return null;
+    }
+  }
+}
+
+class ProgressStatusId {
+  static const int draft = 9;
+  static const int submitted = 10;
+  static const int verified = 11;
+
+  static bool isDraft(int? id) => id == draft;
+  static bool isSubmitted(int? id) => id == submitted;
+  static bool isVerified(int? id) => id == verified;
+}
+
+/// Kode master action dari TKT-01 (stabil, tidak tergantung id numerik).
+/// Nilainya match dengan kolom `m_action.kode`.
+class WorkOrderActionKode {
+  static const String penugasan = 'PENUGASAN';
+  static const String freeze = 'FREEZE';
+  static const String resume = 'RESUME';
+  static const String extend = 'EXTEND';
+}
+
+class WorkOrderStatusId {
+  static const int pengecekan = 5;
+  static const int selesai = 6;
+  static const int inProgress = 7;
+
+  static const int ditugaskanKeSpv = 12;
+  static const int ditugaskanKeStaff = 13;
+  static const int menungguApprovalManager = 16;
+  static const int ditolakManager = 17;
+}
+
+class WorkOrderListFilterTypeId {
+  static const int infrastruktur = 1;
+  static const int jaringan = 2;
+  static const int meter = 3;
+}
+
+/// Kategori form WO — sesuai m_jenis_workorder.kategori_form di backend.
+/// Digunakan untuk menentukan form apa yang ditampilkan SPV saat assign staff.
+class WoKategoriForm {
+  static const String meter = 'meter';
+  static const String jaringan = 'jaringan';
+  static const String infrastruktur = 'infrastruktur';
+
+  /// Label UI untuk setiap kategori
+  static String label(String? kategori) {
+    switch (kategori) {
+      case meter:
+        return 'WO Meter';
+      case jaringan:
+        return 'WO Jaringan';
+      case infrastruktur:
+        return 'WO Infrastruktur';
+      default:
+        return 'Work Order';
+    }
+  }
+
+  /// Semua kategori yang tersedia
+  static const List<String> all = [meter, jaringan, infrastruktur];
+}

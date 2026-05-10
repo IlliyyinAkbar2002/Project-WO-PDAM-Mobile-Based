@@ -1,12 +1,23 @@
 import 'package:equatable/equatable.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/documentation_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/documentation_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
 
 class WorkOrderProgressEntity extends Equatable {
   final int? id;
   final int? order;
   final int? workOrderId;
-  final String? progressType;
+
+  /// FK ke `m_tipe_progress` (lihat TKT-05). Sumber kebenaran untuk
+  /// membedakan Mulai / Progress / Selesai.
+  final int? tipeProgressId;
+
+  /// FK ke `m_status` (lihat TKT-03). Draft / Submitted / Verified.
+  final int? statusId;
+
+  /// FK ke `users` (lihat TKT-04). Terisi setelah progres disubmit.
+  final int? submittedByUserId;
+
   final String? description;
   final List<DocumentationEntity>? documentation;
   final DateTime? submitTime;
@@ -18,7 +29,9 @@ class WorkOrderProgressEntity extends Equatable {
     this.id,
     this.order,
     this.workOrderId,
-    this.progressType,
+    this.tipeProgressId,
+    this.statusId,
+    this.submittedByUserId,
     this.description,
     this.documentation,
     this.submitTime,
@@ -27,12 +40,31 @@ class WorkOrderProgressEntity extends Equatable {
     this.progressDetail,
   });
 
+  /// Backward-compat getter: UI Flutter lama masih membaca
+  /// `progressType` sebagai String ("Mulai"/"Selesai"/"Progress N").
+  /// Di-derive dari [tipeProgressId] + [order] agar tidak perlu
+  /// merombak seluruh UI sekaligus.
+  String? get progressType {
+    if (tipeProgressId == null) return null;
+    return TipeProgressId.label(tipeProgressId, order: order);
+  }
+
+  bool get isMulai => TipeProgressId.isMulai(tipeProgressId);
+  bool get isSelesai => TipeProgressId.isSelesai(tipeProgressId);
+  bool get isProgress => TipeProgressId.isProgress(tipeProgressId);
+
+  bool get isDraft => ProgressStatusId.isDraft(statusId);
+  bool get isSubmitted => ProgressStatusId.isSubmitted(statusId);
+  bool get isVerified => ProgressStatusId.isVerified(statusId);
+
   @override
   List<Object?> get props => [
     id,
     order,
     workOrderId,
-    progressType,
+    tipeProgressId,
+    statusId,
+    submittedByUserId,
     description,
     documentation,
     submitTime,
@@ -45,12 +77,12 @@ class WorkOrderProgressEntity extends Equatable {
     int? id,
     int? order,
     int? workOrderId,
-    String? progressType,
+    int? tipeProgressId,
+    int? statusId,
+    int? submittedByUserId,
     String? description,
     List<DocumentationEntity>? documentation,
     DateTime? submitTime,
-    int? statusId,
-    int? progressWorkOrderId,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<ProgressDetailEntity>? progressDetail,
@@ -59,7 +91,9 @@ class WorkOrderProgressEntity extends Equatable {
       id: id ?? this.id,
       order: order ?? this.order,
       workOrderId: workOrderId ?? this.workOrderId,
-      progressType: progressType ?? this.progressType,
+      tipeProgressId: tipeProgressId ?? this.tipeProgressId,
+      statusId: statusId ?? this.statusId,
+      submittedByUserId: submittedByUserId ?? this.submittedByUserId,
       description: description ?? this.description,
       documentation: documentation ?? this.documentation,
       submitTime: submitTime ?? this.submitTime,

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:mobile_intern_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/resource/api_error_interceptor.dart';
 import '/core/utils/debug_log.dart';
 
 enum ContentType { json, form, multipart }
@@ -19,12 +20,15 @@ class RemoteDatasource {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          // Add X-Requested-With to indicate API request (not web browser)
           'X-Requested-With': 'XMLHttpRequest',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
     _addDefaultInterceptors();
+    // TKT-08: parse body {message, errors} dari Laravel jadi ApiException
+    // supaya Bloc/UI bisa branching lewat `isValidation`, `isNotFound`, dst.
+    dio.interceptors.add(ApiErrorInterceptor());
   }
 
   static void setAuthTokenGetter(Function getter) {
@@ -121,10 +125,10 @@ class RemoteDatasource {
             ? 'application/x-www-form-urlencoded'
             : 'multipart/form-data',
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       };
     } catch (e) {
-      // If authTokenGetter not set, return headers without auth
       DebugLog.warning(message: '⚠️ Failed to get auth token: $e');
       return {
         'Content-Type': contentType == null || contentType == ContentType.json
@@ -133,6 +137,7 @@ class RemoteDatasource {
             ? 'application/x-www-form-urlencoded'
             : 'multipart/form-data',
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       };
     }
   }

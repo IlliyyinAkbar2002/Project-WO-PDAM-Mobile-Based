@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/config/theme/app_color.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assigner_page/assigner_work_order_page.dart';
-import 'package:mobile_intern_pdam/core/utils/auth_storage.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/login.dart';
+import 'package:project_mobile_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_masuk/assigner_page/assigner_work_order_masuk_page.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/extrawork/pengajuan_lembur.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/inventory/peminjaman_item_list.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/auth/login.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/notifications.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 
 part 'widgets/_landing_page_header.dart';
 part 'widgets/_landing_page_body.dart';
@@ -81,6 +88,81 @@ class LandingPageNavigationList extends StatelessWidget {
     return _NavigationList(
       selectedPicId: selectedPicId,
       selectedUserId: selectedUserId,
+    );
+  }
+}
+
+class LandingPageQuickAccessHeader extends StatelessWidget {
+  final String roleTitle;
+  final VoidCallback? onViewAll;
+
+  const LandingPageQuickAccessHeader({
+    super.key,
+    required this.roleTitle,
+    this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    const navy = Color(0xFF0B2A6B);
+    const muted = Color(0xFF90A1B9);
+    const linkColor = Color(0xFF2E7BFF);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QUICK ACCESS',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: muted,
+                    fontSize: 11,
+                    letterSpacing: 1.54,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  roleTitle,
+                  style: textTheme.titleLarge?.copyWith(
+                    color: navy,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.4,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onViewAll != null)
+            InkWell(
+              onTap: onViewAll,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 2,
+                ),
+                child: Text(
+                  'View all',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: linkColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

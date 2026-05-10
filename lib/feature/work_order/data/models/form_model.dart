@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:mobile_intern_pdam/feature/work_order/data/models/option_form_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/form_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/form_entity.dart';
 
 class FormModel extends FormEntity {
   const FormModel({

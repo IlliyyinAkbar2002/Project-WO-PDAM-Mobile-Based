@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/core/resource/remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/user_model.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
 
 class UserRemoteDataSource extends RemoteDatasource {
   UserRemoteDataSource() : super();
@@ -38,6 +38,14 @@ class UserRemoteDataSource extends RemoteDatasource {
       // The new endpoint wraps data in a 'data' field
       dynamic responseData = response.data;
       if (responseData is Map && responseData.containsKey('data')) {
+        
+        final dynamic meta = responseData['meta'];
+        if (meta is Map) {
+          print(
+            "📥 /v1/pegawai/filter meta: allowed_jabatan_ids=${meta['allowed_jabatan_ids']}, "
+            "caller_jabatan_id=${meta['caller_jabatan_id']}",
+          );
+        }
         responseData = responseData['data'];
       }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 
 class ButtonInteraction extends StatefulWidget {
   final int? status;
@@ -102,6 +103,14 @@ class _ButtonInteractionState extends AppStatePage<ButtonInteraction> {
         return 'In Progress';
       case 8:
         return 'Freeze';
+      case WorkOrderStatusId.ditugaskanKeSpv:
+        return 'Ditugaskan ke SPV';
+      case WorkOrderStatusId.ditugaskanKeStaff:
+        return 'Ditugaskan ke Staff';
+      case WorkOrderStatusId.menungguApprovalManager:
+        return 'Menunggu Approval Manager';
+      case WorkOrderStatusId.ditolakManager:
+        return 'Ditolak Manager';
       default:
         return 'Ajukan';
     }

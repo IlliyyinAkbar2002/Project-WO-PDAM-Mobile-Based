@@ -59,5 +59,7 @@ docs
 **/.env.*
 .FullName
 .cursor
-.kiro
+
+.antigravity
 .vscode_ai
+.kiro

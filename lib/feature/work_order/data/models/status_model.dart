@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/status_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/status_entity.dart';
 
 class StatusModel extends StatusEntity {
   const StatusModel({super.id, super.status});

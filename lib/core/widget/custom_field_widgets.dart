@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/input_chip/editable_chip_field.dart';
-import 'package:mobile_intern_pdam/core/widget/location_picker.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/widgets/time_estimate.dart';
+import 'package:project_mobile_pdam/core/widget/input_chip/editable_chip_field.dart';
+import 'package:project_mobile_pdam/core/widget/location_picker.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/time_estimate.dart';
 
 typedef CustomFieldBuilder =
     Widget Function(
@@ -17,12 +17,28 @@ class CustomFieldWidgets {
       isReadOnly: field["isReadOnly"] ?? false,
       latitude: formData["latitude"],
       longitude: formData["longitude"],
-      onLocationSelected: (lat, long) {
-        if (!(field["isReadOnly"] ?? false)) {
-          onFieldChanged("latitude", lat);
-          onFieldChanged("longitude", long);
-        }
-      },
+      locationId: formData["locationId"],
+      locationName: formData["locationName"],
+      onLocationSelected:
+          (
+            lat,
+            long, {
+            int? locationId,
+            int? radiusMeter,
+            String? locationName,
+          }) {
+            if (!(field["isReadOnly"] ?? false)) {
+              onFieldChanged("latitude", lat);
+              onFieldChanged("longitude", long);
+              onFieldChanged("locationId", locationId);
+              onFieldChanged("radiusMeter", radiusMeter);
+              onFieldChanged("locationName", locationName);
+              // Update field "lokasi" text jika user pilih dari search
+              if (locationName != null && locationName.isNotEmpty) {
+                onFieldChanged("lokasi", locationName);
+              }
+            }
+          },
     ),
     "timeEstimate": (field, formData, onFieldChanged) => TimeEstimate(
       isOvertime: field["isOvertime"] ?? false, // ✅ Ambil dari formData

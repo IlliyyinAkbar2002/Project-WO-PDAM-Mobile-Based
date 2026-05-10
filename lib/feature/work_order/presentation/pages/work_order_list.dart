@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assignee_page/assignee_work_order_detail_page.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/pages/assigner_page/create_work_order_page.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/create_work_order_page.dart';
 
 class WorkOrderList extends StatefulWidget {
   final List<int>? status;
@@ -165,6 +166,9 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           final lnglat = workOrder.latitude != null
               ? LatLng(workOrder.latitude!, workOrder.longitude!)
               : null;
+          // Ambil radius dan nama lokasi dari location jika ada
+          final radiusMeter = workOrder.location?.radiusMeter ?? 100;
+          final locationName = workOrder.location?.nama;
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -173,7 +177,10 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                       isAssignee: widget.isAssignee,
                       workOrderId: workOrder.id,
                       status: workOrder.statusId,
+                      kategoriForm: workOrder.kategoriForm,
                       lngLat: lnglat,
+                      locationName: locationName,
+                      radiusMeter: radiusMeter,
                     )
                   : CreateWorkOrderPage(
                       picId: widget.picId,
@@ -193,10 +200,27 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
   }
 
   Widget _buildStatusChip(WorkOrderEntity workOrder) {
-    final type = workOrder.requiresApproval ? "WO Lembur" : "WO Normal";
-    final typeColor = workOrder.requiresApproval
-        ? color.warning
-        : color.success;
+    // Tampilkan kategori WO (Jaringan/Infrastruktur/Meter) bukan Normal/Lembur
+    final kategori = workOrder.kategoriForm;
+    final String typeLabel;
+    final Color typeColor;
+    switch (kategori) {
+      case 'meter':
+        typeLabel = 'Meter';
+        typeColor = color.warning;
+        break;
+      case 'jaringan':
+        typeLabel = 'Jaringan';
+        typeColor = color.success;
+        break;
+      case 'infrastruktur':
+        typeLabel = 'Infrastruktur';
+        typeColor = const Color(0xFF6366F1); // indigo
+        break;
+      default:
+        typeLabel = workOrder.workOrderType?.name ?? 'WO';
+        typeColor = color.success;
+    }
 
     final status = workOrder.status?.status;
     final statusColor = color.status[workOrder.status?.id];
@@ -213,13 +237,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              type,
-              style: TextStyle(
-                fontSize: 12,
-                color: workOrder.requiresApproval
-                    ? color.primary[500]
-                    : color.foreground[100],
-              ),
+              typeLabel,
+              style: TextStyle(fontSize: 12, color: color.foreground[100]),
             ),
           ),
         ),
@@ -235,13 +254,32 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
               status!,
               style: TextStyle(
                 fontSize: 12,
-                color: workOrder.statusId != 2 && workOrder.statusId != 8
+                color:
+                    workOrder.statusId != 2 &&
+                        workOrder.statusId != 8 &&
+                        workOrder.statusId !=
+                            WorkOrderStatusId.ditugaskanKeStaff
                     ? color.foreground[100]
                     : color.primary[500],
               ),
             ),
           ),
         ),
+        if (workOrder.progresPersen != null)
+          Container(
+            height: 15,
+            decoration: BoxDecoration(
+              color: color.primary[500],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '${workOrder.progresPersen}%',
+                style: TextStyle(fontSize: 12, color: color.foreground[100]),
+              ),
+            ),
+          ),
       ],
     );
   }

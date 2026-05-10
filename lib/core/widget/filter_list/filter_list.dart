@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/widget/app_state_page.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/user_model.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
 
 /// Filter result class to hold all filter values
 class FilterResult {
-  final bool? isOvertime; // null = all, false = Normal, true = Lembur
+  /// null = semua jenis; nilai lain = query `type` (id jenis WO).
+  final int? workOrderTypeId;
   final int? assigneeId;
   final String? assigneeName;
   final List<int>? statusIds;
@@ -15,7 +17,7 @@ class FilterResult {
   final String? quickDate;
 
   const FilterResult({
-    this.isOvertime,
+    this.workOrderTypeId,
     this.assigneeId,
     this.assigneeName,
     this.statusIds,
@@ -25,7 +27,7 @@ class FilterResult {
   });
 
   bool get hasFilters =>
-      isOvertime != null ||
+      workOrderTypeId != null ||
       assigneeId != null ||
       (statusIds != null && statusIds!.isNotEmpty) ||
       startDate != null ||
@@ -34,7 +36,7 @@ class FilterResult {
 
   int get filterCount {
     int count = 0;
-    if (isOvertime != null) count++;
+    if (workOrderTypeId != null) count++;
     if (assigneeId != null) count++;
     if (statusIds != null && statusIds!.isNotEmpty) count++;
     if (startDate != null || endDate != null || quickDate != null) count++;
@@ -85,7 +87,7 @@ class CustomFilterDialog extends StatefulWidget {
 }
 
 class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
-  String? selectedWorkOrderType;
+  int? selectedWorkOrderTypeId;
   String? selectedStatus;
   int? selectedAssigneeId;
   String? selectedAssigneeName;
@@ -95,7 +97,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
 
   int _getFilterCount() {
     int count = 0;
-    if (selectedWorkOrderType != null) count++;
+    if (selectedWorkOrderTypeId != null) count++;
     if (selectedStatus != null) count++;
     if (selectedAssigneeId != null) count++;
     if (startDate != null || endDate != null || selectedQuickDate != null) {
@@ -106,7 +108,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
 
   void _resetAllFilters() {
     setState(() {
-      selectedWorkOrderType = null;
+      selectedWorkOrderTypeId = null;
       selectedAssigneeId = null;
       selectedAssigneeName = null;
       selectedStatus = null;
@@ -191,32 +193,30 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
   }
 
   Widget _buildWorkOrderTypeFilter() {
+    const options = [
+      ('Infrastruktur', WorkOrderListFilterTypeId.infrastruktur),
+      ('Jaringan', WorkOrderListFilterTypeId.jaringan),
+      ('Meter', WorkOrderListFilterTypeId.meter),
+    ];
     return _buildSection(
       title: 'Pilih Work Order',
       onReset: () {
-        setState(() => selectedWorkOrderType = null);
+        setState(() => selectedWorkOrderTypeId = null);
       },
       child: Row(
         children: [
-          Expanded(
-            child: _filterButton(
-              'Normal',
-              selectedWorkOrderType == 'Normal',
-              () {
-                setState(() => selectedWorkOrderType = 'Normal');
-              },
+          for (var i = 0; i < options.length; i++) ...[
+            if (i > 0) const SizedBox(width: 11),
+            Expanded(
+              child: _filterButton(
+                options[i].$1,
+                selectedWorkOrderTypeId == options[i].$2,
+                () {
+                  setState(() => selectedWorkOrderTypeId = options[i].$2);
+                },
+              ),
             ),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: _filterButton(
-              'Lembur',
-              selectedWorkOrderType == 'Lembur',
-              () {
-                setState(() => selectedWorkOrderType = 'Lembur');
-              },
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -435,18 +435,10 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
               // Convert selectedStatus string to status ID
               final statusId = WorkOrderStatus.fromString(selectedStatus);
 
-              // Convert workOrderType to isOvertime boolean
-              bool? isOvertime;
-              if (selectedWorkOrderType == 'Normal') {
-                isOvertime = false;
-              } else if (selectedWorkOrderType == 'Lembur') {
-                isOvertime = true;
-              }
-
               Navigator.pop(
                 context,
                 FilterResult(
-                  isOvertime: isOvertime,
+                  workOrderTypeId: selectedWorkOrderTypeId,
                   assigneeId: selectedAssigneeId,
                   assigneeName: selectedAssigneeName,
                   statusIds: statusId != null ? [statusId] : null,

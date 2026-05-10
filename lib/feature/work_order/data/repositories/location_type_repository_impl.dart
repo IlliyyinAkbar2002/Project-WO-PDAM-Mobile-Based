@@ -1,8 +1,8 @@
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/location_type_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/location_type_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/location_type_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/location_type_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/location_type_repository.dart';
 
 class LocationTypeRepositoryImpl implements LocationTypeRepository {
   final LocationTypeRemoteDataSource remoteDataSource;

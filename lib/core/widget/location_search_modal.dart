@@ -1,9 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:mobile_intern_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:dio/dio.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 
 class LocationSearchModal extends StatefulWidget {
   final Function(MasterLocationEntity) onLocationSelected;
@@ -16,34 +14,104 @@ class LocationSearchModal extends StatefulWidget {
 
 class _LocationSearchModalState extends State<LocationSearchModal> {
   final TextEditingController _searchController = TextEditingController();
-  List<MasterLocationEntity> _filteredLocations = [];
-  List<MasterLocationEntity> _allLocations = [];
+  final Dio _dio = Dio();
+  
+  List<Map<String, dynamic>> _results = [];
+  bool _isLoading = false;
+  Timer? _debounce;
+  String _errorMsg = '';
 
   @override
   void initState() {
     super.initState();
-    // Fetch master locations when modal opens
-    context.read<WorkOrderBloc>().add(GetMasterLocationsEvent());
   }
 
-  void _filterLocations(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredLocations = _allLocations;
-      } else {
-        _filteredLocations = _allLocations
-            .where(
-              (location) =>
-                  location.nama.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    
+    if (query.isEmpty) {
+      setState(() {
+        _results = [];
+        _errorMsg = '';
+      });
+      return;
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _searchNominatim(query);
     });
+  }
+
+  /// Mencari lokasi menggunakan Nominatim (OpenStreetMap) — gratis, tanpa API key
+  Future<void> _searchNominatim(String query) async {
+    setState(() {
+      _isLoading = true;
+      _errorMsg = '';
+    });
+
+    try {
+      final response = await _dio.get(
+        'https://nominatim.openstreetmap.org/search',
+        queryParameters: {
+          'q': query,
+          'format': 'json',
+          'countrycodes': 'id', // batasi Indonesia
+          'limit': 10,
+          'addressdetails': 1,
+        },
+        options: Options(
+          headers: {
+            'User-Agent': 'ProjectMobilePDAM/1.0',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List && data.isNotEmpty) {
+          setState(() {
+            _results = List<Map<String, dynamic>>.from(data);
+          });
+        } else {
+          setState(() {
+            _results = [];
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = 'Terjadi kesalahan jaringan.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Memilih lokasi dari hasil Nominatim — lat/lon sudah tersedia langsung
+  void _selectLocation(Map<String, dynamic> result) {
+    final lat = double.tryParse(result['lat'].toString()) ?? 0.0;
+    final lng = double.tryParse(result['lon'].toString()) ?? 0.0;
+    final displayName = result['display_name'] ?? '';
+
+    final locationEntity = MasterLocationEntity(
+      id: null,
+      nama: displayName,
+      latitude: lat,
+      longitude: lng,
+      radiusMeter: 1000,
+    );
+
+    widget.onLocationSelected(locationEntity);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -120,7 +188,7 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      onChanged: _filterLocations,
+                      onChanged: _onSearchChanged,
                       decoration: const InputDecoration(
                         hintText: 'Search location',
                         hintStyle: TextStyle(
@@ -138,95 +206,89 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
           ),
           // Location list
           Flexible(
-            child: BlocConsumer<WorkOrderBloc, WorkOrderState>(
-              listener: (context, state) {
-                if (state is MasterLocationsLoaded) {
-                  setState(() {
-                    _allLocations = state.masterLocations;
-                    _filteredLocations = state.masterLocations;
-                  });
-                } else if (state is WorkOrderError) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(state.message)));
-                }
-              },
-              builder: (context, state) {
-                if (state is WorkOrderLoading) {
-                  return const Center(
+            child: _isLoading
+                ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: CircularProgressIndicator(),
                     ),
-                  );
-                }
-
-                if (_filteredLocations.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text(
-                        'No locations found',
-                        style: TextStyle(
-                          fontFamily: 'Arial',
-                          fontSize: 16,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _filteredLocations.length,
-                  itemBuilder: (context, index) {
-                    final location = _filteredLocations[index];
-                    return InkWell(
-                      onTap: () {
-                        // Only call the callback, don't pop here
-                        // The callback will handle the pop with the data
-                        widget.onLocationSelected(location);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Color(0xFFF3F4F6),
-                              width: 1.18,
+                  )
+                : _errorMsg.isNotEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Text(
+                            _errorMsg,
+                            style: const TextStyle(
+                              fontFamily: 'Arial',
+                              fontSize: 16,
+                              color: Colors.red,
                             ),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              color: Color(0xFF6B7280),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
+                      )
+                    : _results.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
                               child: Text(
-                                location.nama,
-                                style: const TextStyle(
+                                'No locations found',
+                                style: TextStyle(
                                   fontFamily: 'Arial',
                                   fontSize: 16,
-                                  color: Color(0xFF101828),
+                                  color: Color(0xFF6B7280),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _results.length,
+                            itemBuilder: (context, index) {
+                              final result = _results[index];
+                              final displayName = result['display_name'] ?? '';
+
+                              return InkWell(
+                                onTap: () {
+                                  _selectLocation(result);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Color(0xFFF3F4F6),
+                                        width: 1.18,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on_outlined,
+                                        color: Color(0xFF6B7280),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          displayName,
+                                          style: const TextStyle(
+                                            fontFamily: 'Arial',
+                                            fontSize: 16,
+                                            color: Color(0xFF101828),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),
@@ -242,15 +304,21 @@ Future<MasterLocationEntity?> showLocationSearchModal(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      builder: (context, scrollController) => LocationSearchModal(
+    builder: (modalContext) {
+      // Build LocationSearchModal once, outside DraggableScrollableSheet.builder
+      // to prevent re-creation (and duplicate API calls) on every sheet resize.
+      final modal = LocationSearchModal(
         onLocationSelected: (location) {
-          Navigator.pop(context, location);
+          Navigator.pop(modalContext, location);
         },
-      ),
-    ),
+      );
+      return DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => modal,
+      );
+    },
   );
 }
+

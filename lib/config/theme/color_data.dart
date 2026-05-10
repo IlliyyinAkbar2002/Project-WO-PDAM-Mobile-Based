@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:mobile_intern_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/config/theme/app_color.dart';
 
 class ColorData {
   static AppColor get defaultColor => AppColor(

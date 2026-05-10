@@ -1,44 +1,52 @@
 import 'package:get_it/get_it.dart';
-import 'package:mobile_intern_pdam/core/common/input_chip/bloc/chip_field_bloc.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/form_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/progress_detail_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/work_order_type_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/form_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/location_type_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/master_location_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/progress_detail_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/spl_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/user_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/work_order_progress_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/repositories/work_order_type_repository_impl.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/form_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/location_type_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/progress_detail_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/spl_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/user_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/work_order_progress_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/work_order_type_repository.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_type_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_types_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progress_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
+import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/form_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/progress_detail_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_type_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/form_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/location_type_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/master_location_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/progress_detail_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/spl_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/user_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/work_order_progress_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/work_order_type_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/form_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/location_type_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/progress_detail_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/spl_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/user_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_progress_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_type_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_type_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_types_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/material_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repository/material_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repository/material_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_master_materials.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_peminjaman_by_wo.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/pinjam_material.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/kembalikan_material.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/material/material_bloc.dart';
 import '/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import '/feature/work_order/data/repositories/work_order_repository_impl.dart';
 import '/feature/work_order/domain/repositories/work_order_repository.dart';
@@ -97,6 +105,11 @@ Future<void> init() async {
       () => MasterLocationRemoteDataSource(),
     );
     print("✅ MasterLocationRemoteDataSource terdaftar");
+
+    sl.registerLazySingleton<MaterialRemoteDataSource>(
+      () => MaterialRemoteDataSource(),
+    );
+    print("✅ MaterialRemoteDataSource terdaftar");
 
     // **2️⃣ Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
@@ -159,6 +172,13 @@ Future<void> init() async {
       ),
     );
     print("✅ MasterLocationRepository terdaftar");
+
+    sl.registerLazySingleton<MaterialRepository>(
+      () => MaterialRepositoryImpl(
+        sl<MaterialRemoteDataSource>(),
+      ),
+    );
+    print("✅ MaterialRepository terdaftar");
 
     // **4️⃣ Use Cases**
     sl.registerLazySingleton(
@@ -232,6 +252,12 @@ Future<void> init() async {
       () => GetMasterLocationsUsecase(sl<MasterLocationRepository>()),
     );
 
+    //material
+    sl.registerLazySingleton(() => GetMasterMaterials(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => GetPeminjamanByWo(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => PinjamMaterial(sl<MaterialRepository>()));
+    sl.registerLazySingleton(() => KembalikanMaterial(sl<MaterialRepository>()));
+
     print("✅ Semua use case terdaftar");
 
     // **5️⃣ Bloc**
@@ -280,6 +306,16 @@ Future<void> init() async {
     // Register ChipFieldBloc
     sl.registerFactory(() => ChipFieldBloc());
     print("✅ ChipFieldBloc terdaftar");
+
+    sl.registerFactory(
+      () => MaterialBloc(
+        getMasterMaterials: sl<GetMasterMaterials>(),
+        getPeminjamanByWo: sl<GetPeminjamanByWo>(),
+        pinjamMaterial: sl<PinjamMaterial>(),
+        kembalikanMaterial: sl<KembalikanMaterial>(),
+      ),
+    );
+    print("✅ MaterialBloc terdaftar");
 
     print("🎉 Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {

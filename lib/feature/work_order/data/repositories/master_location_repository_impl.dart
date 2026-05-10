@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_intern_pdam/core/resource/data_state.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
-import 'package:mobile_intern_pdam/feature/work_order/data/models/master_location_model.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/master_location_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/master_location_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/master_location_repository.dart';
 
 class MasterLocationRepositoryImpl implements MasterLocationRepository {
   final MasterLocationRemoteDataSource remoteDataSource;
@@ -19,7 +19,7 @@ class MasterLocationRepositoryImpl implements MasterLocationRepository {
         final entities = response.data!
             .map((model) => model.toEntity())
             .toList();
-        return DataSuccess(entities);
+        return DataSuccess(_uniqueLocations(entities));
       } else {
         return DataFailed(response.error!);
       }
@@ -44,5 +44,22 @@ class MasterLocationRepositoryImpl implements MasterLocationRepository {
     } catch (e) {
       return DataFailed("Terjadi kesalahan: $e");
     }
+  }
+
+  List<MasterLocationEntity> _uniqueLocations(
+    List<MasterLocationEntity> locations,
+  ) {
+    final unique = <String, MasterLocationEntity>{};
+
+    for (final location in locations) {
+      final key = [
+        location.nama.trim().toLowerCase(),
+        location.latitude.toStringAsFixed(7),
+        location.longitude.toStringAsFixed(7),
+      ].join('|');
+      unique.putIfAbsent(key, () => location);
+    }
+
+    return unique.values.toList();
   }
 }

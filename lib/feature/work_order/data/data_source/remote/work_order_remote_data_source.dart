@@ -6,6 +6,27 @@ import '/core/resource/remote_data_source.dart';
 class WorkOrderRemoteDataSource extends RemoteDatasource {
   WorkOrderRemoteDataSource() : super();
 
+  Map<String, dynamic> _extractWorkOrderPayload(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final dynamic data = raw['data'];
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      if (data is List && data.isNotEmpty && data.first is Map) {
+        return Map<String, dynamic>.from(data.first as Map);
+      }
+      if (raw.containsKey('id')) {
+        return Map<String, dynamic>.from(raw);
+      }
+    }
+
+    if (raw is List && raw.isNotEmpty && raw.first is Map) {
+      return Map<String, dynamic>.from(raw.first as Map);
+    }
+
+    throw const FormatException('Format detail work order tidak dikenali.');
+  }
+
   Future<DataState<List<WorkOrderModel>>> fetchWorkOrders(
     int page,
     int limit,
@@ -25,7 +46,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         'limit': limit,
         if (status != null) 'status': status.join(','),
         if (excludeStatus != null) 'exclude_status': excludeStatus.join(','),
-        if (picId != null) 'pic_id': picId,
+        // pic_id tidak dikirim - backend otomatis filter berdasarkan authenticated user
         if (userId != null) 'user_id': userId,
         if (type != null) 'type': type,
         if (dateRange != null) 'date_range': dateRange,
@@ -63,7 +84,10 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     try {
       // Use parent class's get() method which includes auth headers
       final response = await get(path: '/v1/workorder/$id');
-      final data = WorkOrderModel.fromMap(response.data);
+      final Map<String, dynamic> payload = _extractWorkOrderPayload(
+        response.data,
+      );
+      final data = WorkOrderModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(
@@ -82,14 +106,36 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       print("📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder");
       print("📤 Data yang dikirim: ${workOrder.toMap()}");
 
-      // Use parent class's post() method which includes auth headers
       final response = await post(
         path: '/v1/workorder',
         data: workOrder.toMap(),
       );
       print("📥 Response: ${response.statusCode} - ${response.data}");
-      final data = WorkOrderModel.fromMap(response.data);
+
+      final dynamic raw = response.data is Map<String, dynamic>
+          ? (response.data['data'] ?? response.data)
+          : response.data;
+
+      final Map<String, dynamic> first = raw is List
+          ? (raw.isNotEmpty ? Map<String, dynamic>.from(raw.first) : {})
+          : Map<String, dynamic>.from(raw as Map);
+
+      if (first.isEmpty) {
+        return DataFailed(
+          DioException(
+            error: 'Server mengembalikan data kosong setelah membuat WO.',
+            requestOptions: RequestOptions(path: '/v1/workorder'),
+          ),
+        );
+      }
+
+      final data = WorkOrderModel.fromMap(first);
       return DataSuccess(data);
+    } on DioException catch (e) {
+      print(
+        "❌ Gagal membuat WO: ${e.response?.statusCode} - ${e.response?.data}",
+      );
+      return DataFailed(e);
     } catch (e) {
       return DataFailed(
         DioException(
@@ -131,6 +177,46 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         DioException(
           error: e,
           requestOptions: RequestOptions(path: '/v1/workorder/$id'),
+        ),
+      );
+    }
+  }
+
+  Future<DataState<void>> assignStaff({
+    required int workOrderId,
+    required List<int> staffIds,
+    required String kategoriForm,
+    required Map<String, dynamic> formKategori,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+  }) async {
+    try {
+      final petugas = staffIds.asMap().entries.map((entry) {
+        return {
+          'user_id': entry.value,
+          'peran': entry.key == 0 ? 'koordinator' : 'anggota',
+        };
+      }).toList();
+
+      await post(
+        path: '/v1/workorder/$workOrderId/assign-staff',
+        data: {
+          'form_kategori': formKategori,
+          'petugas': petugas,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          if (accuracy != null) 'accuracy': accuracy,
+        },
+      );
+      return const DataSuccess(null);
+    } catch (e) {
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(
+            path: '/v1/workorder/$workOrderId/assign-staff',
+          ),
         ),
       );
     }

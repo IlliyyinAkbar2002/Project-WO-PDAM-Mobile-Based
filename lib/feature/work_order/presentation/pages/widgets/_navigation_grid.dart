@@ -18,20 +18,11 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.calendar_month_outlined,
         label: 'Meeting Agenda',
         onTap: () {
-          if (selectedPicId == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Please select PIC ID first'),
-                backgroundColor: colors.warning,
-              ),
-            );
-            return;
-          }
+          // picId tidak lagi diperlukan - backend menggunakan authenticated user untuk filter
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  AssignerWorkOrderPage(picId: selectedPicId!),
+              builder: (context) => AssignerWorkOrderPage(picId: selectedPicId),
             ),
           );
         },
@@ -40,7 +31,30 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.check_circle_outline,
         label: 'Approval',
         onTap: () {
-          // TODO: Navigate to approval page
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
+          final isSpv = roleId == 3 && positionId == 4;
+          final isManajer = roleId == 2;
+
+          if (!isSpv && !isManajer) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Approval hanya tersedia untuk Supervisor / Manajer',
+                ),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PersetujuanPeminjamanBarangPage(),
+            ),
+          );
         },
       ),
       _NavigationItem(
@@ -50,6 +64,7 @@ class _NavigationGrid extends StatelessWidget {
           // Get user role to determine which bottom sheet to show
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
 
           // Show role-specific tasks modal bottom sheet
           showModalBottomSheet(
@@ -60,36 +75,26 @@ class _NavigationGrid extends StatelessWidget {
             barrierColor: Colors.black.withOpacity(0.3),
             builder: (ctx) {
               // Manajer role (role_id: 2) - Show Manajer tasks
-              if (roleId == 2) {
+              if (roleId == 2 || (roleId == 3 && positionId == 4)) {
                 return _TasksBottomSheetManajer(
                   onWorkOrderKeluar: () {
-                    // TODO: Add PIC selection validation later
-                    // For now, using placeholder picId for frontend development
+                    // picId tidak lagi diperlukan untuk filter - backend menggunakan authenticated user
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            AssignerWorkOrderPage(picId: selectedPicId ?? 1),
+                            AssignerWorkOrderPage(picId: selectedPicId),
                       ),
                     );
                   },
                   onWorkOrderMasuk: () {
-                    if (selectedUserId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please select User ID first'),
-                          backgroundColor: colors.warning,
-                        ),
-                      );
-                      return;
-                    }
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            AssigneeWorkOrderPage(userId: selectedUserId!),
+                            AssignerWorkOrderMasukPage(picId: selectedPicId),
                       ),
                     );
                   },
@@ -124,7 +129,10 @@ class _NavigationGrid extends StatelessWidget {
               }
               // Users role (role_id: 3) - Show Users tasks
               else {
-                return _TasksBottomSheetUsers(selectedUserId: selectedUserId);
+                return _TasksBottomSheetUsers(
+                  selectedUserId: selectedUserId,
+                  positionId: positionId ?? 0,
+                );
               }
             },
             shape: const RoundedRectangleBorder(
@@ -154,14 +162,74 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.home_outlined,
         label: 'Our Assets',
         onTap: () {
-          // TODO: Navigate to settings page
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+          final positionId = user?['employee']?['position_id'] as int?;
+          if (roleId != 3) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Our Assets hanya tersedia untuk Staff/SPV'),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+          final isSpv = roleId == 3 && positionId == 4;
+
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: false,
+            useSafeArea: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.black.withOpacity(0.3),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            builder: (ctx) {
+              if (isSpv) {
+                return _OurAssetsBottomSheet(
+                  title: 'Melihat stok barang',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PeminjamanItemListPage(),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              return _OurAssetsBottomSheet(
+                title: 'Peminjaman barang',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PeminjamanItemListPage(),
+                    ),
+                  );
+                },
+              );
+            },
+          );
         },
       ),
       _NavigationItem(
         icon: Icons.description_outlined,
-        label: 'Document Request',
+        label: 'Pengajuan Lembur',
         onTap: () {
-          // TODO: Navigate to help page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PengajuanLemburPage(),
+            ),
+          );
         },
       ),
       _NavigationItem(
@@ -178,7 +246,7 @@ class _NavigationGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.69,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -211,43 +279,39 @@ class _NavigationGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    const navy = Color(0xFF0B2A6B);
+    const tileBg = Color(0xFFEAF1FF);
+    const tileBorder = Color(0x99DBEAFE); // rgba(219,234,254,0.6)
+    const iconColor = Color(0xFF2E7BFF);
+
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDBEAFE), // blue-100
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              item.icon,
-              color: const Color(0xFF2563EB), // blue-600
-              size: 26,
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: tileBg,
+                border: Border.all(color: tileBorder, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(item.icon, color: iconColor, size: 24),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Flexible(
             child: Text(
               item.label,
               textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(
+              style: textTheme.labelSmall?.copyWith(
                 fontSize: 11,
-                color: const Color(0xFF374151), // gray-700
+                color: navy,
                 fontWeight: FontWeight.w500,
-                height: 1.1,
+                height: 1.25,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -376,11 +440,106 @@ class _TaskMenuItem extends StatelessWidget {
   }
 }
 
+class _OurAssetsBottomSheet extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _OurAssetsBottomSheet({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.35,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F7F7),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          border: Border.all(color: const Color(0xFFC7C7C7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: Column(
+            children: [
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0x4D3C3C43),
+                  borderRadius: BorderRadius.circular(2.5),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _OurAssetsMenuItem(label: title, onTap: onTap),
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OurAssetsMenuItem extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _OurAssetsMenuItem({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFC7C7C7)),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF1A1D21),
+                  ),
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Bottom sheet shown when Users tap on "Tasks" grid item
 class _TasksBottomSheetUsers extends StatelessWidget {
   final int? selectedUserId;
+  final int? positionId;
 
-  const _TasksBottomSheetUsers({required this.selectedUserId});
+  const _TasksBottomSheetUsers({
+    required this.selectedUserId,
+    required this.positionId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -439,10 +598,14 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                   _TaskMenuItem(
                     label: 'Work Order',
                     onTap: () {
-                      if (selectedUserId == null) {
+                      // Ambil userId dari AuthStorage untuk staff
+                      final user = AuthStorage.getUserSync();
+                      final userId = user?['id'] as int?;
+
+                      if (userId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Please select User ID first'),
+                            content: const Text('User ID tidak ditemukan'),
                             backgroundColor: colors.warning,
                           ),
                         );
@@ -453,7 +616,7 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              AssigneeWorkOrderPage(userId: selectedUserId!),
+                              AssigneeWorkOrderPage(userId: userId),
                         ),
                       );
                     },

@@ -1,8 +1,9 @@
 import 'package:equatable/equatable.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/location_type_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/status_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/user_entity.dart';
-import 'package:mobile_intern_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/status_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
 class WorkOrderEntity extends Equatable {
   final int? id;
@@ -13,6 +14,10 @@ class WorkOrderEntity extends Equatable {
   final DateTime? endDateTime;
   final double? longitude;
   final double? latitude;
+  final int? locationId; // ID dari MasterLocation
+  final MasterLocationEntity?
+  location; // Relasi ke MasterLocation (dengan radius_meter)
+  final String? lokasiText; // Nama lokasi (text) untuk dikirim ke backend
   final int? creator;
   final int? assigneeId;
   final int? statusId; //Mengambil dari Status
@@ -26,11 +31,11 @@ class WorkOrderEntity extends Equatable {
   final LocationTypeEntity? locationType;
   final WorkOrderTypeEntity? workOrderType;
   final StatusEntity? status;
+  final int? progresPersen;
 
-  // final AssigneesEntity? assignees;
-  // final String? description;
-  // final LocationEntity? location;
-  // final DepartmentEntity? department;
+  /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
+  /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
+  final String? kategoriForm;
 
   const WorkOrderEntity({
     this.id,
@@ -41,6 +46,9 @@ class WorkOrderEntity extends Equatable {
     this.endDateTime,
     this.longitude,
     this.latitude,
+    this.locationId,
+    this.location,
+    this.lokasiText,
     this.creator,
     this.assigneeId,
     this.statusId,
@@ -54,10 +62,8 @@ class WorkOrderEntity extends Equatable {
     this.locationType,
     this.workOrderType,
     this.status,
-
-    // this.description,
-    // this.location,
-    // this.department,
+    this.progresPersen,
+    this.kategoriForm,
   });
 
   @override
@@ -70,6 +76,9 @@ class WorkOrderEntity extends Equatable {
     endDateTime,
     longitude,
     latitude,
+    locationId,
+    location,
+    lokasiText,
     creator,
     assigneeId,
     statusId,
@@ -83,6 +92,8 @@ class WorkOrderEntity extends Equatable {
     locationType,
     workOrderType,
     status,
+    progresPersen,
+    kategoriForm,
   ];
 
   WorkOrderEntity copyWith({
@@ -94,6 +105,9 @@ class WorkOrderEntity extends Equatable {
     DateTime? endDateTime,
     double? longitude,
     double? latitude,
+    int? locationId,
+    MasterLocationEntity? location,
+    String? lokasiText,
     int? creator,
     int? assigneeId,
     int? statusId,
@@ -107,6 +121,8 @@ class WorkOrderEntity extends Equatable {
     LocationTypeEntity? locationType,
     WorkOrderTypeEntity? workOrderType,
     StatusEntity? status,
+    int? progresPersen,
+    String? kategoriForm,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -117,6 +133,9 @@ class WorkOrderEntity extends Equatable {
       endDateTime: endDateTime ?? this.endDateTime,
       longitude: longitude ?? this.longitude,
       latitude: latitude ?? this.latitude,
+      locationId: locationId ?? this.locationId,
+      location: location ?? this.location,
+      lokasiText: lokasiText ?? this.lokasiText,
       creator: creator ?? this.creator,
       assigneeId: assigneeId ?? this.assigneeId,
       statusId: statusId ?? this.statusId,
@@ -130,6 +149,8 @@ class WorkOrderEntity extends Equatable {
       locationType: locationType ?? this.locationType,
       workOrderType: workOrderType ?? this.workOrderType,
       status: status ?? this.status,
+      progresPersen: progresPersen ?? this.progresPersen,
+      kategoriForm: kategoriForm ?? this.kategoriForm,
     );
   }
 }
