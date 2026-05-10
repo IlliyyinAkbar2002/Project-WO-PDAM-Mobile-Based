@@ -19,15 +19,26 @@ class CustomFieldWidgets {
       longitude: formData["longitude"],
       locationId: formData["locationId"],
       locationName: formData["locationName"],
-      onLocationSelected: (lat, long, {int? locationId, int? radiusMeter, String? locationName}) {
-        if (!(field["isReadOnly"] ?? false)) {
-          onFieldChanged("latitude", lat);
-          onFieldChanged("longitude", long);
-          onFieldChanged("locationId", locationId);
-          onFieldChanged("radiusMeter", radiusMeter);
-          onFieldChanged("locationName", locationName);
-        }
-      },
+      onLocationSelected:
+          (
+            lat,
+            long, {
+            int? locationId,
+            int? radiusMeter,
+            String? locationName,
+          }) {
+            if (!(field["isReadOnly"] ?? false)) {
+              onFieldChanged("latitude", lat);
+              onFieldChanged("longitude", long);
+              onFieldChanged("locationId", locationId);
+              onFieldChanged("radiusMeter", radiusMeter);
+              onFieldChanged("locationName", locationName);
+              // Update field "lokasi" text jika user pilih dari search
+              if (locationName != null && locationName.isNotEmpty) {
+                onFieldChanged("lokasi", locationName);
+              }
+            }
+          },
     ),
     "timeEstimate": (field, formData, onFieldChanged) => TimeEstimate(
       isOvertime: field["isOvertime"] ?? false, // ✅ Ambil dari formData

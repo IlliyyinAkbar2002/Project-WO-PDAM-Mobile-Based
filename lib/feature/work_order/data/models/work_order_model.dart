@@ -19,6 +19,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.latitude,
     super.locationId,
     super.location,
+    super.lokasiText,
     super.creator,
     super.assigneeId,
     super.statusId,
@@ -33,6 +34,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.workOrderType,
     super.status,
     super.progresPersen,
+    super.kategoriForm,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -98,8 +100,9 @@ class WorkOrderModel extends WorkOrderEntity {
 
     // Untuk backward-compat kode UI yang masih baca `assignee` single,
     // isi otomatis dari elemen pertama `assignees`.
-    final UserModel? assignee =
-        (assignees != null && assignees.isNotEmpty) ? assignees.first : null;
+    final UserModel? assignee = (assignees != null && assignees.isNotEmpty)
+        ? assignees.first
+        : null;
 
     final dynamic rawJenisWorkorder =
         map['jenis_workorder'] ?? map['workorder_type'];
@@ -129,7 +132,10 @@ class WorkOrderModel extends WorkOrderEntity {
       location: map['location'] != null
           ? MasterLocationModel.fromMap(map['location'])
           : null,
-      creator: parseIdFromAny(map['created_by_user_id']) ?? parseIdFromAny(map['pic_id']),
+      lokasiText: map['lokasi'] as String?, // Parse field "lokasi" dari backend
+      creator:
+          parseIdFromAny(map['created_by_user_id']) ??
+          parseIdFromAny(map['pic_id']),
       // `petugas_id` (FK tunggal) sudah dihapus di backend (TKT-07),
       // tapi id tunggal masih berguna utk backward-compat UI lain.
       assigneeId:
@@ -144,8 +150,7 @@ class WorkOrderModel extends WorkOrderEntity {
       locationTypeId:
           parseIdFromAny(map['jenis_lokasi_id']) ??
           parseIdFromAny(rawJenisLokasi),
-      requiresApproval:
-          parseIdFromAny(map['tipe_workorder_id']) == 2,
+      requiresApproval: parseIdFromAny(map['tipe_workorder_id']) == 2,
       assignees: assignees,
       assignee: assignee,
       locationType: rawJenisLokasi is Map
@@ -160,6 +165,9 @@ class WorkOrderModel extends WorkOrderEntity {
           ? StatusModel.fromMap(Map<String, dynamic>.from(rawStatus))
           : null,
       progresPersen: parseInt(map['progres_persen']),
+      kategoriForm: rawJenisWorkorder is Map
+          ? (rawJenisWorkorder['kategori_form'] as String?)
+          : null,
     );
   }
 
@@ -177,15 +185,13 @@ class WorkOrderModel extends WorkOrderEntity {
       'estimasi_durasi': duration,
       'unit_waktu': durationUnit,
       'estimasi_selesai': endDateTime?.toIso8601String(),
-      'longitude': longitude,
-      'latitude': latitude,
-      'nama_lokasi': location?.nama,
-      'location_id': locationId, // ID dari MasterLocation untuk radius check
+      'lokasi':
+          lokasiText ?? location?.nama, // Backend pakai field "lokasi" (string)
+      // location_id, latitude, longitude sudah dipindah ke workorder_assignment
+      // (tidak lagi dikirim saat create WO)
       // pic_id tidak dikirim - backend akan otomatis menggunakan authenticated user
       'status_id': statusId,
       'jenis_workorder_id': workOrderTypeId,
-      'jenis_lokasi_id': locationTypeId,
-      'tipe_workorder_id': requiresApproval ? 2 : 1,
       'assigned_to': assignedTo,
       'petugas_id': ids,
     };
@@ -203,6 +209,7 @@ class WorkOrderModel extends WorkOrderEntity {
       latitude: latitude,
       locationId: locationId,
       location: location,
+      lokasiText: lokasiText,
       creator: creator,
       assigneeId: assigneeId,
       statusId: statusId,
@@ -216,6 +223,7 @@ class WorkOrderModel extends WorkOrderEntity {
       workOrderType: workOrderType,
       status: status,
       progresPersen: progresPersen,
+      kategoriForm: kategoriForm,
     );
   }
 
@@ -230,6 +238,7 @@ class WorkOrderModel extends WorkOrderEntity {
       latitude: entity.latitude,
       locationId: entity.locationId,
       location: entity.location,
+      lokasiText: entity.lokasiText,
       creator: entity.creator,
       assigneeId: entity.assigneeId,
       statusId: entity.statusId,
@@ -241,6 +250,7 @@ class WorkOrderModel extends WorkOrderEntity {
       assignee: entity.assignee,
       assignees: entity.assignees,
       progresPersen: entity.progresPersen,
+      kategoriForm: entity.kategoriForm,
     );
   }
 }

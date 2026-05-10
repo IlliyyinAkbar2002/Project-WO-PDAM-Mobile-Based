@@ -17,6 +17,7 @@ class WorkOrderEntity extends Equatable {
   final int? locationId; // ID dari MasterLocation
   final MasterLocationEntity?
   location; // Relasi ke MasterLocation (dengan radius_meter)
+  final String? lokasiText; // Nama lokasi (text) untuk dikirim ke backend
   final int? creator;
   final int? assigneeId;
   final int? statusId; //Mengambil dari Status
@@ -32,6 +33,10 @@ class WorkOrderEntity extends Equatable {
   final StatusEntity? status;
   final int? progresPersen;
 
+  /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
+  /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
+  final String? kategoriForm;
+
   const WorkOrderEntity({
     this.id,
     required this.title,
@@ -43,6 +48,7 @@ class WorkOrderEntity extends Equatable {
     this.latitude,
     this.locationId,
     this.location,
+    this.lokasiText,
     this.creator,
     this.assigneeId,
     this.statusId,
@@ -57,6 +63,7 @@ class WorkOrderEntity extends Equatable {
     this.workOrderType,
     this.status,
     this.progresPersen,
+    this.kategoriForm,
   });
 
   @override
@@ -71,6 +78,7 @@ class WorkOrderEntity extends Equatable {
     latitude,
     locationId,
     location,
+    lokasiText,
     creator,
     assigneeId,
     statusId,
@@ -85,6 +93,7 @@ class WorkOrderEntity extends Equatable {
     workOrderType,
     status,
     progresPersen,
+    kategoriForm,
   ];
 
   WorkOrderEntity copyWith({
@@ -98,6 +107,7 @@ class WorkOrderEntity extends Equatable {
     double? latitude,
     int? locationId,
     MasterLocationEntity? location,
+    String? lokasiText,
     int? creator,
     int? assigneeId,
     int? statusId,
@@ -112,6 +122,7 @@ class WorkOrderEntity extends Equatable {
     WorkOrderTypeEntity? workOrderType,
     StatusEntity? status,
     int? progresPersen,
+    String? kategoriForm,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -124,6 +135,7 @@ class WorkOrderEntity extends Equatable {
       latitude: latitude ?? this.latitude,
       locationId: locationId ?? this.locationId,
       location: location ?? this.location,
+      lokasiText: lokasiText ?? this.lokasiText,
       creator: creator ?? this.creator,
       assigneeId: assigneeId ?? this.assigneeId,
       statusId: statusId ?? this.statusId,
@@ -138,6 +150,7 @@ class WorkOrderEntity extends Equatable {
       workOrderType: workOrderType ?? this.workOrderType,
       status: status ?? this.status,
       progresPersen: progresPersen ?? this.progresPersen,
+      kategoriForm: kategoriForm ?? this.kategoriForm,
     );
   }
 }

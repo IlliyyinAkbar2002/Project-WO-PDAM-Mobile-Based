@@ -25,9 +25,6 @@ class TipeProgressId {
     }
   }
 
-  /// Konversi kode string dari backend (mis. relasi `tipeProgress.kode`)
-  /// ke id numerik konstan di atas. Berguna jika suatu saat backend
-  /// mulai eager-load relasi `tipeProgress`.
   static int? fromKode(String? kode) {
     switch (kode?.toUpperCase()) {
       case kodeMulai:
@@ -42,10 +39,6 @@ class TipeProgressId {
   }
 }
 
-/// Mirror tabel `m_status` untuk baris progres (DRAFT/SUBMITTED/VERIFIED).
-/// Nilai `id` di sini default mengikuti seeder backend (TKT-03). Jika
-/// id di backend berbeda, cukup ubah di sini — tidak perlu menyebar
-/// ke banyak file UI.
 class ProgressStatusId {
   static const int draft = 9;
   static const int submitted = 10;
@@ -65,12 +58,6 @@ class WorkOrderActionKode {
   static const String extend = 'EXTEND';
 }
 
-/// Mirror id status WO yang dipakai di mobile.
-///
-/// Catatan:
-/// - Beberapa id berikut adalah status flow lama yang masih dipakai di UI.
-/// - Id status baru mengikuti seeder backend terbaru yang sudah dipakai saat
-///   smoke test API (mis. 12, 16, 17).
 class WorkOrderStatusId {
   static const int pengecekan = 5;
   static const int selesai = 6;
@@ -82,10 +69,33 @@ class WorkOrderStatusId {
   static const int ditolakManager = 17;
 }
 
-/// ID jenis WO untuk query `type` pada GET `/v1/workorder` (sesuai `jenis-workorder`).
-/// Pastikan urutan/id cocok dengan data di backend — ubah konstanta jika berbeda.
 class WorkOrderListFilterTypeId {
   static const int infrastruktur = 1;
   static const int jaringan = 2;
   static const int meter = 3;
+}
+
+/// Kategori form WO — sesuai m_jenis_workorder.kategori_form di backend.
+/// Digunakan untuk menentukan form apa yang ditampilkan SPV saat assign staff.
+class WoKategoriForm {
+  static const String meter = 'meter';
+  static const String jaringan = 'jaringan';
+  static const String infrastruktur = 'infrastruktur';
+
+  /// Label UI untuk setiap kategori
+  static String label(String? kategori) {
+    switch (kategori) {
+      case meter:
+        return 'WO Meter';
+      case jaringan:
+        return 'WO Jaringan';
+      case infrastruktur:
+        return 'WO Infrastruktur';
+      default:
+        return 'Work Order';
+    }
+  }
+
+  /// Semua kategori yang tersedia
+  static const List<String> all = [meter, jaringan, infrastruktur];
 }

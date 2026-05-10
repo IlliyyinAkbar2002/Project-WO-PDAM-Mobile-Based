@@ -13,7 +13,6 @@ import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/location_type_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
@@ -52,7 +51,6 @@ class DetailWorkOrderPage extends StatefulWidget {
 class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   Map<String, dynamic> formData = {};
   List<WorkOrderTypeEntity> workOrderTypes = [];
-  List<LocationTypeEntity> locationTypes = [];
   List<UserEntity> assignees = [];
   // List<UserEntity> assignee = [];
   List<WorkOrderProgressEntity> progresses = [];
@@ -67,10 +65,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
   bool isDataLoaded = false;
   bool _isSubmitting = false;
-  // Guard supaya pop/snackbar sukses hanya dieksekusi tepat satu kali, walau
-  // BlocListener sempat re-fire (mis. state WorkOrderCreated terulang karena
-  // state-object belum di-equatable). Tanpa ini, `Navigator.pop` bisa
-  // dipanggil dua kali -> assertion `_RouteLifecycle.popping`.
+
   bool _hasClosedAfterCreate = false;
   bool get isDetailMode => widget.workOrderId != null;
 
@@ -89,7 +84,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _reloadDetail();
     } else {
       bloc.add(GetWorkOrderTypesEvent());
-      bloc.add(GetLocationTypesEvent());
       _loadAssignableUsers(bloc, user);
     }
   }
@@ -160,10 +154,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           formData.containsKey("durationUnit") &&
           formData.containsKey("endDateTime");
     } else {
-      ready =
-          workOrderTypes.isNotEmpty &&
-          locationTypes.isNotEmpty &&
-          assignees.isNotEmpty;
+      ready = workOrderTypes.isNotEmpty && assignees.isNotEmpty;
     }
 
     if (ready && !isDataLoaded && mounted) {
@@ -180,9 +171,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       listener: (context, state) {
         if (state is WorkOrderTypesLoaded) {
           workOrderTypes = state.workOrderTypes;
-        }
-        if (state is LocationTypesLoaded) {
-          locationTypes = state.locationTypes;
         }
         if (state is UsersLoaded) {
           assignees = state.users;
@@ -243,7 +231,11 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             formData = {
               "title": state.workOrder.title,
               "jobType": state.workOrder.workOrderType?.name,
-              "locationType": state.workOrder.locationType?.locationType,
+              "kategoriForm": state.workOrder.kategoriForm,
+              "lokasi":
+                  state.workOrder.lokasiText ??
+                  state.workOrder.location?.nama ??
+                  "",
               "latitude": state.workOrder.latitude,
               "longitude": state.workOrder.longitude,
               "locationId": state.workOrder.locationId,
@@ -312,9 +304,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               ? Scaffold(
                   appBar: (widget.workOrderId != null)
                       ? CustomAppBar(
-                          title: (widget.isOvertime)
-                              ? "Work Order Lembur"
-                              : "Work Order Normal",
+                          title: WoKategoriForm.label(
+                            formData["kategoriForm"] as String?,
+                          ),
                         )
                       : null,
                   body: (state is WorkOrderLoading && isDetailMode)
@@ -345,10 +337,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             isOvertime: formData["isOvertime"] ?? false,
             isAssignMode: canAssignStaff,
             status: widget.status,
+            kategoriForm: formData["kategoriForm"] as String?,
           )
         : FormFieldsConfig.getWorkOrderFields(
             jobTypeOptions: workOrderTypes,
-            locationTypeOptions: locationTypes,
             assigneeOptions: assignees,
             isDetailMode: isDetailMode,
             isOvertime: formData["isOvertime"] ?? false,
@@ -473,15 +465,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       AppSnackbar.showError("Jenis pekerjaan harus dipilih.");
       return;
     }
-    if (formData["locationType"] == null) {
-      AppSnackbar.showError("Jenis lokasi harus dipilih.");
+    if (formData["lokasi"] == null || formData["lokasi"].trim().isEmpty) {
+      AppSnackbar.showError("Lokasi harus diisi.");
       return;
-    }
-    if (formData["locationType"] == 1) {
-      if (formData["latitude"] == null || formData["longitude"] == null) {
-        AppSnackbar.showError("Lokasi harus dipilih.");
-        return;
-      }
     }
     if (formData["startDateTime"] == null) {
       AppSnackbar.showError("Waktu mulai harus diisi.");
@@ -519,7 +505,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       endDateTime: formData["endDateTime"],
       assigneeIds: assigneeIds,
       workOrderTypeId: formData["jobType"],
-      locationTypeId: formData["locationType"],
+      lokasiText: formData["lokasi"], // Kirim nama lokasi sebagai text
       latitude: formData["latitude"],
       longitude: formData["longitude"],
       locationId:
@@ -537,8 +523,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       requiresApproval: widget.isOvertime,
     );
 
-    // Tandai bahwa kita sedang menunggu response. Snackbar sukses/error
-    // akan dipicu lewat BlocListener setelah WorkOrderCreated / WorkOrderError.
     setState(() {
       _isSubmitting = true;
     });
@@ -576,29 +560,89 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
-    final nomorMeter = (formData["nomorMeter"] ?? "").toString().trim();
-    final kondisiMeterAwal = (formData["kondisiMeterAwal"] ?? "")
-        .toString()
-        .trim();
+    // Build form_kategori berdasarkan kategoriForm
+    final String kategori = (formData["kategoriForm"] as String?) ?? 'meter';
+    final Map<String, dynamic> formKategori;
 
-    if (nomorMeter.isEmpty) {
-      AppSnackbar.showError("Nomor meter wajib diisi.");
-      return;
-    }
-    if (kondisiMeterAwal.isEmpty) {
-      AppSnackbar.showError("Kondisi meter awal wajib diisi.");
-      return;
+    switch (kategori) {
+      case 'jaringan':
+        final jenisPipa = (formData["jenisPipa"] ?? "").toString().trim();
+        if (jenisPipa.isEmpty) {
+          AppSnackbar.showError("Jenis pipa wajib diisi.");
+          return;
+        }
+        formKategori = {
+          'jenis_pipa': jenisPipa,
+          if ((formData["diameterPipa"] ?? "").toString().trim().isNotEmpty)
+            'diameter_pipa': double.tryParse(
+              formData["diameterPipa"].toString(),
+            ),
+          if ((formData["panjangPipa"] ?? "").toString().trim().isNotEmpty)
+            'panjang_pipa': double.tryParse(formData["panjangPipa"].toString()),
+          if ((formData["tingkatKerusakan"] ?? "").toString().trim().isNotEmpty)
+            'tingkat_kerusakan': formData["tingkatKerusakan"],
+        };
+        break;
+      case 'infrastruktur':
+        final namaAset = (formData["namaAset"] ?? "").toString().trim();
+        final jenisAset = (formData["jenisAset"] ?? "").toString().trim();
+        if (namaAset.isEmpty) {
+          AppSnackbar.showError("Nama aset wajib diisi.");
+          return;
+        }
+        if (jenisAset.isEmpty) {
+          AppSnackbar.showError("Jenis aset wajib diisi.");
+          return;
+        }
+        formKategori = {
+          'nama_aset': namaAset,
+          'jenis_aset': jenisAset,
+          if ((formData["kapasitas"] ?? "").toString().trim().isNotEmpty)
+            'kapasitas': formData["kapasitas"],
+          if ((formData["kondisiAwal"] ?? "").toString().trim().isNotEmpty)
+            'kondisi_awal': formData["kondisiAwal"],
+        };
+        break;
+      case 'meter':
+      default:
+        final nomorMeter = (formData["nomorMeter"] ?? "").toString().trim();
+        final kondisiMeterAwal = (formData["kondisiMeterAwal"] ?? "")
+            .toString()
+            .trim();
+        if (nomorMeter.isEmpty) {
+          AppSnackbar.showError("Nomor meter wajib diisi.");
+          return;
+        }
+        if (kondisiMeterAwal.isEmpty) {
+          AppSnackbar.showError("Kondisi meter awal wajib diisi.");
+          return;
+        }
+        formKategori = {
+          'nomor_meter': nomorMeter,
+          'kondisi_meter_awal': kondisiMeterAwal,
+        };
+        break;
     }
 
     setState(() {
       _isSubmitting = true;
     });
 
+    // Ambil lat/lng dari formData (lokasi WO yang di-assign SPV)
+    final double? latitude = formData["latitude"] is double
+        ? formData["latitude"]
+        : double.tryParse(formData["latitude"]?.toString() ?? '');
+    final double? longitude = formData["longitude"] is double
+        ? formData["longitude"]
+        : double.tryParse(formData["longitude"]?.toString() ?? '');
+
     final result = await _workOrderRemoteDataSource.assignStaff(
       workOrderId: widget.workOrderId!,
       staffIds: staffIds,
-      nomorMeter: nomorMeter,
-      kondisiMeterAwal: kondisiMeterAwal,
+      kategoriForm: kategori,
+      formKategori: formKategori,
+      latitude: latitude,
+      longitude: longitude,
     );
 
     if (!mounted) return;

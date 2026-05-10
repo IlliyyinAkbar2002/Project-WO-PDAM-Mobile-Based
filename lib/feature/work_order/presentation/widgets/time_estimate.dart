@@ -120,9 +120,7 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
             children: [
               // Title
               Text(
-                widget.isOvertime
-                    ? "Estimasi Waktu WO Lembur"
-                    : "Estimasi Waktu WO Normal",
+                "Estimasi Waktu Work Order",
                 style: const TextStyle(
                   fontFamily: 'Roboto',
                   fontSize: 20,
@@ -314,9 +312,8 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   }
 
   Widget _buildUnitDropdown() {
-    final String? selectedValue = normalDurationOptions.contains(
-      _selectedDurationType,
-    )
+    final String? selectedValue =
+        normalDurationOptions.contains(_selectedDurationType)
         ? _selectedDurationType
         : null;
 

@@ -177,6 +177,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                       isAssignee: widget.isAssignee,
                       workOrderId: workOrder.id,
                       status: workOrder.statusId,
+                      kategoriForm: workOrder.kategoriForm,
                       lngLat: lnglat,
                       locationName: locationName,
                       radiusMeter: radiusMeter,
@@ -199,10 +200,27 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
   }
 
   Widget _buildStatusChip(WorkOrderEntity workOrder) {
-    final type = workOrder.requiresApproval ? "WO Lembur" : "WO Normal";
-    final typeColor = workOrder.requiresApproval
-        ? color.warning
-        : color.success;
+    // Tampilkan kategori WO (Jaringan/Infrastruktur/Meter) bukan Normal/Lembur
+    final kategori = workOrder.kategoriForm;
+    final String typeLabel;
+    final Color typeColor;
+    switch (kategori) {
+      case 'meter':
+        typeLabel = 'Meter';
+        typeColor = color.warning;
+        break;
+      case 'jaringan':
+        typeLabel = 'Jaringan';
+        typeColor = color.success;
+        break;
+      case 'infrastruktur':
+        typeLabel = 'Infrastruktur';
+        typeColor = const Color(0xFF6366F1); // indigo
+        break;
+      default:
+        typeLabel = workOrder.workOrderType?.name ?? 'WO';
+        typeColor = color.success;
+    }
 
     final status = workOrder.status?.status;
     final statusColor = color.status[workOrder.status?.id];
@@ -219,13 +237,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              type,
-              style: TextStyle(
-                fontSize: 12,
-                color: workOrder.requiresApproval
-                    ? color.primary[500]
-                    : color.foreground[100],
-              ),
+              typeLabel,
+              style: TextStyle(fontSize: 12, color: color.foreground[100]),
             ),
           ),
         ),
@@ -241,7 +254,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
               status!,
               style: TextStyle(
                 fontSize: 12,
-                color: workOrder.statusId != 2 &&
+                color:
+                    workOrder.statusId != 2 &&
                         workOrder.statusId != 8 &&
                         workOrder.statusId !=
                             WorkOrderStatusId.ditugaskanKeStaff
@@ -262,10 +276,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 '${workOrder.progresPersen}%',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.foreground[100],
-                ),
+                style: TextStyle(fontSize: 12, color: color.foreground[100]),
               ),
             ),
           ),

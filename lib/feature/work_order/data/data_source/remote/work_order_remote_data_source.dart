@@ -185,8 +185,11 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
   Future<DataState<void>> assignStaff({
     required int workOrderId,
     required List<int> staffIds,
-    required String nomorMeter,
-    required String kondisiMeterAwal,
+    required String kategoriForm,
+    required Map<String, dynamic> formKategori,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
   }) async {
     try {
       final petugas = staffIds.asMap().entries.map((entry) {
@@ -199,11 +202,11 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       await post(
         path: '/v1/workorder/$workOrderId/assign-staff',
         data: {
-          'form_kategori': {
-            'nomor_meter': nomorMeter,
-            'kondisi_meter_awal': kondisiMeterAwal,
-          },
+          'form_kategori': formKategori,
           'petugas': petugas,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          if (accuracy != null) 'accuracy': accuracy,
         },
       );
       return const DataSuccess(null);

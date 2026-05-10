@@ -26,13 +26,17 @@ class CreateWorkOrderPage extends StatefulWidget {
 
 class _CreateWorkOrderPageState extends AppStatePage<CreateWorkOrderPage> {
   int _subFilterIndex = 0;
-  final List<String> _filterLabels = ['WO Normal', 'WO Lembur'];
+  final List<String> _filterLabels = [
+    'WO Jaringan',
+    'WO Infrastruktur',
+    'WO Meter',
+  ];
 
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
       appBar: (widget.workOrderId == null)
-          ? const CustomAppBar(title: 'Assigment Work Order')
+          ? const CustomAppBar(title: 'Assignment Work Order')
           : null,
       body: Column(
         children: [
@@ -54,11 +58,7 @@ class _CreateWorkOrderPageState extends AppStatePage<CreateWorkOrderPage> {
               key: ValueKey(_subFilterIndex),
               workOrderId: widget.workOrderId,
               status: widget.status,
-              isOvertime: (widget.workOrderId != null)
-                  ? widget.isOvertime
-                  : _subFilterIndex == 1
-                  ? true
-                  : false,
+              isOvertime: widget.isOvertime,
             ),
           ),
         ],
