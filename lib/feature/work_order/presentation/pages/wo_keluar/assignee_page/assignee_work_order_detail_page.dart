@@ -9,10 +9,10 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/peminjaman_material_page.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/peminjaman_material_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 
 final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},

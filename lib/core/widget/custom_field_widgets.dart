@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/widget/input_chip/editable_chip_field.dart';
 import 'package:project_mobile_pdam/core/widget/location_picker.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/time_estimate.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/time_estimate.dart';
 
 typedef CustomFieldBuilder =
     Widget Function(

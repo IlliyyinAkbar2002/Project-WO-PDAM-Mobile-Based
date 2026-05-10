@@ -21,8 +21,8 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/button_interaction.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 
 class DetailWorkOrderPage extends StatefulWidget {
   final int? picId;

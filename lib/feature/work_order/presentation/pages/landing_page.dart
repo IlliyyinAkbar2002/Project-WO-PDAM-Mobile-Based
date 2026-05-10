@@ -5,10 +5,10 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_kel
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_masuk/assigner_page/assigner_work_order_masuk_page.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/extrawork/pengajuan_lembur.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/inventory/peminjaman_item_list.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/auth/login.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
+import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/notifications.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
@@ -146,10 +146,7 @@ class LandingPageQuickAccessHeader extends StatelessWidget {
             InkWell(
               onTap: onViewAll,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
                   'View all',
                   style: textTheme.bodySmall?.copyWith(
