@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
@@ -15,7 +13,6 @@ import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
@@ -52,18 +49,18 @@ class DetailWorkOrderPage extends StatefulWidget {
 }
 
 class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
+  static const String _assigneeKey = "assignee";
+  static const String _assigneesKey = "assignees";
+
   Map<String, dynamic> formData = {};
   List<WorkOrderTypeEntity> workOrderTypes = [];
   List<UserEntity> assignees = [];
-  // List<UserEntity> assignee = [];
   List<WorkOrderProgressEntity> progresses = [];
   int? status;
   int? splId;
-  int? _creatorIdFromDetail;
 
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
-  late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
   String? _detailErrorMessage;
   bool _assignableUsersRequested = false;
 
@@ -81,8 +78,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     final user = AuthStorage.getUserSync();
     _isManager = user?['role_id'] == 2;
     _workOrderRemoteDataSource = WorkOrderRemoteDataSource();
-    _progressRemoteDataSource =
-        GetIt.instance<WorkOrderProgressRemoteDataSource>();
 
     formData["isOvertime"] = widget.isOvertime;
 
@@ -111,39 +106,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     if (!isDetailMode) return;
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
-    // Only fetch progresses for SPV view (not assignee — AssigneeWorkOrderDetailPage handles it)
-    if (!widget.isAssignee) {
-      _fetchProgresses();
-    }
-  }
-
-  /// Fetch progresses directly from the remote data source.
-  /// This avoids the shared BLoC race condition where WorkOrderLoading
-  /// from GetProgressByWorkOrderIdEvent overwrites other states.
-  Future<void> _fetchProgresses() async {
-    if (!isDetailMode || widget.workOrderId == null) return;
-    debugPrint("🔄 _fetchProgresses() called for WO ${widget.workOrderId}");
-    try {
-      final result = await _progressRemoteDataSource.fetchProgressByWorkOrderId(
-        widget.workOrderId!,
-      );
-      if (!mounted) return;
-      if (result is DataSuccess) {
-        final entities = result.data!.map((m) => m.toEntity()).toList();
-        debugPrint(
-          "✅ Progresses fetched directly: ${entities.length} items — "
-          "ids: ${entities.map((e) => e.id).toList()}, "
-          "types: ${entities.map((e) => e.tipeProgressId).toList()}",
-        );
-        setState(() {
-          progresses = entities;
-        });
-      } else {
-        debugPrint("⚠️ Failed to fetch progresses: ${result.error}");
-      }
-    } catch (e, st) {
-      debugPrint("⚠️ Error fetching progresses: $e\n$st");
-    }
+    bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -180,12 +143,39 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     });
   }
 
+  String _readTrimmedString(String key) {
+    return (formData[key] ?? '').toString().trim();
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  DateTime? _toDateTime(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  List<UserEntity> _toUserEntityList(dynamic value) {
+    if (value is List<UserEntity>) return value;
+    if (value is List) return value.whereType<UserEntity>().toList();
+    return <UserEntity>[];
+  }
+
   void _checkDataLoaded() {
     // Hindari `setState` berulang: hanya panggil kalau status berubah.
     final bool ready;
     if (isDetailMode) {
       ready =
-          formData.containsKey("assignee") &&
+          formData.containsKey(_assigneeKey) &&
           formData.containsKey("title") &&
           formData.containsKey("startDateTime") &&
           formData.containsKey("duration") &&
@@ -217,6 +207,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         if (state is WorkOrderCreated &&
             _isSubmitting &&
             !_hasClosedAfterCreate) {
+          // One-shot: pastikan success flow (snackbar + pop) hanya dieksekusi
+          // sekali meskipun listener re-fire.
           _hasClosedAfterCreate = true;
           if (mounted) {
             setState(() {
@@ -227,6 +219,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             if (!mounted) return;
             AppSnackbar.showSuccess("Work order berhasil dibuat.");
             final route = ModalRoute.of(context);
+            // Hanya pop kalau route ini masih aktif (isCurrent) dan belum
+            // sedang di-pop oleh proses lain. Ini mencegah assertion
+            // `entry.currentState == _RouteLifecycle.popping` yang terjadi
+            // saat Navigator.pop dipanggil pada route yang sudah dispatch pop.
             if (route != null &&
                 route.isActive &&
                 route.isCurrent &&
@@ -250,14 +246,15 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             isDetailMode &&
             !_isSubmitting &&
             !formData.containsKey("title")) {
-          setState(() {
-            _detailErrorMessage = state.message;
-          });
+          if (mounted) {
+            setState(() {
+              _detailErrorMessage = state.message;
+            });
+          }
         }
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
-          _creatorIdFromDetail = state.workOrder.creator;
           setState(() {
             _detailErrorMessage = null;
             formData = {
@@ -277,16 +274,12 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
               "endDateTime": state.workOrder.endDateTime,
-              "assignee":
+              _assigneeKey:
                   state.workOrder.assignees ??
                   (state.workOrder.assignee != null
                       ? [state.workOrder.assignee!]
                       : <UserEntity>[]),
             };
-            debugPrint("✅ formData Updated: $formData");
-            debugPrint(
-              "📍 Location ID: ${state.workOrder.locationId}, Radius: ${state.workOrder.location?.radiusMeter}",
-            );
             _checkDataLoaded();
           });
           if (_shouldLoadAssignableUsersForDetail()) {
@@ -296,20 +289,13 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             );
           }
         }
-        // Also capture progresses if they come through BLoC (e.g. from AssigneeWorkOrderDetailPage)
-        if (state is ProgressesLoaded) {
-          setState(() {
-            progresses = state.progresses;
-          });
-        }
         _checkDataLoaded();
       },
-      child: Builder(
-        builder: (context) {
-          final effectivePicId = widget.picId ?? _creatorIdFromDetail;
-          debugPrint(
-            "routePicId: ${widget.picId}, creatorIdFromDetail: $_creatorIdFromDetail, effectivePicId: $effectivePicId",
-          );
+      child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
+        builder: (context, state) {
+          if (state is ProgressesLoaded) {
+            progresses = state.progresses;
+          }
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
               return Center(
@@ -344,10 +330,12 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                           ),
                         )
                       : null,
-                  body: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildFormContent(progresses),
-                  ),
+                  body: (state is WorkOrderLoading && isDetailMode)
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(16.0),
+                          child: _buildFormContent(progresses),
+                        ),
                 )
               : _buildFormContent(progresses);
         },
@@ -387,32 +375,39 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        !widget.isAssignee && progresses != null && progresses.isNotEmpty
+        !widget.isAssignee &&
+                progresses != null &&
+                progresses.isNotEmpty &&
+                progresses.first.description != null
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Pelaporan Work Order", style: textTheme.displayMedium),
                   const SizedBox(height: 10),
-                  ...progresses.map(
-                    (progressIndex) => ProgressCard(
-                      type: progressIndex.progressType ?? '-',
-                      index: progressIndex.order ?? 0,
-                      description: progressIndex.description,
-                      dateTime: _resolveProgressDateTime(progressIndex),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => WorkOrderReportPage(
-                              mode: progressIndex.progressType ?? '-',
-                              status: widget.status,
-                              progressId: progressIndex.id,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  ...progresses
+                      .where(
+                        (progressIndex) => progressIndex.description != null,
+                      )
+                      .map(
+                        (progressIndex) => ProgressCard(
+                          type: progressIndex.progressType!,
+                          index: progressIndex.order!,
+                          description: progressIndex.description,
+                          dateTime: _resolveProgressDateTime(progressIndex),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WorkOrderReportPage(
+                                  mode: progressIndex.progressType!,
+                                  status: widget.status,
+                                  progressId: progressIndex.id,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                   const SizedBox(height: 16),
                 ],
               )
@@ -420,7 +415,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         widget.isAssignee
             ? const SizedBox()
             : _buildActionButtons(canAssignStaff: canAssignStaff),
-        // Text("${widget.status}")
       ],
     );
   }
@@ -454,7 +448,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     if (isPending && requiresApproval) {
       return ButtonInteraction(
         status: currentStatus,
-        onPressed: _buttonChoosen,
+        onPressed: _handleApprovalAction,
       );
     }
 
@@ -463,7 +457,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     return const SizedBox();
   }
 
-  void _buttonChoosen(String action) {
+  void _handleApprovalAction(String action) {
     final isAccept = action == "Accept";
     final approval = SplModel(
       id: splId,
@@ -482,67 +476,79 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       debugPrint("⏳ Submit sedang berjalan, abaikan klik Ajukan tambahan.");
       return;
     }
+
+    final String title = _readTrimmedString("title");
+    final int? workOrderTypeId = _toInt(formData["jobType"]);
+    final String lokasiText = _readTrimmedString("lokasi");
+    final DateTime? startDateTime = _toDateTime(formData["startDateTime"]);
+    final int? duration = _toInt(formData["duration"]);
+    final String durationUnit = _readTrimmedString("durationUnit");
+    final DateTime? endDateTime = _toDateTime(formData["endDateTime"]);
+    final List<int> assigneeIds = _toUserEntityList(formData[_assigneesKey])
+        .map((user) => user.id)
+        .whereType<int>()
+        .toList();
+    final int? locationId = _toInt(formData["locationId"]);
+    final double? latitude = _toDouble(formData["latitude"]);
+    final double? longitude = _toDouble(formData["longitude"]);
+    final String locationName = _readTrimmedString("locationName");
+
     // Cek apakah semua field sudah terisi
-    if (formData["title"] == null || formData["title"].trim().isEmpty) {
+    if (title.isEmpty) {
       AppSnackbar.showError("Judul tidak boleh kosong.");
       return;
     }
-    if (formData["jobType"] == null) {
+    if (workOrderTypeId == null) {
       AppSnackbar.showError("Jenis pekerjaan harus dipilih.");
       return;
     }
-    if (formData["lokasi"] == null || formData["lokasi"].trim().isEmpty) {
+    if (lokasiText.isEmpty) {
       AppSnackbar.showError("Lokasi harus diisi.");
       return;
     }
-    if (formData["startDateTime"] == null) {
+    if (startDateTime == null) {
       AppSnackbar.showError("Waktu mulai harus diisi.");
       return;
     }
-    if (formData["duration"] == null || formData["duration"] <= 0) {
+    if (duration == null || duration <= 0) {
       AppSnackbar.showError("Durasi harus lebih dari 0.");
       return;
     }
-    if (formData["durationUnit"] == null) {
+    if (durationUnit.isEmpty) {
       AppSnackbar.showError("Satuan durasi harus dipilih.");
       return;
     }
-
-    final List<UserEntity> assignees = formData["assignees"] ?? [];
-    final List<int> assigneeIds = assignees.map((user) => user.id!).toList();
-    debugPrint("🚀 Final Assignees IDs: $assigneeIds"); // Debugging
     if (assigneeIds.isEmpty) {
       AppSnackbar.showError("Minimal 1 petugas harus dipilih.");
       return;
     }
 
-    if (formData["endDateTime"] == null) {
+    if (endDateTime == null) {
       AppSnackbar.showError("Waktu selesai tidak valid.");
       return;
     }
 
     // Buat model WorkOrder
     final workOrder = WorkOrderModel(
-      title: formData["title"],
+      title: title,
       statusId: widget.isOvertime ? 2 : 1, // WO Lembur butuh approval
-      startDateTime: formData["startDateTime"],
-      duration: formData["duration"],
-      durationUnit: formData["durationUnit"],
-      endDateTime: formData["endDateTime"],
+      startDateTime: startDateTime,
+      duration: duration,
+      durationUnit: durationUnit,
+      endDateTime: endDateTime,
       assigneeIds: assigneeIds,
-      workOrderTypeId: formData["jobType"],
-      lokasiText: formData["lokasi"], // Kirim nama lokasi sebagai text
-      latitude: formData["latitude"],
-      longitude: formData["longitude"],
-      locationId:
-          formData["locationId"], // ID dari MasterLocation untuk radius check
-      location: formData["locationName"] != null
+      workOrderTypeId: workOrderTypeId,
+      lokasiText: lokasiText, // Kirim nama lokasi sebagai text
+      latitude: latitude,
+      longitude: longitude,
+      locationId: locationId, // ID dari MasterLocation untuk radius check
+      location: locationName.isNotEmpty
           ? MasterLocationEntity(
-              id: formData["locationId"],
-              nama: formData["locationName"],
-              latitude: formData["latitude"] ?? 0,
-              longitude: formData["longitude"] ?? 0,
-              radiusMeter: formData["radiusMeter"] ?? 1000,
+              id: locationId,
+              nama: locationName,
+              latitude: latitude ?? 0,
+              longitude: longitude ?? 0,
+              radiusMeter: _toInt(formData["radiusMeter"]) ?? 1000,
             )
           : null,
       creator: widget.picId,
@@ -560,8 +566,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   Future<void> _validateAndAssignStaff() async {
     if (_isSubmitting || widget.workOrderId == null) return;
 
-    final List<UserEntity> selectedAssignees =
-        (formData["assignee"] as List<UserEntity>?) ?? <UserEntity>[];
+    final List<UserEntity> selectedAssignees = _toUserEntityList(
+      formData[_assigneeKey],
+    );
     List<int> staffIds = selectedAssignees
         .map((user) => user.id)
         .whereType<int>()
@@ -572,8 +579,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       return;
     }
 
-    final picIdStr = formData["picId"];
-    final picId = picIdStr != null ? int.tryParse(picIdStr.toString()) : null;
+    final int? picId = _toInt(formData["picId"]);
 
     if (picId == null || !staffIds.contains(picId)) {
       AppSnackbar.showError(
@@ -582,34 +588,45 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       return;
     }
 
-    if (formData["startDateTime"] == null) {
-      AppSnackbar.showError("Waktu mulai harus diisi.");
-      return;
-    }
-
     // Pindahkan PIC ke index 0 agar backend tahu itu koordinator
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
     // Build form_kategori berdasarkan kategoriForm
-    final String kategori = (formData["kategoriForm"] as String?) ?? 'meter';
+    final String kategoriForm = _readTrimmedString("kategoriForm");
+    final String kategori = kategoriForm.isEmpty
+        ? WoKategoriForm.meter
+        : kategoriForm;
     final Map<String, dynamic> formKategori;
 
     switch (kategori) {
       case 'jaringan':
-        final jenisPipa = (formData["jenisPipa"] ?? "").toString().trim();
+        final jenisPipa = _readTrimmedString("jenisPipa");
+        final diameterPipaText = _readTrimmedString("diameterPipa");
+        final panjangPipaText = _readTrimmedString("panjangPipa");
+        final double? diameterPipa = diameterPipaText.isEmpty
+            ? null
+            : double.tryParse(diameterPipaText);
+        final double? panjangPipa = panjangPipaText.isEmpty
+            ? null
+            : double.tryParse(panjangPipaText);
+
         if (jenisPipa.isEmpty) {
           AppSnackbar.showError("Jenis pipa wajib diisi.");
           return;
         }
+        if (diameterPipaText.isNotEmpty && diameterPipa == null) {
+          AppSnackbar.showError("Diameter pipa harus berupa angka.");
+          return;
+        }
+        if (panjangPipaText.isNotEmpty && panjangPipa == null) {
+          AppSnackbar.showError("Panjang pipa harus berupa angka.");
+          return;
+        }
         formKategori = {
           'jenis_pipa': jenisPipa,
-          if ((formData["diameterPipa"] ?? "").toString().trim().isNotEmpty)
-            'diameter_pipa': double.tryParse(
-              formData["diameterPipa"].toString(),
-            ),
-          if ((formData["panjangPipa"] ?? "").toString().trim().isNotEmpty)
-            'panjang_pipa': double.tryParse(formData["panjangPipa"].toString()),
+          if (diameterPipa != null) 'diameter_pipa': diameterPipa,
+          if (panjangPipa != null) 'panjang_pipa': panjangPipa,
           if ((formData["tingkatKerusakan"] ?? "").toString().trim().isNotEmpty)
             'tingkat_kerusakan': formData["tingkatKerusakan"],
         };
@@ -659,63 +676,17 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _isSubmitting = true;
     });
 
-    debugPrint(
-      "📤 assignStaff payload — kategori: $kategori, formKategori: $formKategori",
-    );
-
-    // Ambil posisi GPS SPV saat assign (untuk audit trail)
-    Position? spvPosition;
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (serviceEnabled) {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        }
-        if (permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always) {
-          spvPosition = await Geolocator.getLastKnownPosition();
-          spvPosition ??= await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-              timeLimit: Duration(seconds: 10),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint("⚠️ Gagal ambil GPS SPV: $e (lanjut tanpa accuracy)");
-    }
-
-    // Gunakan posisi GPS SPV jika tersedia, fallback ke lokasi WO
-    final double? latitude =
-        spvPosition?.latitude ??
-        (formData["latitude"] is double
-            ? formData["latitude"]
-            : double.tryParse(formData["latitude"]?.toString() ?? ''));
-    final double? longitude =
-        spvPosition?.longitude ??
-        (formData["longitude"] is double
-            ? formData["longitude"]
-            : double.tryParse(formData["longitude"]?.toString() ?? ''));
-    final double? accuracy = spvPosition?.accuracy;
-
-    // Ambil deskripsi pekerjaan dari form
-    final String? deskripsi = (formData["deskripsiPekerjaan"] as String?)
-        ?.trim();
+    // Ambil lat/lng dari formData (lokasi WO yang di-assign SPV)
+    final double? latitude = _toDouble(formData["latitude"]);
+    final double? longitude = _toDouble(formData["longitude"]);
 
     final result = await _workOrderRemoteDataSource.assignStaff(
       workOrderId: widget.workOrderId!,
       staffIds: staffIds,
       kategoriForm: kategori,
       formKategori: formKategori,
-      deskripsi: deskripsi,
       latitude: latitude,
       longitude: longitude,
-      accuracy: accuracy,
-      tanggalMulai: formData["startDateTime"] as DateTime?,
-      tanggalSelesai: formData["endDateTime"] as DateTime?,
-      estimasiSelesai: formData["endDateTime"] as DateTime?,
     );
 
     if (!mounted) return;
@@ -724,20 +695,14 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _isSubmitting = false;
     });
 
-    if (result is DataSuccess<WorkOrderModel?>) {
+    if (result is DataSuccess<void>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
-      final bloc = context.read<WorkOrderBloc>();
-      final WorkOrderModel? updatedWo = result.data;
-      if (updatedWo != null) {
-        // BE mengembalikan workorder lengkap — push ke BLoC tanpa re-fetch.
-        bloc.add(SetWorkOrderDetailEvent(updatedWo));
-      } else {
-        // Fallback kalau response tidak mengandung data WO.
-        bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
-      }
-      // Fetch progresses directly — bypass BLoC to avoid state conflicts
-      // (only for SPV view; isAssignee is always false here since SPV assigns)
-      _fetchProgresses();
+      context.read<WorkOrderBloc>().add(
+        GetWorkOrderDetailEvent(widget.workOrderId!),
+      );
+      context.read<WorkOrderBloc>().add(
+        GetProgressByWorkOrderIdEvent(widget.workOrderId!),
+      );
       return;
     }
 
