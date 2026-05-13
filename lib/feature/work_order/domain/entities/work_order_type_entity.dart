@@ -3,30 +3,18 @@ import 'package:equatable/equatable.dart';
 class WorkOrderTypeEntity extends Equatable {
   final int? id;
   final String name;
-  // final String? description;
+  final String? kategoriForm;
 
-  const WorkOrderTypeEntity({
-    this.id,
-    required this.name,
-    // this.description,
-  });
+  const WorkOrderTypeEntity({this.id, required this.name, this.kategoriForm});
 
   @override
-  List<Object?> get props => [
-        id,
-        name,
-        // description,
-      ];
+  List<Object?> get props => [id, name, kategoriForm];
 
-  WorkOrderTypeEntity copyWith({
-    int? id,
-    String? name,
-    // String? description,
-  }) {
+  WorkOrderTypeEntity copyWith({int? id, String? name, String? kategoriForm}) {
     return WorkOrderTypeEntity(
       id: id ?? this.id,
       name: name ?? this.name,
-      // description: description ?? this.description,
+      kategoriForm: kategoriForm ?? this.kategoriForm,
     );
   }
 }

@@ -43,6 +43,7 @@ class CustomFieldWidgets {
     "timeEstimate": (field, formData, onFieldChanged) => TimeEstimate(
       isOvertime: field["isOvertime"] ?? false, // ✅ Ambil dari formData
       isReadOnly: field["isReadOnly"] ?? false,
+      hideStartDateTime: field["hideStartDateTime"] ?? false,
       status: field["status"],
       startDateTime: formData["startDateTime"], // ✅ Data awal
       duration: formData["duration"], // ✅ Data awal

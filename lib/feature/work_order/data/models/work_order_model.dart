@@ -34,6 +34,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.workOrderType,
     super.status,
     super.progresPersen,
+    super.createdAt,
     super.kategoriForm,
   });
 
@@ -62,13 +63,13 @@ class WorkOrderModel extends WorkOrderEntity {
     print("📢 Parsing Work Order: $map");
     print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
     print("📍 Data location yang diterima: ${map['location']}");
+    print(
+      "🏷️ kategori_form root: ${map['kategori_form']}, nama_workorder: ${map['nama_workorder']}, deskripsi: ${map['deskripsi']}",
+    );
+    print(
+      "🏷️ wo_jaringan: ${map['wo_jaringan']}, wo_infrastruktur: ${map['wo_infrastruktur']}, wo_meter: ${map['wo_meter']}",
+    );
 
-    // TKT-07: `petugas` (object) diganti `petugas_list` (array), lalu `assignment_members`.
-    // Urutan fallback:
-    //   1. assignment_members (kontrak baru, hasManyThrough)
-    //   2. petugas_list (kontrak transisi, Many-to-Many)
-    //   3. penerima_tugas (nama lama kalau ada)
-    //   4. petugas (object tunggal, response legacy) → bungkus jadi list
     List<UserModel>? assignees;
     if (map['assignment_members'] is List) {
       assignees = (map['assignment_members'] as List)
@@ -108,6 +109,11 @@ class WorkOrderModel extends WorkOrderEntity {
         map['jenis_workorder'] ?? map['workorder_type'];
     final dynamic rawJenisLokasi = map['jenis_lokasi'] ?? map['location_type'];
     final dynamic rawStatus = map['status'] ?? map['status_workorder'];
+
+    final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
+    print(
+      "🏷️ RESOLVED kategoriForm: $resolvedKategori for WO: ${map['nama_workorder']}",
+    );
 
     return WorkOrderModel(
       id: map['id'],
@@ -165,15 +171,14 @@ class WorkOrderModel extends WorkOrderEntity {
           ? StatusModel.fromMap(Map<String, dynamic>.from(rawStatus))
           : null,
       progresPersen: parseInt(map['progres_persen']),
-      kategoriForm: rawJenisWorkorder is Map
-          ? (rawJenisWorkorder['kategori_form'] as String?)
+      kategoriForm: resolvedKategori,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
           : null,
     );
   }
 
   Map<String, dynamic> toMap() {
-    // Kontrak terbaru backend memakai `assigned_to` (single user id).
-    // `petugas_id` tetap dikirim sebagai fallback kompatibilitas.
     final List<int> ids = assigneeIds ?? const <int>[];
     final int? assignedTo =
         assigneeId ?? (ids.isNotEmpty ? ids.first : assignee?.id);
@@ -187,9 +192,6 @@ class WorkOrderModel extends WorkOrderEntity {
       'estimasi_selesai': endDateTime?.toIso8601String(),
       'lokasi':
           lokasiText ?? location?.nama, // Backend pakai field "lokasi" (string)
-      // location_id, latitude, longitude sudah dipindah ke workorder_assignment
-      // (tidak lagi dikirim saat create WO)
-      // pic_id tidak dikirim - backend akan otomatis menggunakan authenticated user
       'status_id': statusId,
       'jenis_workorder_id': workOrderTypeId,
       'assigned_to': assignedTo,
@@ -223,6 +225,7 @@ class WorkOrderModel extends WorkOrderEntity {
       workOrderType: workOrderType,
       status: status,
       progresPersen: progresPersen,
+      createdAt: createdAt,
       kategoriForm: kategoriForm,
     );
   }
@@ -250,7 +253,76 @@ class WorkOrderModel extends WorkOrderEntity {
       assignee: entity.assignee,
       assignees: entity.assignees,
       progresPersen: entity.progresPersen,
+      createdAt: entity.createdAt,
       kategoriForm: entity.kategoriForm,
     );
+  }
+
+  static String? _resolveKategoriForm(
+    Map<String, dynamic> map,
+    dynamic rawJenisWorkorder,
+  ) {
+    // 1. Deteksi dari keberadaan payload kategori di response (paling akurat)
+    if (map['wo_jaringan'] != null) return 'jaringan';
+    if (map['wo_infrastruktur'] != null) return 'infrastruktur';
+    if (map['wo_meter'] != null) return 'meter';
+
+    // 2. Inferensi dari nama_workorder + deskripsi
+    //    Ini lebih reliable daripada kategori_form dari jenis_workorder
+    //    ketika WO belum punya record di tabel wo_* (belum di-assign SPV)
+    final namaWo = (map['nama_workorder'] ?? map['judul_pekerjaan'] ?? '')
+        .toString()
+        .toLowerCase();
+    final deskripsi = (map['deskripsi'] ?? '').toString().toLowerCase();
+    final combinedText = '$namaWo $deskripsi';
+
+    if (_isJaringanName(combinedText)) return 'jaringan';
+    if (_isInfrastrukturName(combinedText)) return 'infrastruktur';
+
+    // 3. Langsung dari root level (backend appended attribute)
+    if (map['kategori_form'] is String) {
+      return map['kategori_form'] as String;
+    }
+
+    // 4. Dari nested jenis_workorder object
+    if (rawJenisWorkorder is Map &&
+        rawJenisWorkorder['kategori_form'] is String) {
+      return rawJenisWorkorder['kategori_form'] as String;
+    }
+
+    // 5. Fallback: coba tebak dari nama jenis workorder
+    if (rawJenisWorkorder is Map) {
+      final nama = (rawJenisWorkorder['nama'] as String?)?.toLowerCase() ?? '';
+      if (_isJaringanName(nama)) return 'jaringan';
+      if (_isInfrastrukturName(nama)) return 'infrastruktur';
+      if (_isMeterName(nama)) return 'meter';
+    }
+
+    // 6. Meter check dari nama WO (hanya kalau eksplisit)
+    if (combinedText.contains('meter') || combinedText.contains('kalibrasi')) {
+      return 'meter';
+    }
+
+    return null;
+  }
+
+  static bool _isJaringanName(String nama) {
+    return nama.contains('pipa') ||
+        nama.contains('jaringan') ||
+        nama.contains('saluran') ||
+        nama.contains('kebocoran');
+  }
+
+  static bool _isInfrastrukturName(String nama) {
+    return nama.contains('pompa') ||
+        nama.contains('reservoir') ||
+        nama.contains('infrastruktur') ||
+        nama.contains('aset') ||
+        nama.contains('inspeksi') ||
+        nama.contains('pemeliharaan');
+  }
+
+  static bool _isMeterName(String nama) {
+    return nama.contains('meter') || nama.contains('kalibrasi');
   }
 }

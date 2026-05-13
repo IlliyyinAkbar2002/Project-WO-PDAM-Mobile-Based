@@ -3,11 +3,7 @@ import 'dart:convert';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
 class WorkOrderTypeModel extends WorkOrderTypeEntity {
-  const WorkOrderTypeModel({
-    super.id,
-    required super.name,
-    // super.description,
-  });
+  const WorkOrderTypeModel({super.id, required super.name, super.kategoriForm});
 
   factory WorkOrderTypeModel.fromJson(String source) =>
       WorkOrderTypeModel.fromMap(json.decode(source));
@@ -19,7 +15,7 @@ class WorkOrderTypeModel extends WorkOrderTypeEntity {
     return WorkOrderTypeModel(
       id: map['id'],
       name: map['nama'] ?? 'Unknown',
-      // description: map['description'],
+      kategoriForm: map['kategori_form'] as String?,
     );
   }
 
@@ -27,23 +23,19 @@ class WorkOrderTypeModel extends WorkOrderTypeEntity {
     return {
       'id': id,
       'nama': name,
-      // 'description': description,
+      if (kategoriForm != null) 'kategori_form': kategoriForm,
     };
   }
 
   WorkOrderTypeEntity toEntity() {
-    return WorkOrderTypeEntity(
-      id: id,
-      name: name,
-      // description: description,
-    );
+    return WorkOrderTypeEntity(id: id, name: name, kategoriForm: kategoriForm);
   }
 
   factory WorkOrderTypeModel.fromEntity(WorkOrderTypeEntity entity) {
     return WorkOrderTypeModel(
       id: entity.id,
       name: entity.name,
-      // description: entity.description,
+      kategoriForm: entity.kategoriForm,
     );
   }
 }

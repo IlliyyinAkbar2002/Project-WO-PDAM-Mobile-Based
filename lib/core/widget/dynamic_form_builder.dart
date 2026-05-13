@@ -41,7 +41,9 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
     super.initState();
     // Inisialisasi controller hanya untuk field teks
     for (var field in widget.fields) {
-      if (field['type'] == 'text' || field['type'] == 'tanggal') {
+      if (field['type'] == 'text' ||
+          field['type'] == 'textarea' ||
+          field['type'] == 'tanggal') {
         String initialText = '';
         if (field['type'] == 'tanggal' &&
             widget.formData[field['key']] is DateTime) {
@@ -113,6 +115,26 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                   ],
                 );
 
+              case "textarea":
+                return Column(
+                  children: [
+                    CustomForm(
+                      hintText: field["hint"],
+                      labelText: field["label"],
+                      keyboardType: TextInputType.multiline,
+                      controller: _controllers[field["key"]],
+                      readOnly: isReadOnly || widget.readOnly,
+                      maxLines: field["maxLines"] ?? 4,
+                      onChanged: (value) {
+                        if (!isReadOnly && !widget.readOnly) {
+                          widget.onFieldChanged(field["key"], value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                );
+
               case "dropdown":
                 debugPrint("Dropdown id: ${field["key"]}");
                 debugPrint("Dropdown parent: ${field["parent"]}");
@@ -127,17 +149,15 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                       hintText: field["hint"],
                       labelText: field["label"],
                       inputType: InputType.dropdown,
-                      dropdownItems:
-                          // (field["options"] as List<Map<String, dynamic>>)
-                          options.map((option) {
-                            return DropdownMenuItem<int>(
-                              value: option["value"],
-                              child: Text(
-                                option["label"],
-                                style: textTheme.titleLarge,
-                              ),
-                            );
-                          }).toList(),
+                      dropdownItems: options.map((option) {
+                        return DropdownMenuItem<dynamic>(
+                          value: option["value"],
+                          child: Text(
+                            option["label"].toString(),
+                            style: textTheme.titleLarge,
+                          ),
+                        );
+                      }).toList(),
                       dropdownValue: widget.formData[field["key"]],
                       enabled:
                           !isDisabled &&

@@ -33,7 +33,7 @@ class FormFieldsConfig {
       {
         "key": "locationPicker",
         "type": "custom",
-        "showIf": (formData) => true, // Map selalu tampil
+        "showIf": (formData) => true, 
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
@@ -102,7 +102,7 @@ class FormFieldsConfig {
       {
         "key": "timeEstimate",
         "type": "custom",
-        "showIf": (formData) => true, // 🔹 Selalu tampil
+        "showIf": (formData) => true,
         "isOvertime": isOvertime,
         "startDateTime": (formData) => formData["startDateTime"],
         "duration": (formData) => formData["duration"],
@@ -110,6 +110,7 @@ class FormFieldsConfig {
         "endDateTime": (formData) => formData["endDateTime"],
         "isReadOnly": readOnlyInDetail,
         "status": status,
+        "hideStartDateTime": false,
       },
       {"key": "isOvertime", "type": "hidden", "value": isOvertime},
       {
@@ -132,6 +133,15 @@ class FormFieldsConfig {
               },
             )
             .toList(),
+        "isReadOnly": !isAssignMode,
+        "showIf": isAssignMode,
+      },
+      // ─── Deskripsi Pekerjaan ────────────────────────────────────────
+      {
+        "type": "textarea",
+        "key": "deskripsiPekerjaan",
+        "label": "Deskripsi Pekerjaan",
+        "hint": "Masukkan deskripsi atau catatan pekerjaan",
         "isReadOnly": !isAssignMode,
         "showIf": isAssignMode,
       },

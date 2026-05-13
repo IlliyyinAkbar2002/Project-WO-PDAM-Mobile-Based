@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/peminjaman_material_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
@@ -70,6 +69,8 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
 class _AssigneeWorkOrderDetailPageState
     extends AppStatePage<AssigneeWorkOrderDetailPage> {
   List<WorkOrderProgressEntity> progresses = [];
+  bool _progressesLoaded = false;
+  late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
 
   String _resolveAppBarTitle() {
     if (widget.kategoriForm != null) {
@@ -81,123 +82,153 @@ class _AssigneeWorkOrderDetailPageState
 
   @override
   void initState() {
-    context.read<WorkOrderBloc>().add(
-      GetProgressByWorkOrderIdEvent(widget.workOrderId!),
-    );
     super.initState();
+    _progressRemoteDataSource =
+        GetIt.instance<WorkOrderProgressRemoteDataSource>();
+    _fetchProgresses();
+  }
+
+  /// Fetch progresses directly from remote data source — bypass BLoC
+  /// to avoid race condition with shared WorkOrderBloc state.
+  Future<void> _fetchProgresses() async {
+    if (widget.workOrderId == null) return;
+    debugPrint(
+      "🔄 AssigneePage._fetchProgresses() for WO ${widget.workOrderId}",
+    );
+    try {
+      final result = await _progressRemoteDataSource.fetchProgressByWorkOrderId(
+        widget.workOrderId!,
+      );
+      if (!mounted) return;
+      if (result is DataSuccess) {
+        final entities = result.data!.map((m) => m.toEntity()).toList();
+        debugPrint(
+          "✅ AssigneePage: ${entities.length} progresses — "
+          "ids: ${entities.map((e) => e.id).toList()}, "
+          "tipeIds: ${entities.map((e) => e.tipeProgressId).toList()}",
+        );
+        setState(() {
+          progresses = entities;
+          _progressesLoaded = true;
+        });
+      } else {
+        debugPrint(
+          "⚠️ AssigneePage: Failed to fetch progresses: ${result.error}",
+        );
+        setState(() {
+          _progressesLoaded = true;
+        });
+      }
+    } catch (e, st) {
+      debugPrint("⚠️ AssigneePage: Error fetching progresses: $e\n$st");
+      if (mounted) {
+        setState(() {
+          _progressesLoaded = true;
+        });
+      }
+    }
   }
 
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(title: _resolveAppBarTitle()),
-      body: BlocBuilder<WorkOrderBloc, WorkOrderState>(
-        buildWhen: (previous, current) => current is ProgressesLoaded,
-        builder: (context, state) {
-          if (state is ProgressesLoaded) {
-            final progresses = state.progresses;
-            final bool hasMulai = progresses.any((item) => item.isMulai);
-            final bool hasSelesai = progresses.any((item) => item.isSelesai);
+      body: _buildBody(),
+    );
+  }
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                DetailWorkOrderPage(
-                  isOvertime: widget.isOvertime,
-                  workOrderId: widget.workOrderId,
-                  isAssignee: widget.isAssignee,
-                  status: widget.status,
-                  enableInnerScroll: false,
-                ),
-                const SizedBox(height: 16),
-                Text("Pelaporan Work Order", style: textTheme.displayMedium),
-                const SizedBox(height: 8),
-                if (!hasMulai)
-                  Row(
-                    children: [
-                      Expanded(child: _buildActionButton('Mulai')),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSecondaryOutlinedButton(
-                          label: 'Pinjam Material',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PeminjamanMaterialPage(
-                                  workOrderId: widget.workOrderId ?? 0,
-                                ),
-                              ),
-                            );
-                          },
+  Widget _buildBody() {
+    if (!_progressesLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final bool hasMulai = progresses.any((item) => item.isMulai);
+    final bool hasSelesai = progresses.any((item) => item.isSelesai);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        DetailWorkOrderPage(
+          isOvertime: widget.isOvertime,
+          workOrderId: widget.workOrderId,
+          isAssignee: widget.isAssignee,
+          status: widget.status,
+          enableInnerScroll: false,
+        ),
+        const SizedBox(height: 16),
+        Text("Pelaporan Work Order", style: textTheme.displayMedium),
+        const SizedBox(height: 8),
+        if (!hasMulai)
+          Row(
+            children: [
+              Expanded(child: _buildActionButton('Mulai')),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildSecondaryOutlinedButton(
+                  label: 'Pinjam Material',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PeminjamanMaterialPage(
+                          workOrderId: widget.workOrderId ?? 0,
                         ),
                       ),
-                    ],
-                  ),
-                ...progresses.map(
-                  (progressIndex) => ProgressCard(
-                    type: progressIndex.progressType!,
-                    index: progressIndex.order!,
-                    description: progressIndex.description,
-                    dateTime: _resolveProgressDateTime(progressIndex),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => WorkOrderReportPage(
-                            mode: progressIndex.progressType!,
-                            status: widget.status,
-                            isAssignee: widget.isAssignee,
-                            progressId: progressIndex.id,
-                            lngLat: widget.lngLat,
-                            locationName: widget.locationName,
-                            radiusMeter: widget.radiusMeter,
-                          ),
-                        ),
-                      );
-                    },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ...progresses.map(
+          (progressIndex) => ProgressCard(
+            type: progressIndex.progressType ?? '-',
+            index: progressIndex.order ?? 0,
+            description: progressIndex.description,
+            dateTime: _resolveProgressDateTime(progressIndex),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => WorkOrderReportPage(
+                    mode: progressIndex.progressType ?? '-',
+                    status: widget.status,
+                    isAssignee: widget.isAssignee,
+                    progressId: progressIndex.id,
+                    lngLat: widget.lngLat,
+                    locationName: widget.locationName,
+                    radiusMeter: widget.radiusMeter,
                   ),
                 ),
-                if (hasMulai && !hasSelesai) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildActionButton('Selesai')),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSecondaryOutlinedButton(
-                          label: 'Kembalikan Material',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PeminjamanMaterialPage(
-                                  workOrderId: widget.workOrderId ?? 0,
-                                ),
-                              ),
-                            );
-                          },
+              );
+            },
+          ),
+        ),
+        if (hasMulai && !hasSelesai) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _buildActionButton('Selesai')),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildSecondaryOutlinedButton(
+                  label: 'Kembalikan Material',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PeminjamanMaterialPage(
+                          workOrderId: widget.workOrderId ?? 0,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ],
-            );
-          }
-
-          // Bisa ditambah loading & error handling
-          if (state is WorkOrderLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is WorkOrderError) {
-            return Center(child: Text(state.message));
-          }
-
-          return const Center(child: Text("Memuat..."));
-        },
-      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
@@ -231,9 +262,7 @@ class _AssigneeWorkOrderDetailPageState
         ),
       );
       if (shouldRefresh == true && mounted && widget.workOrderId != null) {
-        context.read<WorkOrderBloc>().add(
-          GetProgressByWorkOrderIdEvent(widget.workOrderId!),
-        );
+        _fetchProgresses();
       }
     }
 

@@ -16,7 +16,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
-    if (normalized == 'accept' || normalized == 'terima' || normalized == 'approve') {
+    if (normalized == 'accept' ||
+        normalized == 'terima' ||
+        normalized == 'approve') {
       return 'accept';
     }
     if (normalized == 'reject' || normalized == 'tolak') {
@@ -56,6 +58,7 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         queryParameters: {'workorder_id': workOrderId},
       );
       final dynamic raw = response.data;
+      debugPrint("📥 fetchProgressByWorkOrderId($workOrderId) raw: $raw");
 
       if (raw is Map<String, dynamic>) {
         final dynamic payload = raw['data'] ?? raw;
@@ -68,6 +71,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
                 ),
               )
               .toList();
+          debugPrint(
+            "📥 fetchProgressByWorkOrderId parsed ${data.length} items from list",
+          );
           return DataSuccess(data);
         }
 
@@ -86,11 +92,18 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
               ),
             )
             .toList();
+        debugPrint(
+          "📥 fetchProgressByWorkOrderId parsed ${data.length} items from raw list",
+        );
         return DataSuccess(data);
       }
 
+      debugPrint(
+        "⚠️ fetchProgressByWorkOrderId: unexpected format, returning empty",
+      );
       return const DataSuccess(<WorkOrderProgressModel>[]);
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint("❌ fetchProgressByWorkOrderId error: $e\n$st");
       return DataFailed(
         DioException(
           error: e,
@@ -136,6 +149,24 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
               DateTime.now().toUtc().toIso8601String(),
         ),
       ]);
+
+      // Koordinat GPS (required oleh BE di endpoint /start, opsional di /submit).
+      // Selalu append kalau ada supaya BE bisa menyimpan posisi staff saat submit.
+      if (workOrderProgress.latitude != null) {
+        formData.fields.add(
+          MapEntry('latitude', workOrderProgress.latitude.toString()),
+        );
+      }
+      if (workOrderProgress.longitude != null) {
+        formData.fields.add(
+          MapEntry('longitude', workOrderProgress.longitude.toString()),
+        );
+      }
+      if (workOrderProgress.accuracy != null) {
+        formData.fields.add(
+          MapEntry('accuracy', workOrderProgress.accuracy.toString()),
+        );
+      }
 
       // Add photos to FormData
       debugPrint(
@@ -250,9 +281,10 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
       );
 
       late final Response response;
-      final bool isStart = workOrderProgress.id == null &&
-          workOrderProgress.tipeProgressId == 1;
-      final bool isSubmit = workOrderProgress.id == null &&
+      final bool isStart =
+          workOrderProgress.id == null && workOrderProgress.tipeProgressId == 1;
+      final bool isSubmit =
+          workOrderProgress.id == null &&
           (workOrderProgress.tipeProgressId == 2 ||
               workOrderProgress.tipeProgressId == 3);
       final bool isReview = workOrderProgress.reviewAction != null;
@@ -268,7 +300,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ),
           );
         }
-        final decision = _normalizeReviewDecision(workOrderProgress.reviewAction!);
+        final decision = _normalizeReviewDecision(
+          workOrderProgress.reviewAction!,
+        );
         formData.fields.addAll([
           MapEntry('progress_workorder_id', workOrderProgress.id.toString()),
           MapEntry('progress_id', workOrderProgress.id.toString()),
@@ -290,7 +324,22 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
           return DataFailed(
             DioException(
               error: 'workOrderId wajib diisi untuk endpoint start progress.',
-              requestOptions: RequestOptions(path: '/v1/progress-workorder/start'),
+              requestOptions: RequestOptions(
+                path: '/v1/progress-workorder/start',
+              ),
+            ),
+          );
+        }
+        if (workOrderProgress.latitude == null ||
+            workOrderProgress.longitude == null) {
+          return DataFailed(
+            DioException(
+              error:
+                  'Koordinat GPS (latitude & longitude) wajib diisi untuk memulai progress. '
+                  'Pastikan izin lokasi diaktifkan dan GPS menyala.',
+              requestOptions: RequestOptions(
+                path: '/v1/progress-workorder/start',
+              ),
             ),
           );
         }
@@ -316,7 +365,8 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ),
           );
         }
-        final progressKode = workOrderProgress.tipeProgressId == TipeProgressId.selesai
+        final progressKode =
+            workOrderProgress.tipeProgressId == TipeProgressId.selesai
             ? TipeProgressId.kodeSelesai
             : TipeProgressId.kodeProgress;
         formData.fields.addAll([

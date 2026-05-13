@@ -121,6 +121,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     on<GetWorkOrdersEvent>(_onGetWorkOrdersEvent);
     on<LoadMoreWorkOrdersEvent>(_onLoadMoreWorkOrdersEvent);
     on<GetWorkOrderDetailEvent>(_onGetWorkOrderDetailEvent);
+    on<SetWorkOrderDetailEvent>(_onSetWorkOrderDetailEvent);
     on<CreateWorkOrderEvent>(_onCreateWorkOrderEvent);
     on<UpdateWorkOrderEvent>(_onUpdateWorkOrderEvent);
     on<DeleteWorkOrderEvent>(_onDeleteWorkOrderEvent);
@@ -254,6 +255,13 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         WorkOrderError("Terjadi kesalahan saat mengambil detail pekerjaan: $e"),
       );
     }
+  }
+
+  void _onSetWorkOrderDetailEvent(
+    SetWorkOrderDetailEvent event,
+    Emitter<WorkOrderState> emit,
+  ) {
+    emit(WorkOrderDetailLoaded(event.workOrder));
   }
 
   Future<void> _onCreateWorkOrderEvent(

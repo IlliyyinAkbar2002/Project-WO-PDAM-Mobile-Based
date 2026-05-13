@@ -85,7 +85,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
 
     return WorkOrderProgressModel(
       id: map['id'],
-      order: map['order'],
+      order: map['order'] ?? map['urutan'],
       workOrderId: map['workorder_id'],
       tipeProgressId: tipeProgressId,
       statusId: statusId,
@@ -99,13 +99,13 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
             )
           : null,
       submitTime: map['waktu_submit'] != null
-          ? DateTime.parse(map['waktu_submit'])
+          ? DateTime.tryParse(map['waktu_submit'].toString())
           : null,
       createdAt: map['created_at'] != null
-          ? DateTime.parse(map['created_at'])
+          ? DateTime.tryParse(map['created_at'].toString())
           : null,
       updatedAt: map['updated_at'] != null
-          ? DateTime.parse(map['updated_at'])
+          ? DateTime.tryParse(map['updated_at'].toString())
           : null,
       progressDetails: map['detail_progress'] != null
           ? List<ProgressDetailModel>.from(

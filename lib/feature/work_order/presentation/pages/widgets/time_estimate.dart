@@ -5,6 +5,7 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 class TimeEstimate extends StatefulWidget {
   final bool isOvertime;
   final bool isReadOnly;
+  final bool hideStartDateTime;
   final Function(DateTime?, int?, String?, DateTime?) onChanged;
   final DateTime? startDateTime;
   final int? duration;
@@ -16,6 +17,7 @@ class TimeEstimate extends StatefulWidget {
     super.key,
     required this.isOvertime,
     this.isReadOnly = false,
+    this.hideStartDateTime = false,
     required this.onChanged,
     this.startDateTime,
     this.duration,
@@ -133,47 +135,49 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
               const SizedBox(height: 16),
 
               // Mulai row
-              Row(
-                children: [
-                  SizedBox(
-                    width: 50,
-                    child: Text(
-                      "Mulai",
-                      style: const TextStyle(
-                        fontFamily: 'Roboto',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2D3643),
-                        letterSpacing: -0.2,
-                        height: 1.71,
+              if (!widget.hideStartDateTime) ...[
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 50,
+                      child: Text(
+                        "Mulai",
+                        style: const TextStyle(
+                          fontFamily: 'Roboto',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2D3643),
+                          letterSpacing: -0.2,
+                          height: 1.71,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  Expanded(
-                    flex: 3,
-                    child: _buildSmallInput(
-                      controller: _dateController,
-                      hintText: 'Pilih Tanggal',
-                      onTap: (widget.isReadOnly) ? null : _selectDate,
+                    Expanded(
+                      flex: 3,
+                      child: _buildSmallInput(
+                        controller: _dateController,
+                        hintText: 'Pilih Tanggal',
+                        onTap: (widget.isReadOnly) ? null : _selectDate,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  Expanded(
-                    flex: 2,
-                    child: _buildSmallInput(
-                      controller: _timeController,
-                      hintText: 'Jam',
-                      onTap: (widget.isReadOnly) ? null : _selectTime,
+                    Expanded(
+                      flex: 2,
+                      child: _buildSmallInput(
+                        controller: _timeController,
+                        hintText: 'Jam',
+                        onTap: (widget.isReadOnly) ? null : _selectTime,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
 
-              const SizedBox(height: 15),
+                const SizedBox(height: 15),
+              ],
 
               // Durasi row
               Row(

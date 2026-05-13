@@ -46,7 +46,6 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         'limit': limit,
         if (status != null) 'status': status.join(','),
         if (excludeStatus != null) 'exclude_status': excludeStatus.join(','),
-        // pic_id tidak dikirim - backend otomatis filter berdasarkan authenticated user
         if (userId != null) 'user_id': userId,
         if (type != null) 'type': type,
         if (dateRange != null) 'date_range': dateRange,
@@ -182,14 +181,18 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     }
   }
 
-  Future<DataState<void>> assignStaff({
+  Future<DataState<WorkOrderModel?>> assignStaff({
     required int workOrderId,
     required List<int> staffIds,
     required String kategoriForm,
     required Map<String, dynamic> formKategori,
+    String? deskripsi,
     double? latitude,
     double? longitude,
     double? accuracy,
+    DateTime? tanggalMulai,
+    DateTime? tanggalSelesai,
+    DateTime? estimasiSelesai,
   }) async {
     try {
       final petugas = staffIds.asMap().entries.map((entry) {
@@ -199,18 +202,66 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         };
       }).toList();
 
-      await post(
+      final requestBody = {
+        'kategori_form': kategoriForm,
+        'form_kategori': formKategori,
+        'petugas': petugas,
+        if (deskripsi != null && deskripsi.trim().isNotEmpty)
+          'deskripsi': deskripsi.trim(),
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (accuracy != null) 'accuracy': accuracy,
+        if (tanggalMulai != null)
+          'tanggal_mulai': tanggalMulai.toIso8601String(),
+        if (tanggalSelesai != null)
+          'tanggal_selesai': tanggalSelesai.toIso8601String(),
+        if (estimasiSelesai != null)
+          'estimasi_selesai': estimasiSelesai.toIso8601String(),
+      };
+
+      print("📤 assignStaff REQUEST body: $requestBody");
+
+      final response = await post(
         path: '/v1/workorder/$workOrderId/assign-staff',
-        data: {
-          'form_kategori': formKategori,
-          'petugas': petugas,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-          if (accuracy != null) 'accuracy': accuracy,
-        },
+        data: requestBody,
       );
-      return const DataSuccess(null);
+
+      // BE sekarang mengembalikan workorder lengkap di response.data['data'].
+      // Parse supaya FE tidak perlu re-fetch detail lagi.
+      WorkOrderModel? updatedWorkOrder;
+      try {
+        final dynamic raw = response.data;
+        Map<String, dynamic>? payload;
+        if (raw is Map<String, dynamic>) {
+          final dynamic data = raw['data'];
+          if (data is Map) {
+            payload = Map<String, dynamic>.from(data);
+          } else if (raw.containsKey('id')) {
+            payload = Map<String, dynamic>.from(raw);
+          }
+        }
+        if (payload != null) {
+          updatedWorkOrder = WorkOrderModel.fromMap(payload);
+          print(
+            "📥 assignStaff parsed response — kategoriForm: ${updatedWorkOrder.kategoriForm}, assignees: ${updatedWorkOrder.assignees?.length}",
+          );
+        } else {
+          print(
+            "⚠️ assignStaff response tidak berisi data workorder; FE akan fallback re-fetch.",
+          );
+        }
+      } catch (parseErr) {
+        print("⚠️ assignStaff gagal parse response workorder: $parseErr");
+      }
+
+      return DataSuccess(updatedWorkOrder);
+    } on DioException catch (e) {
+      print(
+        "❌ assignStaff ERROR ${e.response?.statusCode}: ${e.response?.data}",
+      );
+      return DataFailed(e);
     } catch (e) {
+      print("❌ assignStaff UNEXPECTED ERROR: $e");
       return DataFailed(
         DioException(
           error: e,

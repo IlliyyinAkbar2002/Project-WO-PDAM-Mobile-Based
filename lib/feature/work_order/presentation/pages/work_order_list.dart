@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -152,13 +152,15 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Expanded(
-              child: Text(
-                workOrder.endDateTime.toString(),
-                style: const TextStyle(fontSize: 12),
-                overflow: TextOverflow.ellipsis,
+            if (workOrder.createdAt != null)
+              Expanded(
+                child: Text(
+                  DateFormat('dd/MM/yyyy HH:mm').format(workOrder.createdAt!),
+                  style: const TextStyle(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                ),
               ),
-            ),
           ],
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -200,8 +202,15 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
   }
 
   Widget _buildStatusChip(WorkOrderEntity workOrder) {
-    // Tampilkan kategori WO (Jaringan/Infrastruktur/Meter) bukan Normal/Lembur
-    final kategori = workOrder.kategoriForm;
+    final kategori =
+        workOrder.kategoriForm ?? _inferKategoriFromType(workOrder);
+    debugPrint(
+      "🎫 List chip — id: ${workOrder.id}, title: '${workOrder.title}', "
+      "type: '${workOrder.workOrderType?.name}', "
+      "model.kategoriForm: ${workOrder.kategoriForm}, "
+      "inferred: ${_inferKategoriFromType(workOrder)}, "
+      "final: $kategori",
+    );
     final String typeLabel;
     final Color typeColor;
     switch (kategori) {
@@ -223,64 +232,74 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
     }
 
     final status = workOrder.status?.status;
-    final statusColor = color.status[workOrder.status?.id];
+    final statusColor =
+        color.status[workOrder.status?.id ?? workOrder.statusId] ??
+        color.primary[100]!;
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       spacing: 4,
       children: [
-        Container(
-          height: 15,
-          decoration: BoxDecoration(
-            color: typeColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              typeLabel,
-              style: TextStyle(fontSize: 12, color: color.foreground[100]),
-            ),
-          ),
-        ),
-        Container(
-          height: 15,
-          decoration: BoxDecoration(
-            color: statusColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              status!,
-              style: TextStyle(
-                fontSize: 12,
-                color:
-                    workOrder.statusId != 2 &&
-                        workOrder.statusId != 8 &&
-                        workOrder.statusId !=
-                            WorkOrderStatusId.ditugaskanKeStaff
-                    ? color.foreground[100]
-                    : color.primary[500],
-              ),
-            ),
-          ),
-        ),
+        _buildChip(typeLabel, typeColor),
+        if (status != null && status.isNotEmpty)
+          _buildChip(status, statusColor),
         if (workOrder.progresPersen != null)
-          Container(
-            height: 15,
-            decoration: BoxDecoration(
-              color: color.primary[500],
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '${workOrder.progresPersen}%',
-                style: TextStyle(fontSize: 12, color: color.foreground[100]),
-              ),
-            ),
-          ),
+          _buildChip('${workOrder.progresPersen}%', color.primary[500]!),
       ],
     );
+  }
+
+  Widget _buildChip(String label, Color backgroundColor) {
+    return Container(
+      height: 15,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12,
+            color: _chipTextColor(backgroundColor),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _chipTextColor(Color backgroundColor) {
+    return backgroundColor.computeLuminance() > 0.5
+        ? color.foreground[900]!
+        : Colors.white;
+  }
+
+  /// Fallback: derive kategori dari nama workOrderType atau title WO
+  String? _inferKategoriFromType(WorkOrderEntity workOrder) {
+    final nama = workOrder.workOrderType?.name.toLowerCase() ?? '';
+    final title = workOrder.title.toLowerCase();
+    final combined = '$nama $title';
+    if (combined.contains('pipa') ||
+        combined.contains('jaringan') ||
+        combined.contains('saluran') ||
+        combined.contains('kebocoran')) {
+      return 'jaringan';
+    }
+    if (combined.contains('pompa') ||
+        combined.contains('reservoir') ||
+        combined.contains('infrastruktur') ||
+        combined.contains('aset') ||
+        combined.contains('inspeksi') ||
+        combined.contains('pemeliharaan')) {
+      return 'infrastruktur';
+    }
+    if (combined.contains('meter') || combined.contains('kalibrasi')) {
+      return 'meter';
+    }
+    return null;
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
@@ -13,6 +15,7 @@ import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
@@ -60,6 +63,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
+  late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
   String? _detailErrorMessage;
   bool _assignableUsersRequested = false;
 
@@ -77,6 +81,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     final user = AuthStorage.getUserSync();
     _isManager = user?['role_id'] == 2;
     _workOrderRemoteDataSource = WorkOrderRemoteDataSource();
+    _progressRemoteDataSource =
+        GetIt.instance<WorkOrderProgressRemoteDataSource>();
 
     formData["isOvertime"] = widget.isOvertime;
 
@@ -105,7 +111,39 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     if (!isDetailMode) return;
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
-    bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
+    // Only fetch progresses for SPV view (not assignee — AssigneeWorkOrderDetailPage handles it)
+    if (!widget.isAssignee) {
+      _fetchProgresses();
+    }
+  }
+
+  /// Fetch progresses directly from the remote data source.
+  /// This avoids the shared BLoC race condition where WorkOrderLoading
+  /// from GetProgressByWorkOrderIdEvent overwrites other states.
+  Future<void> _fetchProgresses() async {
+    if (!isDetailMode || widget.workOrderId == null) return;
+    debugPrint("🔄 _fetchProgresses() called for WO ${widget.workOrderId}");
+    try {
+      final result = await _progressRemoteDataSource.fetchProgressByWorkOrderId(
+        widget.workOrderId!,
+      );
+      if (!mounted) return;
+      if (result is DataSuccess) {
+        final entities = result.data!.map((m) => m.toEntity()).toList();
+        debugPrint(
+          "✅ Progresses fetched directly: ${entities.length} items — "
+          "ids: ${entities.map((e) => e.id).toList()}, "
+          "types: ${entities.map((e) => e.tipeProgressId).toList()}",
+        );
+        setState(() {
+          progresses = entities;
+        });
+      } else {
+        debugPrint("⚠️ Failed to fetch progresses: ${result.error}");
+      }
+    } catch (e, st) {
+      debugPrint("⚠️ Error fetching progresses: $e\n$st");
+    }
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -179,8 +217,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         if (state is WorkOrderCreated &&
             _isSubmitting &&
             !_hasClosedAfterCreate) {
-          // One-shot: pastikan success flow (snackbar + pop) hanya dieksekusi
-          // sekali meskipun listener re-fire.
           _hasClosedAfterCreate = true;
           if (mounted) {
             setState(() {
@@ -191,10 +227,6 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             if (!mounted) return;
             AppSnackbar.showSuccess("Work order berhasil dibuat.");
             final route = ModalRoute.of(context);
-            // Hanya pop kalau route ini masih aktif (isCurrent) dan belum
-            // sedang di-pop oleh proses lain. Ini mencegah assertion
-            // `entry.currentState == _RouteLifecycle.popping` yang terjadi
-            // saat Navigator.pop dipanggil pada route yang sudah dispatch pop.
             if (route != null &&
                 route.isActive &&
                 route.isCurrent &&
@@ -264,13 +296,16 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
             );
           }
         }
+        // Also capture progresses if they come through BLoC (e.g. from AssigneeWorkOrderDetailPage)
+        if (state is ProgressesLoaded) {
+          setState(() {
+            progresses = state.progresses;
+          });
+        }
         _checkDataLoaded();
       },
-      child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
-        builder: (context, state) {
-          if (state is ProgressesLoaded) {
-            progresses = state.progresses;
-          }
+      child: Builder(
+        builder: (context) {
           final effectivePicId = widget.picId ?? _creatorIdFromDetail;
           debugPrint(
             "routePicId: ${widget.picId}, creatorIdFromDetail: $_creatorIdFromDetail, effectivePicId: $effectivePicId",
@@ -309,12 +344,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                           ),
                         )
                       : null,
-                  body: (state is WorkOrderLoading && isDetailMode)
-                      ? const Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(16.0),
-                          child: _buildFormContent(progresses),
-                        ),
+                  body: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildFormContent(progresses),
+                  ),
                 )
               : _buildFormContent(progresses);
         },
@@ -354,39 +387,32 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        !widget.isAssignee &&
-                progresses != null &&
-                progresses.isNotEmpty &&
-                progresses.first.description != null
+        !widget.isAssignee && progresses != null && progresses.isNotEmpty
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Pelaporan Work Order", style: textTheme.displayMedium),
                   const SizedBox(height: 10),
-                  ...progresses
-                      .where(
-                        (progressIndex) => progressIndex.description != null,
-                      )
-                      .map(
-                        (progressIndex) => ProgressCard(
-                          type: progressIndex.progressType!,
-                          index: progressIndex.order!,
-                          description: progressIndex.description,
-                          dateTime: _resolveProgressDateTime(progressIndex),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WorkOrderReportPage(
-                                  mode: progressIndex.progressType!,
-                                  status: widget.status,
-                                  progressId: progressIndex.id,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                  ...progresses.map(
+                    (progressIndex) => ProgressCard(
+                      type: progressIndex.progressType ?? '-',
+                      index: progressIndex.order ?? 0,
+                      description: progressIndex.description,
+                      dateTime: _resolveProgressDateTime(progressIndex),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WorkOrderReportPage(
+                              mode: progressIndex.progressType ?? '-',
+                              status: widget.status,
+                              progressId: progressIndex.id,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 16),
                 ],
               )
@@ -556,6 +582,11 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       return;
     }
 
+    if (formData["startDateTime"] == null) {
+      AppSnackbar.showError("Waktu mulai harus diisi.");
+      return;
+    }
+
     // Pindahkan PIC ke index 0 agar backend tahu itu koordinator
     staffIds.remove(picId);
     staffIds.insert(0, picId);
@@ -628,21 +659,63 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _isSubmitting = true;
     });
 
-    // Ambil lat/lng dari formData (lokasi WO yang di-assign SPV)
-    final double? latitude = formData["latitude"] is double
-        ? formData["latitude"]
-        : double.tryParse(formData["latitude"]?.toString() ?? '');
-    final double? longitude = formData["longitude"] is double
-        ? formData["longitude"]
-        : double.tryParse(formData["longitude"]?.toString() ?? '');
+    debugPrint(
+      "📤 assignStaff payload — kategori: $kategori, formKategori: $formKategori",
+    );
+
+    // Ambil posisi GPS SPV saat assign (untuk audit trail)
+    Position? spvPosition;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          spvPosition = await Geolocator.getLastKnownPosition();
+          spvPosition ??= await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 10),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ Gagal ambil GPS SPV: $e (lanjut tanpa accuracy)");
+    }
+
+    // Gunakan posisi GPS SPV jika tersedia, fallback ke lokasi WO
+    final double? latitude =
+        spvPosition?.latitude ??
+        (formData["latitude"] is double
+            ? formData["latitude"]
+            : double.tryParse(formData["latitude"]?.toString() ?? ''));
+    final double? longitude =
+        spvPosition?.longitude ??
+        (formData["longitude"] is double
+            ? formData["longitude"]
+            : double.tryParse(formData["longitude"]?.toString() ?? ''));
+    final double? accuracy = spvPosition?.accuracy;
+
+    // Ambil deskripsi pekerjaan dari form
+    final String? deskripsi = (formData["deskripsiPekerjaan"] as String?)
+        ?.trim();
 
     final result = await _workOrderRemoteDataSource.assignStaff(
       workOrderId: widget.workOrderId!,
       staffIds: staffIds,
       kategoriForm: kategori,
       formKategori: formKategori,
+      deskripsi: deskripsi,
       latitude: latitude,
       longitude: longitude,
+      accuracy: accuracy,
+      tanggalMulai: formData["startDateTime"] as DateTime?,
+      tanggalSelesai: formData["endDateTime"] as DateTime?,
+      estimasiSelesai: formData["endDateTime"] as DateTime?,
     );
 
     if (!mounted) return;
@@ -651,14 +724,20 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _isSubmitting = false;
     });
 
-    if (result is DataSuccess<void>) {
+    if (result is DataSuccess<WorkOrderModel?>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
-      context.read<WorkOrderBloc>().add(
-        GetWorkOrderDetailEvent(widget.workOrderId!),
-      );
-      context.read<WorkOrderBloc>().add(
-        GetProgressByWorkOrderIdEvent(widget.workOrderId!),
-      );
+      final bloc = context.read<WorkOrderBloc>();
+      final WorkOrderModel? updatedWo = result.data;
+      if (updatedWo != null) {
+        // BE mengembalikan workorder lengkap — push ke BLoC tanpa re-fetch.
+        bloc.add(SetWorkOrderDetailEvent(updatedWo));
+      } else {
+        // Fallback kalau response tidak mengandung data WO.
+        bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+      }
+      // Fetch progresses directly — bypass BLoC to avoid state conflicts
+      // (only for SPV view; isAssignee is always false here since SPV assigns)
+      _fetchProgresses();
       return;
     }
 

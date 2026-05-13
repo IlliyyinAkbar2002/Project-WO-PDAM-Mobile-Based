@@ -86,6 +86,15 @@ class GetWorkOrderDetailEvent extends WorkOrderEvent {
   GetWorkOrderDetailEvent(this.id);
 }
 
+/// Push an already-fetched WO entity directly into [WorkOrderDetailLoaded]
+/// state without making a network call. Dipakai mis. setelah `assignStaff`
+/// yang mengembalikan workorder lengkap di response body.
+class SetWorkOrderDetailEvent extends WorkOrderEvent {
+  final WorkOrderEntity workOrder;
+
+  SetWorkOrderDetailEvent(this.workOrder);
+}
+
 class CreateWorkOrderEvent extends WorkOrderEvent {
   final WorkOrderEntity workOrder;
 

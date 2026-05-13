@@ -32,6 +32,7 @@ class WorkOrderEntity extends Equatable {
   final WorkOrderTypeEntity? workOrderType;
   final StatusEntity? status;
   final int? progresPersen;
+  final DateTime? createdAt;
 
   /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
   /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
@@ -63,6 +64,7 @@ class WorkOrderEntity extends Equatable {
     this.workOrderType,
     this.status,
     this.progresPersen,
+    this.createdAt,
     this.kategoriForm,
   });
 
@@ -93,6 +95,7 @@ class WorkOrderEntity extends Equatable {
     workOrderType,
     status,
     progresPersen,
+    createdAt,
     kategoriForm,
   ];
 
@@ -122,6 +125,7 @@ class WorkOrderEntity extends Equatable {
     WorkOrderTypeEntity? workOrderType,
     StatusEntity? status,
     int? progresPersen,
+    DateTime? createdAt,
     String? kategoriForm,
   }) {
     return WorkOrderEntity(
@@ -150,6 +154,7 @@ class WorkOrderEntity extends Equatable {
       workOrderType: workOrderType ?? this.workOrderType,
       status: status ?? this.status,
       progresPersen: progresPersen ?? this.progresPersen,
+      createdAt: createdAt ?? this.createdAt,
       kategoriForm: kategoriForm ?? this.kategoriForm,
     );
   }
