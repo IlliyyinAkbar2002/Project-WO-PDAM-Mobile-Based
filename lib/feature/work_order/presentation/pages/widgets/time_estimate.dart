@@ -44,10 +44,28 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   final List<String> normalDurationOptions = ['Jam', 'Hari', 'Bulan'];
 
   String _normalizeDurationUnit(String? value) {
-    final String normalized = (value ?? '').trim().toLowerCase();
-    if (normalized == 'jam') return 'Jam';
-    if (normalized == 'hari') return 'Hari';
-    if (normalized == 'bulan') return 'Bulan';
+    // Alternatif selain trim(): Menghapus semua karakter spasi putih (spasi, enter, tab)
+    final String normalized = (value ?? '').replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    if (normalized == 'jam' ||
+        normalized == 'j' ||
+        normalized == 'h' ||
+        normalized == 'hour' ||
+        normalized == 'hours') {
+      return 'Jam';
+    }
+    if (normalized == 'hari' ||
+        normalized == 'd' ||
+        normalized == 'day' ||
+        normalized == 'days') {
+      return 'Hari';
+    }
+    if (normalized == 'bulan' ||
+        normalized == 'b' ||
+        normalized == 'bln' ||
+        normalized == 'month' ||
+        normalized == 'months') {
+      return 'Bulan';
+    }
     return '';
   }
 
@@ -61,6 +79,15 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   @override
   void didUpdateWidget(TimeEstimate oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.startDateTime != oldWidget.startDateTime ||
+        widget.duration != oldWidget.duration ||
+        widget.durationUnit != oldWidget.durationUnit ||
+        widget.endDateTime != oldWidget.endDateTime) {
+      _initialValue();
+      if (selectedTime != null) {
+        _timeController.text = selectedTime!.format(context);
+      }
+    }
     if (widget.isOvertime != oldWidget.isOvertime) {
       _updateDurationType();
     }
@@ -91,6 +118,9 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
 
     _dateController.text = selectedDate != null
         ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+        : '';
+    _timeController.text = selectedTime != null
+        ? "${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}"
         : '';
     _durationController.text = _duration > 0 ? _duration.toString() : '';
     _durationTypeController.text = _selectedDurationType;
@@ -241,9 +271,7 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
                   ),
                   Flexible(
                     child: Text(
-                      (endDateTime != null &&
-                              _duration != 0 &&
-                              _selectedDurationType.isNotEmpty)
+                      (endDateTime != null)
                           ? _formatEndDateTime(endDateTime!)
                           : "-",
                       style: const TextStyle(

@@ -56,6 +56,7 @@ import '/feature/work_order/domain/usecases/get_work_order_detail_usecase.dart';
 import '/feature/work_order/domain/usecases/update_work_order_usecase.dart';
 import '/feature/work_order/domain/usecases/delete_work_order_usecase.dart';
 import '/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -318,6 +319,9 @@ Future<void> init() async {
       ),
     );
     print("✅ MaterialBloc terdaftar");
+
+    sl.registerLazySingleton(() => JournalDraftCubit());
+    print("✅ JournalDraftCubit terdaftar");
 
     print("🎉 Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/create_work_order_page.dart';
 
 class WorkOrderList extends StatefulWidget {
   final List<int>? status;
@@ -165,12 +165,16 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () async {
-          final lnglat = workOrder.latitude != null
-              ? LatLng(workOrder.latitude!, workOrder.longitude!)
+          final lnglat = workOrder.assignment?.latitude != null
+              ? LatLng(
+                  workOrder.assignment!.latitude!,
+                  workOrder.assignment!.longitude!,
+                )
               : null;
           // Ambil radius dan nama lokasi dari location jika ada
-          final radiusMeter = workOrder.location?.radiusMeter ?? 100;
-          final locationName = workOrder.location?.nama;
+          final radiusMeter =
+              workOrder.assignment?.location?.radiusMeter ?? 100;
+          final locationName = workOrder.assignment?.location?.nama;
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -178,13 +182,16 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                   ? AssigneeWorkOrderDetailPage(
                       isAssignee: widget.isAssignee,
                       workOrderId: workOrder.id,
+                      workOrderTypeId:
+                          workOrder.workOrderTypeId ??
+                          workOrder.workOrderType?.id,
                       status: workOrder.statusId,
                       kategoriForm: workOrder.kategoriForm,
                       lngLat: lnglat,
                       locationName: locationName,
                       radiusMeter: radiusMeter,
                     )
-                  : CreateWorkOrderPage(
+                  : DetailWorkOrderPage(
                       picId: widget.picId,
                       userId: widget.userId,
                       workOrderId: workOrder.id,

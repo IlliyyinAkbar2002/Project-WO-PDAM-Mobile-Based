@@ -26,7 +26,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_kel
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 
-class DetailWorkOrderPage extends StatefulWidget {
+class DetailWorkOrderPageMasuk extends StatefulWidget {
   final int? picId;
   final int? userId;
   final int? workOrderId;
@@ -35,7 +35,7 @@ class DetailWorkOrderPage extends StatefulWidget {
   final bool isAssignee;
   final bool enableInnerScroll;
 
-  const DetailWorkOrderPage({
+  const DetailWorkOrderPageMasuk({
     super.key,
     this.picId,
     this.userId,
@@ -47,10 +47,10 @@ class DetailWorkOrderPage extends StatefulWidget {
   });
 
   @override
-  State<DetailWorkOrderPage> createState() => _DetailWorkOrderPageState();
+  State<DetailWorkOrderPageMasuk> createState() => _DetailWorkOrderPageMasukState();
 }
 
-class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
+class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMasuk> {
   static const String _assigneeKey = "assignee";
   static const String _assigneesKey = "assignees";
 
@@ -316,8 +316,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
               "endDateTime": state.workOrder.endDateTime,
-              "deskripsiPekerjaan":
-                  state.workOrder.assignment?.description ?? "",
+              "deskripsiPekerjaan": state.workOrder.assignment?.description ?? "",
               ..._buildKategoriFormData(state.workOrder),
               _assigneeKey:
                   state.workOrder.assignment?.assignees ??
@@ -529,9 +528,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     final int? duration = _toInt(formData["duration"]);
     final String durationUnit = _readTrimmedString("durationUnit");
     final DateTime? endDateTime = _toDateTime(formData["endDateTime"]);
-    final List<int> assigneeIds = _toUserEntityList(
-      formData[_assigneesKey],
-    ).map((user) => user.id).whereType<int>().toList();
+    final List<int> assigneeIds = _toUserEntityList(formData[_assigneesKey])
+        .map((user) => user.id)
+        .whereType<int>()
+        .toList();
     final int? locationId = _toInt(formData["locationId"]);
     final double? latitude = _toDouble(formData["latitude"]);
     final double? longitude = _toDouble(formData["longitude"]);

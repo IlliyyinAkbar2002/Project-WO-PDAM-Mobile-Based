@@ -9,6 +9,7 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
 import 'service/service_locator.dart' as di;
 
 void main() async {
@@ -16,18 +17,15 @@ void main() async {
 
   try {
     await AppConfig.init();
-    print("✅ AppConfig loaded — BACKEND_DOMAIN: ${AppConfig.backendDomain}");
 
     await AuthStorage.initialize();
-    print("✅ Auth storage initialized");
 
     RemoteDatasource.setAuthTokenGetter(() => AuthStorage.getTokenSync());
 
     await di.init();
-    print("🎉 Dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {
-    print("❌ Gagal menginisialisasi: $e");
-    print(stacktrace);
+    debugPrint('Error during initialization: $e');
+    debugPrint('Stacktrace: $stacktrace');
   }
 
   runApp(const App());
@@ -48,6 +46,7 @@ class _AppState extends AppStatePage<App> {
       providers: [
         BlocProvider(create: (_) => di.sl<WorkOrderBloc>()),
         BlocProvider(create: (_) => di.sl<MaterialBloc>()),
+        BlocProvider(create: (_) => di.sl<JournalDraftCubit>()),
       ],
       child: MaterialApp(
         theme: ThemeManager.theme,

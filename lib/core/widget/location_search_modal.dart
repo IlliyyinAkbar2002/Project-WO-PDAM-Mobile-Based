@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 
 class LocationSearchModal extends StatefulWidget {
@@ -38,39 +39,42 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
     }
 
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _searchNominatim(query);
+      _searchGooglePlaces(query);
     });
   }
 
-  /// Mencari lokasi menggunakan Nominatim (OpenStreetMap) — gratis, tanpa API key
-  Future<void> _searchNominatim(String query) async {
+  /// Mencari lokasi menggunakan Google Places Autocomplete API
+  Future<void> _searchGooglePlaces(String query) async {
     setState(() {
       _isLoading = true;
       _errorMsg = '';
     });
 
     try {
+      final apiKey = AppConfig.googleMapsApiKey;
+      if (apiKey.isEmpty) {
+        setState(() {
+          _errorMsg = 'Google Maps API key belum dikonfigurasi.';
+        });
+        return;
+      }
+
       final response = await _dio.get(
-        'https://nominatim.openstreetmap.org/search',
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json',
         queryParameters: {
-          'q': query,
-          'format': 'json',
-          'countrycodes': 'id', // batasi Indonesia
-          'limit': 10,
-          'addressdetails': 1,
+          'input': query,
+          'key': apiKey,
+          'components': 'country:id', // batasi Indonesia
+          'language': 'id',
         },
-        options: Options(
-          headers: {
-            'User-Agent': 'ProjectMobilePDAM/1.0',
-          },
-        ),
       );
 
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is List && data.isNotEmpty) {
+        final predictions = data['predictions'];
+        if (predictions is List && predictions.isNotEmpty) {
           setState(() {
-            _results = List<Map<String, dynamic>>.from(data);
+            _results = List<Map<String, dynamic>>.from(predictions);
           });
         } else {
           setState(() {
@@ -91,21 +95,59 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
     }
   }
 
-  /// Memilih lokasi dari hasil Nominatim — lat/lon sudah tersedia langsung
-  void _selectLocation(Map<String, dynamic> result) {
-    final lat = double.tryParse(result['lat'].toString()) ?? 0.0;
-    final lng = double.tryParse(result['lon'].toString()) ?? 0.0;
-    final displayName = result['display_name'] ?? '';
+  /// Mengambil detail lokasi (lat/lng) dari Google Place Details API
+  Future<void> _selectLocation(Map<String, dynamic> prediction) async {
+    final placeId = prediction['place_id'] as String?;
+    final description = prediction['description'] as String? ?? '';
 
-    final locationEntity = MasterLocationEntity(
-      id: null,
-      nama: displayName,
-      latitude: lat,
-      longitude: lng,
-      radiusMeter: 1000,
-    );
+    if (placeId == null) return;
 
-    widget.onLocationSelected(locationEntity);
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final apiKey = AppConfig.googleMapsApiKey;
+      final response = await _dio.get(
+        'https://maps.googleapis.com/maps/api/place/details/json',
+        queryParameters: {
+          'place_id': placeId,
+          'key': apiKey,
+          'fields': 'geometry',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final result = response.data['result'];
+        final location = result?['geometry']?['location'];
+        if (location != null) {
+          final lat = (location['lat'] as num).toDouble();
+          final lng = (location['lng'] as num).toDouble();
+
+          final locationEntity = MasterLocationEntity(
+            id: null,
+            nama: description,
+            latitude: lat,
+            longitude: lng,
+            radiusMeter: 1000,
+          );
+
+          widget.onLocationSelected(locationEntity);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMsg = 'Gagal mengambil detail lokasi.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -246,7 +288,7 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
                             itemCount: _results.length,
                             itemBuilder: (context, index) {
                               final result = _results[index];
-                              final displayName = result['display_name'] ?? '';
+                              final description = result['description'] ?? '';
 
                               return InkWell(
                                 onTap: () {
@@ -275,7 +317,7 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
-                                          displayName,
+                                          description,
                                           style: const TextStyle(
                                             fontFamily: 'Arial',
                                             fontSize: 16,
@@ -321,4 +363,3 @@ Future<MasterLocationEntity?> showLocationSearchModal(
     },
   );
 }
-

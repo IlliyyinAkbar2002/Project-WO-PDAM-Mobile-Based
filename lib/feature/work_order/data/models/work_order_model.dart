@@ -4,6 +4,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/master_locati
 import 'package:project_mobile_pdam/feature/work_order/data/models/status_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_type_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/assignment_workorder_entity.dart';
 
 import '/feature/work_order/domain/entities/work_order_entity.dart';
 
@@ -15,27 +16,22 @@ class WorkOrderModel extends WorkOrderEntity {
     super.duration,
     super.durationUnit,
     super.endDateTime,
-    super.longitude,
-    super.latitude,
-    super.locationId,
-    super.location,
     super.lokasiText,
     super.creator,
-    super.assigneeId,
     super.statusId,
     super.workOrderTypeId,
     super.splId,
     super.locationTypeId,
     super.requiresApproval,
-    super.assigneeIds,
-    super.assignee,
-    super.assignees,
     super.locationType,
     super.workOrderType,
     super.status,
     super.progresPersen,
     super.createdAt,
     super.kategoriForm,
+    super.detailKategori,
+    super.assignment,
+    super.assignments,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -51,6 +47,78 @@ class WorkOrderModel extends WorkOrderEntity {
       return null;
     }
 
+    DateTime? parseDateTime(dynamic value) {
+      if (value is DateTime) return value;
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty) return null;
+        return DateTime.tryParse(trimmed);
+      }
+      return null;
+    }
+
+    DateTime? parseDateTimeFromKeys(List<String> keys) {
+      for (final key in keys) {
+        final parsed = parseDateTime(map[key]);
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    String? normalizeDurationUnit(dynamic value) {
+      final normalized = (value ?? '').toString().trim().toLowerCase();
+      if (normalized.isEmpty) return null;
+      if (normalized == 'jam' ||
+          normalized == 'j' ||
+          normalized == 'h' ||
+          normalized == 'hour' ||
+          normalized == 'hours') {
+        return 'Jam';
+      }
+      if (normalized == 'hari' ||
+          normalized == 'd' ||
+          normalized == 'day' ||
+          normalized == 'days') {
+        return 'Hari';
+      }
+      if (normalized == 'bulan' ||
+          normalized == 'b' ||
+          normalized == 'bln' ||
+          normalized == 'month' ||
+          normalized == 'months') {
+        return 'Bulan';
+      }
+      return null;
+    }
+
+    int? inferDuration(DateTime? start, DateTime? end, String? unit) {
+      if (start == null || end == null) return null;
+      final diff = end.difference(start);
+      if (diff.isNegative) return null;
+
+      switch (unit) {
+        case 'Hari':
+          if (diff.inHours % 24 == 0) {
+            return diff.inHours ~/ 24;
+          }
+          break;
+        case 'Bulan':
+          final months =
+              (end.year - start.year) * 12 + (end.month - start.month);
+          if (months > 0) return months;
+          break;
+        case 'Jam':
+          return diff.inHours;
+      }
+
+      if (diff.inHours >= 24 && diff.inHours % 24 == 0) {
+        return diff.inHours ~/ 24;
+      }
+      if (diff.inHours > 0) return diff.inHours;
+      if (diff.inMinutes > 0) return 1;
+      return 0;
+    }
+
     int? parseIdFromAny(dynamic value) {
       final direct = parseInt(value);
       if (direct != null) return direct;
@@ -59,16 +127,6 @@ class WorkOrderModel extends WorkOrderEntity {
       }
       return null;
     }
-
-    print("📢 Parsing Work Order: $map");
-    print("📥 Data jenis_workorder yang diterima: ${map['jenis_workorder']}");
-    print("📍 Data location yang diterima: ${map['location']}");
-    print(
-      "🏷️ kategori_form root: ${map['kategori_form']}, nama_workorder: ${map['nama_workorder']}, deskripsi: ${map['deskripsi']}",
-    );
-    print(
-      "🏷️ wo_jaringan: ${map['wo_jaringan']}, wo_infrastruktur: ${map['wo_infrastruktur']}, wo_meter: ${map['wo_meter']}",
-    );
 
     List<UserModel>? assignees;
     if (map['assignment_members'] is List) {
@@ -111,43 +169,87 @@ class WorkOrderModel extends WorkOrderEntity {
     final dynamic rawStatus = map['status'] ?? map['status_workorder'];
 
     final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
-    print(
-      "🏷️ RESOLVED kategoriForm: $resolvedKategori for WO: ${map['nama_workorder']}",
+    final detailKategori = _extractDetailKategoriMap(map);
+    final DateTime? parsedStartDateTime = parseDateTimeFromKeys([
+      'tanggal_mulai',
+      'tanggalMulai',
+      'waktu_penugasan',
+      'waktuPenugasan',
+    ]);
+    final DateTime? parsedEndDateTime = parseDateTimeFromKeys([
+      'estimasi_selesai',
+      'estimasiSelesai',
+      'tanggal_selesai',
+      'tanggalSelesai',
+    ]);
+    final String? rawDurationUnit =
+        map['unit_waktu']?.toString() ??
+        map['duration_unit']?.toString() ??
+        map['durasi_unit']?.toString();
+    final String? normalizedDurationUnit = normalizeDurationUnit(
+      rawDurationUnit,
     );
+    String? resolvedDurationUnit = normalizedDurationUnit ?? rawDurationUnit;
+    int? resolvedDuration =
+        parseInt(map['estimasi_durasi']) ??
+        parseInt(map['duration']) ??
+        parseInt(map['durasi']);
 
-    return WorkOrderModel(
-      id: map['id'],
-      title: map['nama_workorder'] ?? map['judul_pekerjaan'],
-      startDateTime: map['tanggal_mulai'] != null
-          ? DateTime.tryParse(map['tanggal_mulai'])
-          : map['waktu_penugasan'] != null
-          ? DateTime.tryParse(map['waktu_penugasan'])
-          : null,
-      duration: parseInt(map['estimasi_durasi']),
-      durationUnit: map['unit_waktu'],
-      endDateTime: map['estimasi_selesai'] != null
-          ? DateTime.tryParse(map['estimasi_selesai'])
+    if (resolvedDuration == null &&
+        parsedStartDateTime != null &&
+        parsedEndDateTime != null) {
+      final inferredDuration = inferDuration(
+        parsedStartDateTime,
+        parsedEndDateTime,
+        normalizeDurationUnit(resolvedDurationUnit),
+      );
+      if (inferredDuration != null) {
+        resolvedDuration = inferredDuration;
+        if (normalizeDurationUnit(resolvedDurationUnit) == null) {
+          resolvedDurationUnit =
+              inferredDuration > 0 &&
+                  parsedEndDateTime.difference(parsedStartDateTime).inHours %
+                          24 ==
+                      0
+              ? 'Hari'
+              : 'Jam';
+        }
+      }
+    }
+
+    final parsedAssigneeId =
+        parseIdFromAny(map['assigned_to']) ??
+        parseIdFromAny(map['petugas_id']) ??
+        assignee?.id;
+
+    final assignment = AssignmentWorkorderEntity(
+      assignees: assignees,
+      assignee: assignee,
+      assigneeId: parsedAssigneeId,
+      latitude: map['latitude'] != null
+          ? double.tryParse(map['latitude'].toString())
           : null,
       longitude: map['longitude'] != null
           ? double.tryParse(map['longitude'].toString())
-          : null,
-      latitude: map['latitude'] != null
-          ? double.tryParse(map['latitude'].toString())
           : null,
       locationId: parseIdFromAny(map['location_id']),
       location: map['location'] != null
           ? MasterLocationModel.fromMap(map['location'])
           : null,
+      description: map['deskripsi'] as String?,
+    );
+
+    return WorkOrderModel(
+      id: map['id'],
+      title: map['nama_workorder'] ?? map['judul_pekerjaan'],
+      startDateTime: parsedStartDateTime,
+      duration: resolvedDuration,
+      durationUnit: resolvedDurationUnit,
+      endDateTime: parsedEndDateTime,
       lokasiText: map['lokasi'] as String?, // Parse field "lokasi" dari backend
       creator:
           parseIdFromAny(map['created_by_user_id']) ??
           parseIdFromAny(map['pic_id']),
-      // `petugas_id` (FK tunggal) sudah dihapus di backend (TKT-07),
-      // tapi id tunggal masih berguna utk backward-compat UI lain.
-      assigneeId:
-          parseIdFromAny(map['assigned_to']) ??
-          parseIdFromAny(map['petugas_id']) ??
-          assignee?.id,
       statusId: parseIdFromAny(map['status_id']),
       workOrderTypeId:
           parseIdFromAny(map['jenis_workorder_id']) ??
@@ -157,8 +259,6 @@ class WorkOrderModel extends WorkOrderEntity {
           parseIdFromAny(map['jenis_lokasi_id']) ??
           parseIdFromAny(rawJenisLokasi),
       requiresApproval: parseIdFromAny(map['tipe_workorder_id']) == 2,
-      assignees: assignees,
-      assignee: assignee,
       locationType: rawJenisLokasi is Map
           ? LocationTypeModel.fromMap(Map<String, dynamic>.from(rawJenisLokasi))
           : null,
@@ -172,16 +272,19 @@ class WorkOrderModel extends WorkOrderEntity {
           : null,
       progresPersen: parseInt(map['progres_persen']),
       kategoriForm: resolvedKategori,
+      detailKategori: detailKategori,
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'])
           : null,
+      assignment: assignment,
     );
   }
 
   Map<String, dynamic> toMap() {
-    final List<int> ids = assigneeIds ?? const <int>[];
+    final List<int> ids = assignment?.assigneeIds ?? const <int>[];
     final int? assignedTo =
-        assigneeId ?? (ids.isNotEmpty ? ids.first : assignee?.id);
+        assignment?.assigneeId ??
+        (ids.isNotEmpty ? ids.first : assignment?.assignee?.id);
     return {
       'nama_workorder': title,
       'judul_pekerjaan': title, // fallback legacy
@@ -191,11 +294,16 @@ class WorkOrderModel extends WorkOrderEntity {
       'unit_waktu': durationUnit,
       'estimasi_selesai': endDateTime?.toIso8601String(),
       'lokasi':
-          lokasiText ?? location?.nama, // Backend pakai field "lokasi" (string)
+          lokasiText ??
+          assignment?.location?.nama, // Backend pakai field "lokasi" (string)
+      'deskripsi': assignment?.description,
       'status_id': statusId,
       'jenis_workorder_id': workOrderTypeId,
       'assigned_to': assignedTo,
       'petugas_id': ids,
+      'latitude': assignment?.latitude,
+      'longitude': assignment?.longitude,
+      'location_id': assignment?.locationId,
     };
   }
 
@@ -207,69 +315,73 @@ class WorkOrderModel extends WorkOrderEntity {
       duration: duration,
       durationUnit: durationUnit,
       endDateTime: endDateTime,
-      longitude: longitude,
-      latitude: latitude,
-      locationId: locationId,
-      location: location,
       lokasiText: lokasiText,
       creator: creator,
-      assigneeId: assigneeId,
       statusId: statusId,
       workOrderTypeId: workOrderTypeId,
       splId: splId,
       locationTypeId: locationTypeId,
       requiresApproval: requiresApproval,
-      assignee: assignee,
-      assignees: assignees,
       locationType: locationType,
       workOrderType: workOrderType,
       status: status,
       progresPersen: progresPersen,
       createdAt: createdAt,
       kategoriForm: kategoriForm,
+      detailKategori: detailKategori,
+      assignment: assignment,
+      assignments: assignments,
     );
   }
 
   factory WorkOrderModel.fromEntity(WorkOrderEntity entity) {
     return WorkOrderModel(
+      id: entity.id,
       title: entity.title,
       startDateTime: entity.startDateTime,
       duration: entity.duration,
       durationUnit: entity.durationUnit,
       endDateTime: entity.endDateTime,
-      longitude: entity.longitude,
-      latitude: entity.latitude,
-      locationId: entity.locationId,
-      location: entity.location,
       lokasiText: entity.lokasiText,
       creator: entity.creator,
-      assigneeId: entity.assigneeId,
       statusId: entity.statusId,
       workOrderTypeId: entity.workOrderTypeId,
       splId: entity.splId,
       locationTypeId: entity.locationTypeId,
       requiresApproval: entity.requiresApproval,
-      assigneeIds: entity.assigneeIds,
-      assignee: entity.assignee,
-      assignees: entity.assignees,
       progresPersen: entity.progresPersen,
       createdAt: entity.createdAt,
       kategoriForm: entity.kategoriForm,
+      detailKategori: entity.detailKategori,
+      assignment: entity.assignment,
+      assignments: entity.assignments,
     );
+  }
+
+  static Map<String, dynamic>? _extractDetailKategoriMap(
+    Map<String, dynamic> map,
+  ) {
+    final dynamic raw =
+        map['wo_jaringan'] ??
+        map['wo_infrastruktur'] ??
+        map['wo_meter'] ??
+        map['form_kategori'];
+
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+
+    return null;
   }
 
   static String? _resolveKategoriForm(
     Map<String, dynamic> map,
     dynamic rawJenisWorkorder,
   ) {
-    // 1. Deteksi dari keberadaan payload kategori di response (paling akurat)
     if (map['wo_jaringan'] != null) return 'jaringan';
     if (map['wo_infrastruktur'] != null) return 'infrastruktur';
     if (map['wo_meter'] != null) return 'meter';
 
-    // 2. Inferensi dari nama_workorder + deskripsi
-    //    Ini lebih reliable daripada kategori_form dari jenis_workorder
-    //    ketika WO belum punya record di tabel wo_* (belum di-assign SPV)
     final namaWo = (map['nama_workorder'] ?? map['judul_pekerjaan'] ?? '')
         .toString()
         .toLowerCase();
@@ -279,12 +391,9 @@ class WorkOrderModel extends WorkOrderEntity {
     if (_isJaringanName(combinedText)) return 'jaringan';
     if (_isInfrastrukturName(combinedText)) return 'infrastruktur';
 
-    // 3. Langsung dari root level (backend appended attribute)
     if (map['kategori_form'] is String) {
       return map['kategori_form'] as String;
     }
-
-    // 4. Dari nested jenis_workorder object
     if (rawJenisWorkorder is Map &&
         rawJenisWorkorder['kategori_form'] is String) {
       return rawJenisWorkorder['kategori_form'] as String;

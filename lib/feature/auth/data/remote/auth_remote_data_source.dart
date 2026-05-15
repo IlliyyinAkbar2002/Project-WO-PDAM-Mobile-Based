@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/auth/model/auth_response_model.dart';
@@ -15,8 +16,6 @@ class AuthRemoteDataSource extends RemoteDatasource {
     required String tanggalLahir,
   }) async {
     try {
-      print('📝 Attempting register for: $email');
-      print('📡 Full URL: ${dio.options.baseUrl}/v1/auth/register');
 
       final response = await post(
         path: '/v1/auth/register',
@@ -30,19 +29,13 @@ class AuthRemoteDataSource extends RemoteDatasource {
         },
       );
 
-      print('✅ Register response status: ${response.statusCode}');
-      print('📥 Response data: ${response.data}');
 
       final data = AuthResponseModel.fromMap(response.data);
       return DataSuccess(data);
     } on DioException catch (e) {
-      print('❌ Register DioException Type: ${e.type}');
-      print('❌ Error Message: ${e.message}');
-      print('❌ Response Status: ${e.response?.statusCode}');
-      print('❌ Response Data: ${e.response?.data}');
       return DataFailed(e);
     } catch (e) {
-      print('❌ Register Unexpected Error: $e');
+      debugPrint('❌ Unexpected Error during registration: $e');
       return DataFailed(
         DioException(
           error: e,
@@ -57,35 +50,20 @@ class AuthRemoteDataSource extends RemoteDatasource {
     required String password,
   }) async {
     try {
-      print('🔐 Attempting login for: $email');
-      print('📡 Full URL: ${dio.options.baseUrl}/v1/auth/login');
-      print('📡 Headers: ${dio.options.headers}');
-      print(
-        '📤 Sending data: {email: $email, password: ${password.replaceAll(RegExp(r'.'), '*')}}',
-      );
 
       final response = await post(
         path: '/v1/auth/login',
         data: {'email': email, 'password': password},
       );
 
-      print('✅ Login response status: ${response.statusCode}');
-      print('📥 Response headers: ${response.headers}');
-      print('📥 Response data: ${response.data}');
 
       final data = AuthResponseModel.fromMap(response.data);
       return DataSuccess(data);
     } on DioException catch (e) {
-      print('❌ DioException Type: ${e.type}');
-      print('❌ Error Message: ${e.message}');
-      print('❌ Response Status: ${e.response?.statusCode}');
-      print('❌ Response Data: ${e.response?.data}');
-      print('❌ Response Headers: ${e.response?.headers}');
-      print('❌ Request URL: ${e.requestOptions.uri}');
-      print('❌ Request Headers: ${e.requestOptions.headers}');
+      debugPrint('❌ DioException during login: ${e.message}');
       return DataFailed(e);
     } catch (e) {
-      print('❌ Unexpected Error: $e');
+      debugPrint('❌ Unexpected Error during login: $e');
       return DataFailed(
         DioException(
           error: e,
@@ -99,12 +77,12 @@ class AuthRemoteDataSource extends RemoteDatasource {
   /// Returns user data transformed to standard format
   Future<DataState<Map<String, dynamic>>> fetchMe() async {
     try {
-      print('👤 Fetching user profile from /me...');
+      debugPrint('🔍 Fetching user profile from /v1/auth/me');
 
       final response = await get(path: '/v1/auth/me');
 
-      print('✅ Me response status: ${response.statusCode}');
-      print('📥 Me response data: ${response.data}');
+      debugPrint('✅ Me response status: ${response.statusCode}');
+      debugPrint('📥 Me response data: ${response.data}');
 
       final data = response.data as Map<String, dynamic>;
 
@@ -133,13 +111,13 @@ class AuthRemoteDataSource extends RemoteDatasource {
 
       return DataSuccess(transformedData);
     } on DioException catch (e) {
-      print('❌ Me DioException Type: ${e.type}');
-      print('❌ Me Error Message: ${e.message}');
-      print('❌ Me Response Status: ${e.response?.statusCode}');
-      print('❌ Me Response Data: ${e.response?.data}');
+      debugPrint('❌ Me DioException Type: ${e.type}');
+      debugPrint('❌ Me Error Message: ${e.message}');
+      debugPrint('❌ Me Response Status: ${e.response?.statusCode}');
+      debugPrint('❌ Me Response Data: ${e.response?.data}');
       return DataFailed(e);
     } catch (e) {
-      print('❌ Me Unexpected Error: $e');
+      debugPrint('❌ Me Unexpected Error: $e');
       return DataFailed(
         DioException(
           error: e,

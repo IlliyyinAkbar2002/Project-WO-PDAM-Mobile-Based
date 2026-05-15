@@ -243,7 +243,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         if (payload != null) {
           updatedWorkOrder = WorkOrderModel.fromMap(payload);
           print(
-            "📥 assignStaff parsed response — kategoriForm: ${updatedWorkOrder.kategoriForm}, assignees: ${updatedWorkOrder.assignees?.length}",
+            "📥 assignStaff parsed response — kategoriForm: ${updatedWorkOrder.kategoriForm}, assignees: ${updatedWorkOrder.assignment?.assignees?.length}",
           );
         } else {
           print(

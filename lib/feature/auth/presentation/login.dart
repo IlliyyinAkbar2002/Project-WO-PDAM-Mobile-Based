@@ -532,7 +532,7 @@ class _LoginPageState extends State<LoginPage> {
 
           if (authResponse.token != null) {
             await AuthStorage.saveToken(authResponse.token!);
-            print('🔐 Token saved: ${authResponse.token!.substring(0, 10)}...');
+            debugPrint('🔐 Token saved: ${authResponse.token!.substring(0, 10)}...');
           }
 
           final meResult = await authDataSource.fetchMe();
@@ -542,12 +542,12 @@ class _LoginPageState extends State<LoginPage> {
           if (meResult is DataSuccess) {
             final userData = meResult.data!;
             await AuthStorage.saveUser(userData);
-            print('👤 User saved with name: ${userData['name']}');
+            debugPrint('👤 User saved: ${userData['email']}');
             roleId = userData['role_id'] as int?;
           } else {
             if (authResponse.user != null) {
               await AuthStorage.saveUser(authResponse.user!);
-              print('👤 User saved (fallback): ${authResponse.user!['email']}');
+              debugPrint('👤 User saved (fallback): ${authResponse.user!['email']}');
             }
           }
 
@@ -570,8 +570,8 @@ class _LoginPageState extends State<LoginPage> {
             positionId = meResult.data?['employee']?['position_id'] as int?;
           }
 
-          print('🎭 Role ID: $roleId');
-          print('👔 Position ID: $positionId');
+          debugPrint('🎭 Role ID: $roleId');
+          debugPrint('👔 Position ID: $positionId');
 
           if (roleId == 1) {
             targetPage = const admin.LandingPage();
@@ -670,11 +670,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      print('🧪 Testing connection to API server...');
+      debugPrint('🧪 Testing connection to API server...');
       final response = await dio.get('${AppConfig.backendDomain}/api/ping');
 
-      print('✅ Connection successful!');
-      print('📥 Response: ${response.data}');
+      debugPrint('✅ Connection successful!');
+      debugPrint('📥 Response: ${response.data}');
 
       if (!mounted) return;
 
@@ -687,9 +687,9 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } on DioException catch (e) {
-      print('❌ Connection test failed!');
-      print('Type: ${e.type}');
-      print('Message: ${e.message}');
+      debugPrint('❌ Connection test failed!');
+      debugPrint('Type: ${e.type}');
+      debugPrint('Message: ${e.message}');
 
       final targetUrl = '${AppConfig.backendDomain}/api/ping';
       String errorMsg;

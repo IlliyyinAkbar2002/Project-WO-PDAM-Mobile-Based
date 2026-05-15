@@ -19,7 +19,6 @@ class RemoteDatasource {
         sendTimeout: const Duration(seconds: 60),
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
           'ngrok-skip-browser-warning': 'true',
         },
@@ -50,7 +49,10 @@ class RemoteDatasource {
     return dio.get<T>(
       path ?? '',
       queryParameters: queryParameters,
-      options: Options(headers: headers(contentType: contentType)),
+      options: Options(
+        headers: headers(),
+        contentType: _resolveContentType(contentType),
+      ),
       data: data,
     );
   }
@@ -64,7 +66,10 @@ class RemoteDatasource {
     return dio.post<T>(
       path ?? '',
       queryParameters: queryParameters,
-      options: Options(headers: headers(contentType: contentType)),
+      options: Options(
+        headers: headers(),
+        contentType: _resolveContentType(contentType),
+      ),
       data: data,
     );
   }
@@ -78,7 +83,10 @@ class RemoteDatasource {
     return dio.put<T>(
       path ?? '',
       queryParameters: queryParameters,
-      options: Options(headers: headers(contentType: contentType)),
+      options: Options(
+        headers: headers(),
+        contentType: _resolveContentType(contentType),
+      ),
       data: data,
     );
   }
@@ -92,7 +100,10 @@ class RemoteDatasource {
     return dio.delete<T>(
       path ?? '',
       queryParameters: queryParameters,
-      options: Options(headers: headers(contentType: contentType)),
+      options: Options(
+        headers: headers(),
+        contentType: _resolveContentType(contentType),
+      ),
       data: data,
     );
   }
@@ -106,12 +117,27 @@ class RemoteDatasource {
     return dio.patch<T>(
       path ?? '',
       queryParameters: queryParameters,
-      options: Options(headers: headers(contentType: contentType)),
+      options: Options(
+        headers: headers(),
+        contentType: _resolveContentType(contentType),
+      ),
       data: data,
     );
   }
 
-  Map<String, dynamic> headers({ContentType? contentType}) {
+  String _resolveContentType(ContentType? contentType) {
+    switch (contentType) {
+      case ContentType.form:
+        return Headers.formUrlEncodedContentType;
+      case ContentType.multipart:
+        return Headers.multipartFormDataContentType;
+      case ContentType.json:
+      case null:
+        return Headers.jsonContentType;
+    }
+  }
+
+  Map<String, dynamic> headers() {
     try {
       final token = authTokenGetter();
       DebugLog.info(
@@ -119,11 +145,6 @@ class RemoteDatasource {
             '🔑 Auth token for API request: ${token != null && token.isNotEmpty ? "EXISTS (${token.substring(0, 10)}...)" : "NULL/EMPTY"}',
       );
       return {
-        'Content-Type': contentType == null || contentType == ContentType.json
-            ? 'application/json'
-            : contentType == ContentType.form
-            ? 'application/x-www-form-urlencoded'
-            : 'multipart/form-data',
         'Accept': 'application/json',
         'ngrok-skip-browser-warning': 'true',
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
@@ -131,11 +152,6 @@ class RemoteDatasource {
     } catch (e) {
       DebugLog.warning(message: '⚠️ Failed to get auth token: $e');
       return {
-        'Content-Type': contentType == null || contentType == ContentType.json
-            ? 'application/json'
-            : contentType == ContentType.form
-            ? 'application/x-www-form-urlencoded'
-            : 'multipart/form-data',
         'Accept': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       };

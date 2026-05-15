@@ -951,8 +951,8 @@ class _RegisterPageState extends State<RegisterPage> {
         await AuthStorage.saveUser(authResponse.user!);
       }
 
-      print('🎭 After-register Role ID: $roleId');
-      print('👔 After-register Position ID: $positionId');
+      debugPrint('🎭 After-register Role ID: $roleId');
+      debugPrint('👔 After-register Position ID: $positionId');
 
       // Jika pegawai belum di-ACC (position_id masih null) → jangan auto-masuk.
       if (positionId == null) {

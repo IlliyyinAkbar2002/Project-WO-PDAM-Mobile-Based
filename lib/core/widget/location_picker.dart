@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/location_search_modal.dart';
 
@@ -32,8 +32,8 @@ class LocationPicker extends StatefulWidget {
 }
 
 class _LocationPickerState extends AppStatePage<LocationPicker> {
-  final MapController _mapController = MapController();
-  LatLng _selectedLocation = const LatLng(-7.250445, 112.768845);
+  final Completer<GoogleMapController> _mapControllerCompleter = Completer();
+  late LatLng _selectedLocation;
   String locationInfo = "";
   late String selectedLocationName;
 
@@ -43,15 +43,16 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
     selectedLocationName = widget.locationName ?? "";
     _selectedLocation = (widget.latitude != null && widget.longitude != null)
         ? LatLng(widget.latitude!, widget.longitude!)
-        : const LatLng(-7.250445, 112.768845);
+        : const LatLng(-7.2704960, 112.5672211); // Default Surabaya
 
     if (widget.latitude != null && widget.longitude != null) {
       locationInfo = "Lokasi dipilih";
     }
   }
 
-  void _moveCamera(LatLng position) {
-    _mapController.move(position, 14.0);
+  Future<void> _moveCamera(LatLng position) async {
+    final controller = await _mapControllerCompleter.future;
+    controller.animateCamera(CameraUpdate.newLatLng(position));
   }
 
   /// Saat pengguna mengetuk peta.
@@ -105,33 +106,31 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
         // Peta untuk memilih lokasi.
         SizedBox(
           height: 165,
-          child: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _selectedLocation,
-              initialZoom: 15,
-              onTap: widget.isReadOnly ? null : (tapPosition, point) => _onTapped(point),
+          child: GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _selectedLocation,
+              zoom: 15,
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.project_mobile_pdam',
+            onMapCreated: (controller) {
+              if (!_mapControllerCompleter.isCompleted) {
+                _mapControllerCompleter.complete(controller);
+              }
+            },
+            onTap: widget.isReadOnly ? null : _onTapped,
+            markers: {
+              Marker(
+                markerId: const MarkerId('selected_location'),
+                position: _selectedLocation,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueRed,
+                ),
               ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _selectedLocation,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(
-                      Icons.location_pin,
-                      color: Colors.red,
-                      size: 40,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            },
+            myLocationEnabled: false,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            liteModeEnabled: false,
           ),
         ),
         // Informasi lokasi dan pencarian.
@@ -201,4 +200,3 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
     );
   }
 }
-

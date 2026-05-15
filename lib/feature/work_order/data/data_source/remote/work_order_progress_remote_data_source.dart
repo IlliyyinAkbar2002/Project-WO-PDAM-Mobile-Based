@@ -14,15 +14,30 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
   String basename(String path) => p.basename(path);
 
+  DioException _toDioException(Object error, String path) {
+    if (error is DioException) return error;
+    return DioException(error: error, requestOptions: RequestOptions(path: path));
+  }
+
+  void _logDioError(String context, DioException error) {
+    debugPrint(
+      "❌ $context failed:"
+      " status=${error.response?.statusCode},"
+      " path=${error.requestOptions.path},"
+      " data=${error.response?.data},"
+      " message=${error.message},"
+      " inner=${error.error}",
+    );
+  }
+
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
-    if (normalized == 'accept' ||
-        normalized == 'terima' ||
-        normalized == 'approve') {
+    if (normalized == 'accept' || normalized == 'terima' || normalized == 'approve') {
       return 'accept';
-    }
-    if (normalized == 'reject' || normalized == 'tolak') {
+    } else if (normalized == 'reject' || normalized == 'tolak') {
       return 'reject';
+    }else if (normalized == 'revision' || normalized == 'revisi') {
+      return 'revisi';
     }
     return normalized;
   }
@@ -78,7 +93,7 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         }
 
         final progressModel = WorkOrderProgressModel.fromMap(
-          Map<String, dynamic>.from(raw),
+          Map<String, dynamic>.from(payload),
         );
         return DataSuccess([progressModel]);
       }
@@ -103,13 +118,10 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
       );
       return const DataSuccess(<WorkOrderProgressModel>[]);
     } catch (e, st) {
-      debugPrint("❌ fetchProgressByWorkOrderId error: $e\n$st");
-      return DataFailed(
-        DioException(
-          error: e,
-          requestOptions: RequestOptions(path: '/v1/progress-workorder'),
-        ),
-      );
+      final dioError = _toDioException(e, '/v1/progress-workorder');
+      _logDioError('fetchProgressByWorkOrderId', dioError);
+      debugPrint("❌ fetchProgressByWorkOrderId stack: $st");
+      return DataFailed(dioError);
     }
   }
 
@@ -202,17 +214,25 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         debugPrint("⚠️ No photos provided");
       }
 
-      if (workOrderProgress.progressDetails != null &&
-          workOrderProgress.progressDetails!.isNotEmpty) {
-        for (int i = 0; i < workOrderProgress.progressDetails!.length; i++) {
-          final detailItem = workOrderProgress.progressDetails![i];
+      final progressDetails = workOrderProgress.progressDetails ?? const [];
+      if (progressDetails.isEmpty) {
+        formData.fields.add(MapEntry('detail_progress', jsonEncode([])));
+        debugPrint("⚠️ No progress details provided, sending detail_progress=[]");
+      } else {
+        for (int i = 0; i < progressDetails.length; i++) {
+          final detailItem = progressDetails[i];
 
           // Pastikan detail_form_id ada untuk membentuk kunci
           if (detailItem.detailFormId == null) {
-            debugPrint(
-              "⚠️ Skipping detail_progress item at index $i due to null detailFormId.",
+            return DataFailed(
+              DioException(
+                error:
+                    'detail_form_id wajib diisi untuk item detail_progress index $i.',
+                requestOptions: RequestOptions(
+                  path: '/v1/progress-workorder/${workOrderProgress.id}',
+                ),
+              ),
             );
-            continue;
           }
 
           // Tambahkan detail_form_id untuk item saat ini
@@ -243,9 +263,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         debugPrint("📋 Detail Progress fields constructed in indexed format.");
       }
 
-      if (workOrderProgress.progressDetails != null) {
+      if (progressDetails.isNotEmpty) {
         // Tambah detail_progress_images (single-image)
-        for (var detail in workOrderProgress.progressDetails!) {
+        for (var detail in progressDetails) {
           if (detail.image != null && detail.detailFormId != null) {
             try {
               final file = File(detail.image!.path);
@@ -270,9 +290,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             }
           }
         }
-      } else {
-        formData.fields.add(MapEntry('detail_progress', jsonEncode([])));
-        debugPrint("⚠️ No progress details provided");
       }
 
       debugPrint("📤 Sending payload: ${formData.fields}");
@@ -346,6 +363,11 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         const progressKode = TipeProgressId.kodeMulai;
         formData.fields.addAll([
           MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
+          if (workOrderProgress.tipeProgressId != null)
+            MapEntry(
+              'tipe_progress_id',
+              workOrderProgress.tipeProgressId.toString(),
+            ),
           const MapEntry('tipe_progress_kode', progressKode),
           const MapEntry('tipe_progress', progressKode),
         ]);
@@ -371,6 +393,11 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             : TipeProgressId.kodeProgress;
         formData.fields.addAll([
           MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
+          if (workOrderProgress.tipeProgressId != null)
+            MapEntry(
+              'tipe_progress_id',
+              workOrderProgress.tipeProgressId.toString(),
+            ),
           MapEntry('tipe_progress_kode', progressKode),
           MapEntry('tipe_progress', progressKode),
         ]);
@@ -396,14 +423,12 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
           : workOrderProgress;
       return DataSuccess(data);
     } catch (e) {
-      return DataFailed(
-        DioException(
-          error: e,
-          requestOptions: RequestOptions(
-            path: '/v1/progress-workorder/${workOrderProgress.id}',
-          ),
-        ),
+      final dioError = _toDioException(
+        e,
+        '/v1/progress-workorder/${workOrderProgress.id}',
       );
+      _logDioError('updateWorkOrderProgressDetail', dioError);
+      return DataFailed(dioError);
     }
   }
 }

@@ -33,7 +33,7 @@ class FormFieldsConfig {
       {
         "key": "locationPicker",
         "type": "custom",
-        "showIf": (formData) => true, 
+        "showIf": (formData) => true,
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
@@ -93,7 +93,8 @@ class FormFieldsConfig {
       {
         "key": "locationPicker",
         "type": "custom",
-        "showIf": (formData) => true, // Map selalu tampil
+        // BUG 4: Sembunyikan map untuk SPV saat assign mode. Cukup staff yang perlu validasi map.
+        "showIf": !isAssignMode,
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
@@ -104,10 +105,13 @@ class FormFieldsConfig {
         "type": "custom",
         "showIf": (formData) => true,
         "isOvertime": isOvertime,
-        "startDateTime": (formData) => formData["startDateTime"],
+        // BUG 2: Saat isAssignMode, field Mulai harus kosong (SPV yang menentukan).
+        "startDateTime": (formData) =>
+            isAssignMode ? null : formData["startDateTime"],
         "duration": (formData) => formData["duration"],
         "durationUnit": (formData) => formData["durationUnit"],
-        "endDateTime": (formData) => formData["endDateTime"],
+        "endDateTime": (formData) =>
+            isAssignMode ? null : formData["endDateTime"],
         "isReadOnly": readOnlyInDetail,
         "status": status,
         "hideStartDateTime": false,
@@ -117,7 +121,10 @@ class FormFieldsConfig {
         "type": "custom",
         "key": "assignee",
         "options": assigneeOptions,
+        // BUG 3: Read-only saat bukan assign mode (view-only untuk SPV yang sudah assign).
+        // isReadOnly=false hanya saat isAssignMode=true.
         "isReadOnly": !isAssignMode,
+        // BUG 3: Tampil untuk SPV (isAssignee=false), tidak tampil untuk staff (isAssignee=true).
         "showIf": !isAssignee,
       },
       {
@@ -143,7 +150,7 @@ class FormFieldsConfig {
         "label": "Deskripsi Pekerjaan",
         "hint": "Masukkan deskripsi atau catatan pekerjaan",
         "isReadOnly": !isAssignMode,
-        "showIf": isAssignMode,
+        "showIf": isDetailMode || isAssignMode,
       },
       // ─── Form Kategori: Meter ───────────────────────────────────────
       if (kategoriForm == 'meter' ||
@@ -154,7 +161,7 @@ class FormFieldsConfig {
           "label": "Nomor Meter",
           "hint": "Contoh: MTR-001",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
         {
           "type": "text",
@@ -162,7 +169,7 @@ class FormFieldsConfig {
           "label": "Kondisi Meter Awal",
           "hint": "Contoh: Normal",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
       ],
       // ─── Form Kategori: Jaringan ────────────────────────────────────
@@ -179,7 +186,8 @@ class FormFieldsConfig {
             {"value": "Besi Cor", "label": "Besi Cor"},
           ],
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "isDisabled": !isAssignMode,
+          "showIf": true,
         },
         {
           "type": "text",
@@ -187,7 +195,7 @@ class FormFieldsConfig {
           "label": "Diameter Pipa (inch)",
           "hint": "Contoh: 4",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
         {
           "type": "text",
@@ -195,7 +203,7 @@ class FormFieldsConfig {
           "label": "Panjang Pipa (meter)",
           "hint": "Contoh: 50",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
         {
           "type": "dropdown",
@@ -208,7 +216,8 @@ class FormFieldsConfig {
             {"value": "Berat", "label": "Berat"},
           ],
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "isDisabled": !isAssignMode,
+          "showIf": true,
         },
       ],
       // ─── Form Kategori: Infrastruktur ───────────────────────────────
@@ -219,7 +228,7 @@ class FormFieldsConfig {
           "label": "Nama Aset",
           "hint": "Contoh: Pompa Booster RT 05",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
         {
           "type": "dropdown",
@@ -234,7 +243,8 @@ class FormFieldsConfig {
             {"value": "Panel", "label": "Panel"},
           ],
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "isDisabled": !isAssignMode,
+          "showIf": true,
         },
         {
           "type": "text",
@@ -242,7 +252,7 @@ class FormFieldsConfig {
           "label": "Kapasitas",
           "hint": "Contoh: 500 L/menit",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
         {
           "type": "text",
@@ -250,7 +260,7 @@ class FormFieldsConfig {
           "label": "Kondisi Awal",
           "hint": "Deskripsi kondisi sebelum pemeliharaan",
           "isReadOnly": !isAssignMode,
-          "showIf": isAssignMode,
+          "showIf": true,
         },
       ],
     ];

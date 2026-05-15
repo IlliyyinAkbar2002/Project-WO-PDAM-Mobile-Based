@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
@@ -15,13 +14,16 @@ import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/form_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
 
 class WorkOrderReportPage extends StatefulWidget {
   final String mode;
@@ -53,6 +55,7 @@ class WorkOrderReportPage extends StatefulWidget {
 
 class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   late WorkOrderBloc _workOrderBloc;
+  late JournalDraftCubit _journalDraftCubit;
   bool get isDetailMode =>
       widget.status == 5 || widget.status == 6 || !widget.isAssignee;
 
@@ -70,12 +73,15 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
 
+  String get _draftKey => '${widget.workOrderId}_${widget.mode}';
+
   // Simulasi JSON form dinamis (sementara hardcoded)
 
   @override
   void initState() {
     super.initState();
     _workOrderBloc = context.read<WorkOrderBloc>();
+    _journalDraftCubit = context.read<JournalDraftCubit>();
 
     // Tunda inisialisasi sampai frame pertama selesai
     // untuk menghindari konflik dengan Google Maps dari halaman sebelumnya
@@ -88,7 +94,35 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   void _initializeData() {
     if (!mounted) return;
 
+    final draft = _journalDraftCubit.getDraft(_draftKey);
+    if (draft != null) {
+      _descriptionController.text = draft.description;
+      _images = List.from(draft.images);
+      _formData = Map.from(draft.formData);
+    }
+
     if (widget.progressId == null) {
+      if (widget.mode == 'Selesai' && widget.workOrderTypeId != null) {
+        _workOrderBloc.add(
+          GetFormByWorkOrderTypeIdEvent(widget.workOrderTypeId!),
+        );
+        setState(() {
+          isDataLoaded = false;
+          _inRange = true;
+          _isCheckingDistance = false;
+        });
+        return;
+      }
+      if (widget.mode == 'Selesai' && widget.workOrderId != null) {
+        _workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+        setState(() {
+          isDataLoaded = false;
+          _inRange = true;
+          _isCheckingDistance = false;
+        });
+        return;
+      }
+
       setState(() {
         isDataLoaded = true;
         _inRange = true;
@@ -120,6 +154,23 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     });
   }
 
+  List<ProgressDetailEntity> _buildProgressDetailsFromForms(
+    List<FormEntity> forms,
+  ) {
+    final sortedForms = List<FormEntity>.from(forms)
+      ..sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+
+    return sortedForms
+        .where((form) => form.id != null && (form.isVisible ?? true))
+        .map(
+          (form) => ProgressDetailModel(
+            detailFormId: form.id,
+            form: FormModel.fromEntity(form),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   void _checkDataLoaded() {
     // Removed nested setState - this method is now only for logging
     if (_progressDetails.isNotEmpty) {
@@ -137,6 +188,29 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       appBar: const CustomAppBar(title: "Form Jurnal"),
       body: BlocListener<WorkOrderBloc, WorkOrderState>(
         listener: (context, state) {
+          if (state is FormsLoaded &&
+              widget.progressId == null &&
+              widget.mode == 'Selesai') {
+            final progressDetails = _buildProgressDetailsFromForms(state.forms);
+
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() {
+                _progressDetails = progressDetails;
+                isDataLoaded = true;
+              });
+            });
+          }
+          if (state is WorkOrderDetailLoaded &&
+              widget.progressId == null &&
+              widget.mode == 'Selesai' &&
+              widget.workOrderId != null &&
+              state.workOrder.id == widget.workOrderId &&
+              state.workOrder.workOrderTypeId != null) {
+            _workOrderBloc.add(
+              GetFormByWorkOrderTypeIdEvent(state.workOrder.workOrderTypeId!),
+            );
+          }
           if (state is WorkOrderProgressDetailLoaded) {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
@@ -148,12 +222,18 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 .toList();
 
             // Schedule setState setelah frame selesai untuk menghindari blocking
+            final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
-                _descriptionController.text = description;
+                if (draft != null) {
+                  _descriptionController.text = draft.description;
+                  _images = List.from(draft.images);
+                } else {
+                  _descriptionController.text = description;
+                  _images = images;
+                }
                 _submitTime = submitTime;
-                _images = images;
                 _requestedHeaderFallback = false;
                 isDataLoaded = true;
               });
@@ -205,9 +285,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Hitung formData di luar setState
             final formData = <String, dynamic>{};
             for (var detail in progressDetails) {
-              final key =
-                  (detail.form?.id ?? detail.detailFormId ?? detail.id)
-                      ?.toString();
+              final key = (detail.form?.id ?? detail.detailFormId ?? detail.id)
+                  ?.toString();
               if (key == null) continue;
               formData[key] = isDetailMode
                   ? detail.value
@@ -215,14 +294,21 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             }
 
             // Schedule setState setelah frame selesai untuk menghindari blocking
+            final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
                 _progressDetails = progressDetails;
-                _descriptionController.text = description;
+                if (draft != null) {
+                  _descriptionController.text = draft.description;
+                  _formData = Map.from(draft.formData);
+                  _images = List.from(draft.images);
+                } else {
+                  _descriptionController.text = description;
+                  _formData = formData;
+                  _images = images;
+                }
                 _submitTime = submitTime;
-                _formData = formData;
-                _images = images;
                 isDataLoaded = true;
               });
               _checkDataLoaded();
@@ -240,6 +326,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             if (widget.isAssignee && !isDetailMode) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
+                _journalDraftCubit.clearDraft(_draftKey);
                 final route = ModalRoute.of(context);
                 if (route != null &&
                     route.isActive &&
@@ -249,6 +336,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 }
               });
             }
+          }
+          if (state is WorkOrderError) {
+            if (mounted) {
+              setState(() {
+                _isSubmitting = false;
+              });
+            }
+            AppSnackbar.showError(state.message);
           }
         },
         child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
@@ -392,39 +487,34 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // OpenStreetMap
+        // Google Maps
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
             height: 165,
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: location,
-                initialZoom: 15,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
-                ),
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: location,
+                zoom: 15,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.project_mobile_pdam',
+              markers: {
+                Marker(
+                  markerId: const MarkerId('wo_location'),
+                  position: location,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueRed,
+                  ),
                 ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: location,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(
-                        Icons.location_pin,
-                        color: Colors.red,
-                        size: 40,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              },
+              scrollGesturesEnabled: false,
+              zoomGesturesEnabled: false,
+              rotateGesturesEnabled: false,
+              tiltGesturesEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              myLocationEnabled: false,
+              myLocationButtonEnabled: false,
+              liteModeEnabled: true,
             ),
           ),
         ),
@@ -459,7 +549,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
   }
 
-  void _onSubmit() {
+  void _onSubmit() async {
     if (_isSubmitting) return;
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
@@ -471,29 +561,94 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         return;
       }
 
+      // Pastikan lokasi diambil untuk semua mode submit jika belum ada
+      if (_currentPosition == null) {
+        setState(() {
+          _isSubmitting = true;
+        });
+        try {
+          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+          if (!serviceEnabled) {
+            await Geolocator.openLocationSettings();
+            throw Exception(
+              "GPS harus diaktifkan. Silakan aktifkan dan coba lagi.",
+            );
+          }
+
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+            if (permission == LocationPermission.denied) {
+              throw Exception("Akses lokasi ditolak.");
+            }
+          }
+
+          if (permission == LocationPermission.deniedForever) {
+            throw Exception(
+              "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
+            );
+          }
+
+          Position? current = await Geolocator.getLastKnownPosition();
+          current ??= await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 10),
+            ),
+          );
+          _currentPosition = current;
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
+          AppSnackbar.showError("Gagal mendapatkan lokasi: ${e.toString()}");
+          return;
+        }
+      }
+
       debugPrint("✅ Deskripsi: ${_descriptionController.text}");
-      debugPrint("✅ Gambar: ${_images.map((x) => x is XFile ? x.path : x.toString()).toList()}");
+      debugPrint(
+        "✅ Gambar: ${_images.map((x) => x is XFile ? x.path : x.toString()).toList()}",
+      );
       debugPrint("✅ Form Dinamis: $_formData");
       debugPrint(
         "📤 Submit ke backend dengan progressId: ${widget.progressId}",
       );
-      final progressDetails = _progressDetails.map((detail) {
-        final formId =
-            (detail.form?.id ?? detail.detailFormId ?? detail.id)?.toString();
-        final mandatoryField = detail.form?.isRequired;
-        final dynamicValue = formId != null ? _formData[formId] : null;
+      final List<ProgressDetailModel> progressDetails = [];
+      for (final detail in _progressDetails) {
+        final int? resolvedDetailFormId =
+            detail.form?.id ?? detail.detailFormId ?? detail.id;
+        final String? formIdKey = resolvedDetailFormId?.toString();
+        final bool mandatoryField = detail.form?.isRequired == true;
+        final dynamic dynamicValue = formIdKey != null
+            ? _formData[formIdKey]
+            : null;
         String? value;
         XFile? image;
 
         debugPrint(
-          "🔍 Processing detail ID: ${detail.id}, formId: $formId, value: $dynamicValue",
+          "🔍 Processing detail ID: ${detail.id}, formId: $formIdKey, value: $dynamicValue",
         );
 
-        if (mandatoryField == true && dynamicValue == null) {
+        if (resolvedDetailFormId == null) {
           AppSnackbar.showError(
-            "Field ${detail.form?.fieldName} tidak boleh kosong.",
+            "Struktur form tidak valid: detail_form_id tidak ditemukan.",
           );
-          return ProgressDetailModel(id: detail.id);
+          return;
+        }
+
+        final bool isEmptyDynamicValue =
+            dynamicValue == null ||
+            (dynamicValue is String && dynamicValue.trim().isEmpty) ||
+            (dynamicValue is List && dynamicValue.isEmpty);
+
+        if (mandatoryField && isEmptyDynamicValue) {
+          AppSnackbar.showError(
+            "Field ${detail.form?.fieldName ?? resolvedDetailFormId} tidak boleh kosong.",
+          );
+          return;
         }
 
         if (dynamicValue != null && detail.form != null) {
@@ -509,7 +664,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               debugPrint("⚠️ No image for form ${detail.form!.id}");
             }
           } else if (dynamicValue is int) {
-            final options = detail.form!.optionsForm!;
+            final options =
+                detail.form!.optionsForm ?? const <OptionFormModel>[];
             final selectedOption = options.firstWhere(
               (option) => option.id == dynamicValue,
               orElse: () => const OptionFormModel(id: -1, optionName: ''),
@@ -517,21 +673,23 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             value = selectedOption.id != -1 ? selectedOption.optionName : null;
             debugPrint("✅ Option for valueId $dynamicValue: $value");
           } else {
-            value = dynamicValue.toString();
+            value = dynamicValue.toString().trim();
             debugPrint("✅ Value as string: $value");
           }
         } else {
-          value = detail.value ?? '';
+          value = detail.value?.trim() ?? '';
           debugPrint("⚠️ Fallback to existing value: $value");
         }
 
-        return ProgressDetailModel(
-          id: detail.id,
-          detailFormId: detail.form?.id,
-          value: value,
-          image: image,
+        progressDetails.add(
+          ProgressDetailModel(
+            id: detail.id,
+            detailFormId: resolvedDetailFormId,
+            value: value,
+            image: image,
+          ),
         );
-      }).toList();
+      }
 
       final workOrderProgress = WorkOrderProgressModel(
         id: widget.progressId,
@@ -596,6 +754,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   @override
   void dispose() {
+    if (!isDetailMode && !_isSubmitting) {
+      final draft = JournalDraft(
+        description: _descriptionController.text,
+        images: _images,
+        formData: _formData,
+      );
+      _journalDraftCubit.saveDraft(_draftKey, draft);
+    }
     _descriptionController.dispose();
     super.dispose();
   }

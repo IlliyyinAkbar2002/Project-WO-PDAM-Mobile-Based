@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
@@ -19,6 +19,8 @@ final List<Map<String, dynamic>> progressList = [
   // {"id": 3, "type": "progress", "isFilled": false, "index": 2},
   {"id": 4, "type": "finish", "isFilled": false},
 ];
+
+const int _kDailyReportLimit = 8;
 
 const double _kActionButtonHeight = 48.0;
 const double _kActionButtonRadius = 8.0;
@@ -42,6 +44,7 @@ final Size _kActionButtonMinimumSize = Size.fromHeight(_kActionButtonHeight);
 class AssigneeWorkOrderDetailPage extends StatefulWidget {
   final bool isAssignee;
   final int? workOrderId;
+  final int? workOrderTypeId;
   final int? status;
   final bool isOvertime;
   final String? kategoriForm; // 'meter' | 'jaringan' | 'infrastruktur'
@@ -53,6 +56,7 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     super.key,
     this.isAssignee = false,
     this.workOrderId,
+    this.workOrderTypeId,
     this.status,
     this.isOvertime = false,
     this.kategoriForm,
@@ -137,6 +141,22 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
+  /// Hitung jumlah progress yang sudah disubmit hari ini (bukan draft).
+  /// Backend menghitung semua progress (termasuk Mulai) dalam limit harian.
+  int _countSubmittedToday() {
+    final today = DateTime.now();
+    return progresses.where((p) {
+      // Hanya hitung yang sudah punya submitTime (bukan draft)
+      final t = p.submitTime;
+      if (t == null) return false;
+      // Konversi ke local time untuk pengecekan tanggal
+      final local = t.toLocal();
+      return local.year == today.year &&
+          local.month == today.month &&
+          local.day == today.day;
+    }).length;
+  }
+
   Widget _buildBody() {
     if (!_progressesLoaded) {
       return const Center(child: CircularProgressIndicator());
@@ -144,6 +164,12 @@ class _AssigneeWorkOrderDetailPageState
 
     final bool hasMulai = progresses.any((item) => item.isMulai);
     final bool hasSelesai = progresses.any((item) => item.isSelesai);
+    final int submittedToday = _countSubmittedToday();
+    final int sisaKuota = (_kDailyReportLimit - submittedToday).clamp(
+      0,
+      _kDailyReportLimit,
+    );
+    final bool isKuotaHabis = sisaKuota == 0;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -156,7 +182,17 @@ class _AssigneeWorkOrderDetailPageState
           enableInnerScroll: false,
         ),
         const SizedBox(height: 16),
-        Text("Pelaporan Work Order", style: textTheme.displayMedium),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                "Pelaporan Work Order",
+                style: textTheme.displayMedium,
+              ),
+            ),
+            if (hasMulai && !hasSelesai) _buildKuotaChip(sisaKuota),
+          ],
+        ),
         const SizedBox(height: 8),
         if (!hasMulai)
           Row(
@@ -195,6 +231,7 @@ class _AssigneeWorkOrderDetailPageState
                     status: widget.status,
                     isAssignee: widget.isAssignee,
                     progressId: progressIndex.id,
+                    workOrderTypeId: widget.workOrderTypeId,
                     lngLat: widget.lngLat,
                     locationName: widget.locationName,
                     radiusMeter: widget.radiusMeter,
@@ -209,6 +246,10 @@ class _AssigneeWorkOrderDetailPageState
           Row(
             children: [
               Expanded(child: _buildActionButton('Selesai')),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildActionButton('Laporan', disabled: isKuotaHabis),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildSecondaryOutlinedButton(
@@ -232,6 +273,23 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
+  Widget _buildKuotaChip(int sisaKuota) {
+    final bool isHabis = sisaKuota == 0;
+    return Chip(
+      label: Text(
+        isHabis ? 'Kuota Habis' : 'Sisa: $sisaKuota/$_kDailyReportLimit',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: isHabis ? Colors.white : color.primary[700],
+        ),
+      ),
+      backgroundColor: isHabis ? color.danger : color.primary[100],
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
   String _formatEndDateTime(DateTime dateTime) {
     final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm \'WIB\'');
     return formatter.format(dateTime);
@@ -244,17 +302,22 @@ class _AssigneeWorkOrderDetailPageState
     return _formatEndDateTime(sourceTime);
   }
 
-  Widget _buildActionButton(String mode) {
+  Widget _buildActionButton(String mode, {bool disabled = false}) {
+    // Map mode 'Laporan' ke tipeProgressId 2 (Progress) di WorkOrderReportPage
+    final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
+
     Future<void> handleTap() async {
+      if (disabled) return;
       final bool? shouldRefresh = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (_) => WorkOrderReportPage(
-            mode: mode,
+            mode: reportMode,
             status: widget.status,
             isAssignee: widget.isAssignee,
             progressId: null,
             workOrderId: widget.workOrderId,
+            workOrderTypeId: widget.workOrderTypeId,
             lngLat: widget.lngLat,
             locationName: widget.locationName,
             radiusMeter: widget.radiusMeter,
@@ -271,6 +334,24 @@ class _AssigneeWorkOrderDetailPageState
         onPressed: handleTap,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: color.status[2]!, width: 2),
+          minimumSize: _kActionButtonMinimumSize,
+          shape: _kActionButtonShape,
+          padding: _kActionButtonPadding,
+          textStyle: _kActionButtonTextStyle,
+        ),
+        child: Text(mode),
+      );
+    }
+
+    if (mode == 'Laporan') {
+      return OutlinedButton(
+        onPressed: disabled ? null : handleTap,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(
+            color: disabled ? Colors.grey : color.control,
+            width: 2,
+          ),
+          foregroundColor: disabled ? Colors.grey : color.control,
           minimumSize: _kActionButtonMinimumSize,
           shape: _kActionButtonShape,
           padding: _kActionButtonPadding,

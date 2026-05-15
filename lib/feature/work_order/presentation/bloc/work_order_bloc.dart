@@ -69,11 +69,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   //master location
   final GetMasterLocationsUsecase getMasterLocationsUsecase;
 
-  // final UpdateLocationUseCase updateLocationUseCase;
-  // final GetCurrentLocationUseCase getCurrentLocationUseCase;
-  // final SetManualLocationUseCase setManualLocationUseCase;
-  // final CalculateEndDateTime calculateEndDateTime;
-
   WorkOrderBloc(
     this.getWorkOrdersUseCase,
     this.getWorkOrderDetailUseCase,
@@ -112,11 +107,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
 
     //master location
     this.getMasterLocationsUsecase,
-
-    // this.updateLocationUseCase,
-    // this.getCurrentLocationUseCase,
-    // this.setManualLocationUseCase,
-    // this.calculateEndDateTime,
   ) : super(WorkOrderInitial()) {
     on<GetWorkOrdersEvent>(_onGetWorkOrdersEvent);
     on<LoadMoreWorkOrdersEvent>(_onLoadMoreWorkOrdersEvent);
@@ -188,20 +178,13 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         ),
       );
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {
-        print("📥 Data yang diterima sebelum parsing: ${dataState.data}");
-        print("✅ Data Work Order berhasil dimuat: ${dataState.data!.length}");
-
-        if (dataState.data!.isEmpty) {
-          print("❌ Data berhasil diambil tetapi kosong setelah parsing!");
-        }
+        if (dataState.data!.isEmpty) {}
         totalPages = dataState.totalPages;
         emit(WorkOrderLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        print("❌ Gagal memuat Work Order: ${dataState.error}");
         emit(WorkOrderError(dataState.error.toString()));
       }
     } catch (e) {
-      print("❌ Error saat mengambil Work Order: $e");
       emit(WorkOrderError("Terjadi kesalahan saat mengambil data: $e"));
     }
   }
@@ -527,7 +510,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(ProgressesLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal mengambil progres pekerjaan: $e"));
@@ -544,7 +527,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(WorkOrderProgressDetailLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal mengambil detail progres: $e"));
@@ -561,7 +544,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(WorkOrderProgressUpdated(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal memperbarui detail progres: $e"));
@@ -581,7 +564,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(ProgressDetailsLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal mengambil detail progres: $e"));
@@ -598,7 +581,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is DataSuccess) {
         emit(ProgressDetailUpdated(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError("Gagal memperbarui detail progres: $e"));
