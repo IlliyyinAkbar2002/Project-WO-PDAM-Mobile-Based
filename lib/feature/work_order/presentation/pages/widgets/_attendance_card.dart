@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 /// Attendance card berbasis Figma:
 /// background kuning lembut + ikon putih, tombol "Clock In" pill biru,
@@ -86,10 +86,7 @@ class _AttendanceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _ClockInPillButton(
-                color: buttonColor,
-                onTap: () {},
-              ),
+              _ClockInPillButton(color: buttonColor, onTap: () {}),
             ],
           ),
           const SizedBox(height: 20),
@@ -118,9 +115,7 @@ class _AttendanceCard extends StatelessWidget {
           const _AttendanceProgressBar(
             progress: _progress,
             trackColor: trackColor,
-            fillGradient: LinearGradient(
-              colors: [fillStart, fillEnd],
-            ),
+            fillGradient: LinearGradient(colors: [fillStart, fillEnd]),
             thumbBorderColor: buttonColor,
           ),
           const SizedBox(height: 8),

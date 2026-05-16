@@ -2,25 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 
-/// Data source untuk endpoint **TKT-06 / pasca route-refactor**:
-///   - `GET  /v1/workorder-action`   → list action (index backend masih
-///     skeleton — kita tetap expose supaya future-ready).
-///   - `POST /v1/workorder-action`   → freeze / resume / extend.
-///
-/// Catatan penting (lihat `Guide_mobile_flutter.md` §3.5):
-/// - Payload **TIDAK** boleh membawa `actor_id`. Backend otomatis meng-
-///   inject dari `auth()->user()->id`. Kalau Flutter tetap kirim, akan
-///   di-abaikan (no-op), tidak error.
-/// - Nilai `action_id` tetap id numerik master `m_action`. Kalau suatu
-///   saat backend menerima `kode` (PENUGASAN/FREEZE/RESUME/EXTEND) di
-///   body, tinggal extend method `createAction` dengan parameter `kode`.
+
 class WorkOrderActionRemoteDataSource extends RemoteDatasource {
   WorkOrderActionRemoteDataSource() : super();
 
-  /// Buat record workorder_action baru.
-  ///
-  /// Field wajib: [workorderId], [actionId], [waktuMulai].
-  /// Field opsional: [keterangan], [sisaDurasiMenit], [estimasiSelesai].
   Future<DataState<Map<String, dynamic>>> createAction({
     required int workorderId,
     required int actionId,
@@ -62,8 +47,6 @@ class WorkOrderActionRemoteDataSource extends RemoteDatasource {
     }
   }
 
-  /// List action untuk satu workorder (atau seluruhnya). Backend index
-  /// masih minimal, tapi endpoint sudah terdaftar — aman dipanggil.
   Future<DataState<List<Map<String, dynamic>>>> fetchActions({
     int? workorderId,
   }) async {

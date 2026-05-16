@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 class _NavigationGrid extends StatelessWidget {
   final int? selectedPicId;
@@ -168,7 +168,9 @@ class _NavigationGrid extends StatelessWidget {
           if (roleId != 3) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Our Assets hanya tersedia untuk Staff/SPV'),
+                content: const Text(
+                  'Our Assets hanya tersedia untuk Staff/SPV',
+                ),
                 backgroundColor: colors.warning,
               ),
             );
@@ -226,9 +228,7 @@ class _NavigationGrid extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => PengajuanLemburPage(),
-            ),
+            MaterialPageRoute(builder: (context) => PengajuanLemburPage()),
           );
         },
       ),

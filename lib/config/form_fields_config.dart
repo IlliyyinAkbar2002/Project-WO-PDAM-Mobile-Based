@@ -93,12 +93,14 @@ class FormFieldsConfig {
       {
         "key": "locationPicker",
         "type": "custom",
-        // BUG 4: Sembunyikan map untuk SPV saat assign mode. Cukup staff yang perlu validasi map.
-        "showIf": !isAssignMode,
+        // Tampilkan map di detail jika koordinat tersedia (termasuk saat assign mode),
+        // tapi tetap read-only agar tidak mengubah titik WO asal.
+        "showIf": (formData) =>
+            formData["latitude"] != null && formData["longitude"] != null,
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
-        "isReadOnly": readOnlyInDetail,
+        "isReadOnly": true,
       },
       {
         "key": "timeEstimate",

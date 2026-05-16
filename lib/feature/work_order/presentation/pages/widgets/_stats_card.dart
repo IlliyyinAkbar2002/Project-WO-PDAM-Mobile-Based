@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 class _StatsCard extends StatelessWidget {
   const _StatsCard();
@@ -81,8 +81,7 @@ class _StatsCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: liveBg,
                   borderRadius: BorderRadius.circular(999),
@@ -221,10 +220,7 @@ class _TrendLinePainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          endColor.withOpacity(0.15),
-          endColor.withOpacity(0.0),
-        ],
+        colors: [endColor.withOpacity(0.15), endColor.withOpacity(0.0)],
       ).createShader(Offset.zero & size);
     canvas.drawPath(fillPath, fillPaint);
 
@@ -233,8 +229,9 @@ class _TrendLinePainter extends CustomPainter {
       linePath.lineTo(p.dx, p.dy);
     }
     final linePaint = Paint()
-      ..shader = LinearGradient(colors: [startColor, endColor])
-          .createShader(Offset.zero & size)
+      ..shader = LinearGradient(
+        colors: [startColor, endColor],
+      ).createShader(Offset.zero & size)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round

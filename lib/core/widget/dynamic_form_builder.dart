@@ -313,11 +313,6 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
       return options;
     }
 
-    // if (parentFieldId == 0) {
-    //   // Root field, ambil semua option dengan parent == 0
-    //   return options.where((opt) => opt["optionParent"] == 0).toList();
-    // }
-
     // Ambil nilai yang dipilih di parent-nya
     final selectedParentValue = widget.formData[parentFieldId.toString()];
     debugPrint(

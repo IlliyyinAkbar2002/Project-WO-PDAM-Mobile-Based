@@ -307,8 +307,12 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                   state.workOrder.lokasiText ??
                   state.workOrder.assignment?.location?.nama ??
                   "",
-              "latitude": state.workOrder.assignment?.latitude,
-              "longitude": state.workOrder.assignment?.longitude,
+              "latitude":
+                  state.workOrder.assignment?.latitude ??
+                  state.workOrder.assignment?.location?.latitude,
+              "longitude":
+                  state.workOrder.assignment?.longitude ??
+                  state.workOrder.assignment?.location?.longitude,
               "locationId": state.workOrder.assignment?.locationId,
               "locationName": state.workOrder.assignment?.location?.nama,
               "radiusMeter": state.workOrder.assignment?.location?.radiusMeter,

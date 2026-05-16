@@ -1,4 +1,5 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
+
 class _LandingPageHeader extends StatelessWidget {
   const _LandingPageHeader();
 
@@ -35,15 +36,16 @@ class _LandingPageHeader extends StatelessWidget {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        final dangerColor =
-            Theme.of(dialogContext).extension<AppColor>()!.danger;
+        final dangerColor = Theme.of(
+          dialogContext,
+        ).extension<AppColor>()!.danger;
         return AlertDialog(
           title: Text(
             'Logout',
             style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
-                  color: dangerColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: dangerColor,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           content: const Text('Are you sure you want to logout?'),
           actions: [
@@ -79,7 +81,8 @@ class _LandingPageHeader extends StatelessWidget {
     final profileBox =
         profileKey.currentContext?.findRenderObject() as RenderBox?;
     final profilePosition =
-        profileBox?.localToGlobal(Offset.zero, ancestor: overlay) ?? Offset.zero;
+        profileBox?.localToGlobal(Offset.zero, ancestor: overlay) ??
+        Offset.zero;
     final profileSize = profileBox?.size ?? const Size(56, 56);
 
     await showGeneralDialog(
@@ -517,9 +520,9 @@ class _ProfileActionItem extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textResultColor,
-                    fontWeight: FontWeight.w500,
-                  ),
+                color: textResultColor,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),

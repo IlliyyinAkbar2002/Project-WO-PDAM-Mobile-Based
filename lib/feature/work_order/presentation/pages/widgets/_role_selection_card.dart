@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 class _RoleSelectionCard extends StatelessWidget {
   final int? selectedPicId;

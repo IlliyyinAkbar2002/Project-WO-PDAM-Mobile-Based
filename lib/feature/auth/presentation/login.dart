@@ -7,7 +7,7 @@ import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing_page.dart'
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart'
     as admin;
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
@@ -532,7 +532,9 @@ class _LoginPageState extends State<LoginPage> {
 
           if (authResponse.token != null) {
             await AuthStorage.saveToken(authResponse.token!);
-            debugPrint('🔐 Token saved: ${authResponse.token!.substring(0, 10)}...');
+            debugPrint(
+              '🔐 Token saved: ${authResponse.token!.substring(0, 10)}...',
+            );
           }
 
           final meResult = await authDataSource.fetchMe();
@@ -547,7 +549,9 @@ class _LoginPageState extends State<LoginPage> {
           } else {
             if (authResponse.user != null) {
               await AuthStorage.saveUser(authResponse.user!);
-              debugPrint('👤 User saved (fallback): ${authResponse.user!['email']}');
+              debugPrint(
+                '👤 User saved (fallback): ${authResponse.user!['email']}',
+              );
             }
           }
 

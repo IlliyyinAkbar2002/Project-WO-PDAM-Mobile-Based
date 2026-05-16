@@ -7,7 +7,7 @@ import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing_page.dart'
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart'
     as admin;
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';

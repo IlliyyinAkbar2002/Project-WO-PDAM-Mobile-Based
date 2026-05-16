@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart';
 
 class SpvLandingPage extends StatefulWidget {
   const SpvLandingPage({super.key});

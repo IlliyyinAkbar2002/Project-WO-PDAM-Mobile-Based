@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 /// Navigation card widget for homepage shortcuts
 class _NavigationCard extends StatelessWidget {

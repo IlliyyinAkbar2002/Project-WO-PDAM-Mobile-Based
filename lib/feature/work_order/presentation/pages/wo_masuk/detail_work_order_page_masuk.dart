@@ -261,10 +261,7 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
             if (!mounted) return;
             AppSnackbar.showSuccess("Work order berhasil dibuat.");
             final route = ModalRoute.of(context);
-            // Hanya pop kalau route ini masih aktif (isCurrent) dan belum
-            // sedang di-pop oleh proses lain. Ini mencegah assertion
-            // `entry.currentState == _RouteLifecycle.popping` yang terjadi
-            // saat Navigator.pop dipanggil pada route yang sudah dispatch pop.
+          
             if (route != null &&
                 route.isActive &&
                 route.isCurrent &&
@@ -307,8 +304,12 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
                   state.workOrder.lokasiText ??
                   state.workOrder.assignment?.location?.nama ??
                   "",
-              "latitude": state.workOrder.assignment?.latitude,
-              "longitude": state.workOrder.assignment?.longitude,
+              "latitude":
+                  state.workOrder.assignment?.latitude ??
+                  state.workOrder.assignment?.location?.latitude,
+              "longitude":
+                  state.workOrder.assignment?.longitude ??
+                  state.workOrder.assignment?.location?.longitude,
               "locationId": state.workOrder.assignment?.locationId,
               "locationName": state.workOrder.assignment?.location?.nama,
               "radiusMeter": state.workOrder.assignment?.location?.radiusMeter,
@@ -719,8 +720,8 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
     }
 
     // BUG 1: Jangan kirim lat/lng dari WO asal ke payload assign.
-    // locationPicker sudah disembunyikan untuk SPV (BUG 4), jadi tidak ada
-    // koordinat SPV yang bisa dipilih. Kirim null agar tidak salah lokasi.
+    // Map tetap ditampilkan sebagai referensi (read-only), sehingga assign staff
+    // tidak boleh mengubah maupun mengirim ulang koordinat WO.
     final DateTime? tanggalMulai = _toDateTime(formData["startDateTime"]);
     final DateTime? tanggalSelesai = _toDateTime(formData["endDateTime"]);
     final DateTime? estimasiSelesai = _toDateTime(formData["endDateTime"]);
@@ -745,7 +746,7 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
       kategoriForm: kategori,
       formKategori: formKategori,
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
-      // BUG 1: latitude/longitude tidak dikirim (null) karena map dimatikan untuk SPV.
+      // BUG 1: latitude/longitude tidak dikirim (null) saat assign staff.
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       estimasiSelesai: estimasiSelesai,

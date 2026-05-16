@@ -13,14 +13,14 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profil
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 
-part 'widgets/_landing_page_header.dart';
-part 'widgets/_landing_page_body.dart';
-part 'widgets/_navigation_card.dart';
-part 'widgets/_stats_card.dart';
-part 'widgets/_role_selection_card.dart';
-part 'widgets/_navigation_grid.dart';
-part 'widgets/_navigation_list.dart';
-part 'widgets/_attendance_card.dart';
+part '../widgets/_landing_page_header.dart';
+part '../widgets/_landing_page_body.dart';
+part '../widgets/_navigation_card.dart';
+part '../widgets/_stats_card.dart';
+part '../widgets/_role_selection_card.dart';
+part '../widgets/_navigation_grid.dart';
+part '../widgets/_navigation_list.dart';
+part '../widgets/_attendance_card.dart';
 
 // Expose the header widget for other landing pages to use
 class LandingPageHeaderWidget extends StatelessWidget {

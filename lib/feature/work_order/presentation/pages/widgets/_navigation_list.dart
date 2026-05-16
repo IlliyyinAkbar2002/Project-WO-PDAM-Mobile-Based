@@ -1,4 +1,4 @@
-part of '../landing_page.dart';
+part of '../landing/landing_page.dart';
 
 /// Navigation list shown for regular users
 /// Displays menu items in a vertical list format
