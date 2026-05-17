@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/form_remote_data_source.dart';
@@ -62,122 +63,122 @@ final sl = GetIt.instance;
 
 Future<void> init() async {
   try {
-    print("🔧 Memulai inisialisasi dependency...");
+    debugPrint("🔧 Memulai inisialisasi dependency...");
 
     // **1️⃣ Data Sources**
     sl.registerLazySingleton<WorkOrderRemoteDataSource>(
       () => WorkOrderRemoteDataSource(),
     );
-    print("✅ WorkOrderRemoteDataSource terdaftar");
+    debugPrint("✅ WorkOrderRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<WorkOrderTypeRemoteDataSource>(
       () => WorkOrderTypeRemoteDataSource(),
     );
-    print("✅ WorkOrderTypeRemoteDataSource terdaftar");
+    debugPrint("✅ WorkOrderTypeRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<LocationTypeRemoteDataSource>(
       () => LocationTypeRemoteDataSource(),
     );
-    print("✅ LocationTypeRemoteDataSource terdaftar");
+    debugPrint("✅ LocationTypeRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<UserRemoteDataSource>(
       () => UserRemoteDataSource(),
     );
-    print("✅ UserRemoteDataSource terdaftar");
+    debugPrint("✅ UserRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<SplRemoteDataSource>(() => SplRemoteDataSource());
 
     sl.registerLazySingleton<WorkOrderProgressRemoteDataSource>(
       () => WorkOrderProgressRemoteDataSource(),
     );
-    print("✅ WorkOrderProgressRemoteDataSource terdaftar");
+    debugPrint("✅ WorkOrderProgressRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<ProgressDetailRemoteDataSource>(
       () => ProgressDetailRemoteDataSource(),
     );
-    print("✅ ProgressDetailRemoteDataSource terdaftar");
+    debugPrint("✅ ProgressDetailRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<FormRemoteDataSource>(
       () => FormRemoteDataSource(),
     );
-    print("✅ FormRemoteDataSource terdaftar");
+    debugPrint("✅ FormRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<MasterLocationRemoteDataSource>(
       () => MasterLocationRemoteDataSource(),
     );
-    print("✅ MasterLocationRemoteDataSource terdaftar");
+    debugPrint("✅ MasterLocationRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<MaterialRemoteDataSource>(
       () => MaterialRemoteDataSource(),
     );
-    print("✅ MaterialRemoteDataSource terdaftar");
+    debugPrint("✅ MaterialRemoteDataSource terdaftar");
 
     // **2️⃣ Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
       () => WorkOrderRepositoryImpl(sl<WorkOrderRemoteDataSource>()),
     );
-    print("✅ WorkOrderRepository terdaftar");
+    debugPrint("✅ WorkOrderRepository terdaftar");
 
     sl.registerLazySingleton<WorkOrderTypeRepository>(
       () => WorkOrderTypeRepositoryImpl(
         sl<WorkOrderTypeRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ WorkOrderTypeRepository terdaftar");
+    debugPrint("✅ WorkOrderTypeRepository terdaftar");
 
     sl.registerLazySingleton<LocationTypeRepository>(
       () => LocationTypeRepositoryImpl(
         sl<LocationTypeRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ LocationTypeRepository terdaftar");
+    debugPrint("✅ LocationTypeRepository terdaftar");
 
     sl.registerLazySingleton<UserRepository>(
       () => UserRepositoryImpl(
         sl<UserRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ UserRepository terdaftar");
+    debugPrint("✅ UserRepository terdaftar");
 
     sl.registerLazySingleton<SplRepository>(
       () => SplRepositoryImpl(
         sl<SplRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ SplRepository terdaftar");
+    debugPrint("✅ SplRepository terdaftar");
 
     sl.registerLazySingleton<WorkOrderProgressRepository>(
       () => WorkOrderProgressRepositoryImpl(
         sl<WorkOrderProgressRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ WorkOrderProgressRepository terdaftar");
+    debugPrint("✅ WorkOrderProgressRepository terdaftar");
 
     sl.registerLazySingleton<ProgressDetailRepository>(
       () => ProgressDetailRepositoryImpl(
         sl<ProgressDetailRemoteDataSource>(), // localDataSource
       ),
     );
-    print("✅ ProgressDetailRepository terdaftar");
+    debugPrint("✅ ProgressDetailRepository terdaftar");
 
     sl.registerLazySingleton<FormRepository>(
       () => FormRepositoryImpl(
         sl<FormRemoteDataSource>(), // localDataSource
       ),
     );
-    print("✅ FormRepository terdaftar");
+    debugPrint("✅ FormRepository terdaftar");
 
     sl.registerLazySingleton<MasterLocationRepository>(
       () => MasterLocationRepositoryImpl(
         sl<MasterLocationRemoteDataSource>(), // remoteDataSource
       ),
     );
-    print("✅ MasterLocationRepository terdaftar");
+    debugPrint("✅ MasterLocationRepository terdaftar");
 
     sl.registerLazySingleton<MaterialRepository>(
       () => MaterialRepositoryImpl(sl<MaterialRemoteDataSource>()),
     );
-    print("✅ MaterialRepository terdaftar");
+    debugPrint("✅ MaterialRepository terdaftar");
 
     // **4️⃣ Use Cases**
     sl.registerLazySingleton(
@@ -261,7 +262,7 @@ Future<void> init() async {
       () => KembalikanMaterial(sl<MaterialRepository>()),
     );
 
-    print("✅ Semua use case terdaftar");
+    debugPrint("✅ Semua use case terdaftar");
 
     // **5️⃣ Bloc**
     sl.registerFactory(
@@ -304,11 +305,11 @@ Future<void> init() async {
         sl<GetMasterLocationsUsecase>(),
       ),
     );
-    print("✅ WorkOrderBloc terdaftar");
+    debugPrint("✅ WorkOrderBloc terdaftar");
 
     // Register ChipFieldBloc
     sl.registerFactory(() => ChipFieldBloc());
-    print("✅ ChipFieldBloc terdaftar");
+    debugPrint("✅ ChipFieldBloc terdaftar");
 
     sl.registerFactory(
       () => MaterialBloc(
@@ -318,15 +319,15 @@ Future<void> init() async {
         kembalikanMaterial: sl<KembalikanMaterial>(),
       ),
     );
-    print("✅ MaterialBloc terdaftar");
+    debugPrint("✅ MaterialBloc terdaftar");
 
     sl.registerLazySingleton(() => JournalDraftCubit());
-    print("✅ JournalDraftCubit terdaftar");
+    debugPrint("✅ JournalDraftCubit terdaftar");
 
-    print("🎉 Semua dependency berhasil diinisialisasi!");
+    debugPrint("🎉 Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {
-    print("❌ Gagal menginisialisasi dependency: $e");
-    print(stacktrace);
+    debugPrint("❌ Gagal menginisialisasi dependency: $e");
+    debugPrint("Stacktrace: $stacktrace");
     rethrow; // ⚠️ Rethrow agar main.dart tahu ada error
   }
 }

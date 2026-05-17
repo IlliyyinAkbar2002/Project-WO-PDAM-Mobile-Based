@@ -72,7 +72,7 @@ class _NavigationGrid extends StatelessWidget {
             isScrollControlled: false,
             useSafeArea: true,
             backgroundColor: Colors.transparent,
-            barrierColor: Colors.black.withOpacity(0.3),
+            barrierColor: Colors.black.withValues(alpha: 0.3),
             builder: (ctx) {
               // Manajer role (role_id: 2) - Show Manajer tasks
               if (roleId == 2 || (roleId == 3 && positionId == 4)) {
@@ -183,7 +183,7 @@ class _NavigationGrid extends StatelessWidget {
             isScrollControlled: false,
             useSafeArea: true,
             backgroundColor: Colors.transparent,
-            barrierColor: Colors.black.withOpacity(0.3),
+            barrierColor: Colors.black.withValues(alpha: 0.3),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -353,7 +353,7 @@ class _TasksBottomSheetManajer extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -2),
             ),
@@ -461,7 +461,7 @@ class _OurAssetsBottomSheet extends StatelessWidget {
           border: Border.all(color: const Color(0xFFC7C7C7)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -2),
             ),
@@ -557,7 +557,7 @@ class _TasksBottomSheetUsers extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -2),
             ),

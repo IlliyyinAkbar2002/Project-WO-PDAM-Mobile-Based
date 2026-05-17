@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/resource/api_exception.dart';
@@ -161,7 +162,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     Emitter<WorkOrderState> emit,
   ) async {
     emit(WorkOrderLoading());
-    print("🟡 Memuat data Work Order...");
+    debugPrint("🟡 Memuat data Work Order...");
     try {
       currentPage = 1;
       final dataState = await getWorkOrdersUseCase(
@@ -472,7 +473,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
           jabatanIds: event.jabatanIds,
         ),
       );
-      print("UserBloc - Loaded Users: $dataState");
+      debugPrint("UserBloc - Loaded Users: $dataState");
       if (dataState is DataSuccess) {
         emit(UsersLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
@@ -514,6 +515,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         emit(WorkOrderError(dataState.error.toString()));
       }
     } catch (e) {
+      debugPrint("Gagal mengambil detail pengguna: $e");
       emit(WorkOrderError("Gagal mengambil detail pengguna: $e"));
     }
   }
@@ -652,20 +654,20 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     Emitter<WorkOrderState> emit,
   ) async {
     emit(WorkOrderLoading());
-    print("🟡 Memuat data Master Location...");
+    debugPrint("🟡 Memuat data Master Location...");
     try {
       final dataState = await getMasterLocationsUsecase(null);
       if (dataState is DataSuccess) {
-        print(
+        debugPrint(
           "✅ Data Master Location berhasil dimuat: ${dataState.data!.length}",
         );
         emit(MasterLocationsLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        print("❌ Gagal memuat Master Location: ${dataState.error}");
+        debugPrint("❌ Gagal memuat Master Location: ${dataState.error}");
         emit(WorkOrderError(dataState.error.toString()));
       }
     } catch (e) {
-      print("❌ Error saat mengambil Master Location: $e");
+      debugPrint("❌ Error saat mengambil Master Location: $e");
       emit(WorkOrderError("Gagal mengambil master location: $e"));
     }
   }

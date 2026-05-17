@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/employee_entity.dart';
 
 class EmployeeModel extends EmployeeEntity {
@@ -19,8 +19,8 @@ class EmployeeModel extends EmployeeEntity {
   String toJson() => json.encode(toMap());
 
   factory EmployeeModel.fromMap(Map<String, dynamic> map) {
-    print("🔧 EmployeeModel.fromMap received: $map");
-    print("🔧 EmployeeModel.fromMap keys: ${map.keys.toList()}");
+    debugPrint("🔧 EmployeeModel.fromMap received: $map");
+    debugPrint("🔧 EmployeeModel.fromMap keys: ${map.keys.toList()}");
 
     // Handle multiple possible key names for name field
     final name =
@@ -37,19 +37,19 @@ class EmployeeModel extends EmployeeEntity {
     final departemenId = map['departemen_id'] ?? map['department_id'];
     final departemen = map['departemen'] ?? map['department'];
 
-    print(
+    debugPrint(
       "🔧 Extracted values - id: $id, nama: $name, nip: $nip, "
       "jabatan_id: $jabatanId, jabatan: $jabatan, "
       "departemen_id: $departemenId, departemen: $departemen",
     );
 
     if (name == null) {
-      print(
+      debugPrint(
         "⚠️ WARNING: Could not find name field in keys: ${map.keys.toList()}",
       );
     }
     if (nip == null) {
-      print(
+      debugPrint(
         "⚠️ WARNING: Could not find nip field in keys: ${map.keys.toList()}",
       );
     }

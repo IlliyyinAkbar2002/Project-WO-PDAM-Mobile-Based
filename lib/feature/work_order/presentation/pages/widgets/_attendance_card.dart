@@ -65,7 +65,7 @@ class _AttendanceCard extends StatelessWidget {
                     Text(
                       'ATTENDANCE',
                       style: textTheme.labelSmall?.copyWith(
-                        color: navy.withOpacity(0.6),
+                        color: navy.withValues(alpha: 0.6),
                         fontSize: 11,
                         letterSpacing: 1.54,
                         fontWeight: FontWeight.w500,
@@ -166,7 +166,7 @@ class _ClockInPillButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 blurRadius: 6,
                 offset: const Offset(0, 4),
               ),
@@ -242,7 +242,7 @@ class _AttendanceProgressBar extends StatelessWidget {
                     border: Border.all(color: thumbBorderColor, width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 3,
                         offset: const Offset(0, 1),
                       ),

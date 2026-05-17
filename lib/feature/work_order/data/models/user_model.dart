@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/employee_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 
@@ -18,7 +18,7 @@ class UserModel extends UserEntity {
   String toJson() => json.encode(toMap());
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
-    print("📢 parsing user: $map");
+    debugPrint("📢 parsing user: $map");
     return UserModel(
       id: map['id'],
       employeeId: map['pegawai_id'],

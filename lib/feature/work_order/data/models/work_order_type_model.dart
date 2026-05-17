@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
 class WorkOrderTypeModel extends WorkOrderTypeEntity {
@@ -11,7 +11,7 @@ class WorkOrderTypeModel extends WorkOrderTypeEntity {
   String toJson() => json.encode(toMap());
 
   factory WorkOrderTypeModel.fromMap(Map<String, dynamic> map) {
-    print("📢 parsing jenis workorder: $map");
+    debugPrint("📢 parsing jenis workorder: $map");
     return WorkOrderTypeModel(
       id: map['id'],
       name: map['nama'] ?? 'Unknown',

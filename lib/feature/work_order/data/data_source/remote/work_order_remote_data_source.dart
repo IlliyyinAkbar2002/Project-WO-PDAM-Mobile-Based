@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '/core/resource/data_state.dart';
 import '/feature/work_order/data/models/work_order_model.dart';
@@ -104,14 +105,14 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     WorkOrderModel workOrder,
   ) async {
     try {
-      print("📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder");
-      print("📤 Data yang dikirim: ${workOrder.toMap()}");
+      debugPrint("📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder");
+      debugPrint("📤 Data yang dikirim: ${workOrder.toMap()}");
 
       final response = await post(
         path: '/v1/workorder',
         data: workOrder.toMap(),
       );
-      print("📥 Response: ${response.statusCode} - ${response.data}");
+      debugPrint("📥 Response: ${response.statusCode} - ${response.data}");
 
       final dynamic raw = response.data is Map<String, dynamic>
           ? (response.data['data'] ?? response.data)
@@ -133,11 +134,12 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       final data = WorkOrderModel.fromMap(first);
       return DataSuccess(data);
     } on DioException catch (e) {
-      print(
+      debugPrint(
         "❌ Gagal membuat WO: ${e.response?.statusCode} - ${e.response?.data}",
       );
       return DataFailed(e);
     } catch (e) {
+      debugPrint("❌ Gagal membuat WO: $e");
       return DataFailed(
         DioException(
           error: e,
@@ -223,7 +225,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
           'estimasi_selesai': estimasiSelesai.toIso8601String(),
       };
 
-      print("📤 assignStaff REQUEST body: $requestBody");
+      debugPrint("📤 assignStaff REQUEST body: $requestBody");
 
       final response = await post(
         path: '/v1/workorder/$workOrderId/assign-staff',
@@ -246,26 +248,26 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         }
         if (payload != null) {
           updatedWorkOrder = WorkOrderModel.fromMap(payload);
-          print(
+          debugPrint(
             "📥 assignStaff parsed response — kategoriForm: ${updatedWorkOrder.kategoriForm}, assignees: ${updatedWorkOrder.assignment?.assignees?.length}",
           );
         } else {
-          print(
+          debugPrint(
             "⚠️ assignStaff response tidak berisi data workorder; FE akan fallback re-fetch.",
           );
         }
       } catch (parseErr) {
-        print("⚠️ assignStaff gagal parse response workorder: $parseErr");
+        debugPrint("⚠️ assignStaff gagal parse response workorder: $parseErr");
       }
 
       return DataSuccess(updatedWorkOrder);
     } on DioException catch (e) {
-      print(
+      debugPrint(
         "❌ assignStaff ERROR ${e.response?.statusCode}: ${e.response?.data}",
       );
       return DataFailed(e);
     } catch (e) {
-      print("❌ assignStaff UNEXPECTED ERROR: $e");
+      debugPrint("❌ assignStaff UNEXPECTED ERROR: $e");
       return DataFailed(
         DioException(
           error: e,

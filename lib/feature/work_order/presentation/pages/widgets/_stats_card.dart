@@ -26,7 +26,7 @@ class _StatsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: borderColor.withOpacity(0.6),
+            color: borderColor.withValues(alpha: 0.6),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),
@@ -220,7 +220,7 @@ class _TrendLinePainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [endColor.withOpacity(0.15), endColor.withOpacity(0.0)],
+        colors: [endColor.withValues(alpha: 0.15), endColor.withValues(alpha: 0.0)],
       ).createShader(Offset.zero & size);
     canvas.drawPath(fillPath, fillPaint);
 

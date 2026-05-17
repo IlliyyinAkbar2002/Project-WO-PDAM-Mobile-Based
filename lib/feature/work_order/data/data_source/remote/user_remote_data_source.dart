@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
@@ -32,8 +33,8 @@ class UserRemoteDataSource extends RemoteDatasource {
         path: '/v1/pegawai/filter',
         queryParameters: queryParams,
       );
-      print("📥 Raw response from /v1/pegawai/filter: ${response.data}");
-      print("📥 Response type: ${response.data.runtimeType}");
+      debugPrint("📥 Raw response from /v1/pegawai/filter: ${response.data}");
+      debugPrint("📥 Response type: ${response.data.runtimeType}");
 
       // The new endpoint wraps data in a 'data' field
       dynamic responseData = response.data;
@@ -41,7 +42,7 @@ class UserRemoteDataSource extends RemoteDatasource {
         
         final dynamic meta = responseData['meta'];
         if (meta is Map) {
-          print(
+          debugPrint(
             "📥 /v1/pegawai/filter meta: allowed_jabatan_ids=${meta['allowed_jabatan_ids']}, "
             "caller_jabatan_id=${meta['caller_jabatan_id']}",
           );
@@ -51,7 +52,7 @@ class UserRemoteDataSource extends RemoteDatasource {
 
       // Check if response is a list
       if (responseData is! List) {
-        print("❌ Expected List but got ${responseData.runtimeType}");
+        debugPrint("❌ Expected List but got ${responseData.runtimeType}");
         return DataFailed(
           DioException(
             error: "Invalid response format: expected List",
@@ -61,14 +62,14 @@ class UserRemoteDataSource extends RemoteDatasource {
       }
 
       final List<dynamic> responseList = responseData;
-      print("📥 Total items: ${responseList.length}");
+      debugPrint("📥 Total items: ${responseList.length}");
 
       // Check first item structure
       if (responseList.isNotEmpty) {
-        print("📥 First item: ${responseList.first}");
-        print("📥 First item type: ${responseList.first.runtimeType}");
+        debugPrint("📥 First item: ${responseList.first}");
+        debugPrint("📥 First item type: ${responseList.first.runtimeType}");
         if (responseList.first is Map) {
-          print(
+          debugPrint(
             "📥 First item keys: ${(responseList.first as Map).keys.toList()}",
           );
         }
@@ -76,30 +77,30 @@ class UserRemoteDataSource extends RemoteDatasource {
 
       // Parse each item - the new endpoint already returns properly structured data
       final data = responseList.map<UserModel>((item) {
-        print("🔍 Processing item from /v1/pegawai/filter: $item");
-        print("🔍 Item type: ${item.runtimeType}");
+        debugPrint("🔍 Processing item from /v1/pegawai/filter: $item");
+        debugPrint("🔍 Item type: ${item.runtimeType}");
 
         // The new endpoint already returns data with nested 'pegawai' field
         Map<String, dynamic> userMap = Map<String, dynamic>.from(item);
 
-        print("🔍 Final userMap from /v1/pegawai/filter: $userMap");
+        debugPrint("🔍 Final userMap from /v1/pegawai/filter: $userMap");
         final userModel = UserModel.fromMap(userMap);
-        print(
+        debugPrint(
           "🔍 Parsed UserModel from /v1/pegawai/filter: id=${userModel.id}, name=${userModel.employee?.name}, nip=${userModel.employee?.nip}",
         );
         return userModel;
       }).toList();
 
-      print(
+      debugPrint(
         "✅ Successfully parsed ${data.length} users from /v1/pegawai/filter",
       );
-      print(
+      debugPrint(
         "✅ Sample result from /v1/pegawai/filter: ${data.isNotEmpty ? '${data.first.employee?.name} - ${data.first.employee?.nip}' : 'empty'}",
       );
       return DataSuccess(data);
     } catch (e, stackTrace) {
-      print("❌ Error fetching pegawai from /v1/pegawai/filter: $e");
-      print("❌ Stack trace from /v1/pegawai/filter: $stackTrace");
+      debugPrint("❌ Error fetching pegawai from /v1/pegawai/filter: $e");
+      debugPrint("❌ Stack trace from /v1/pegawai/filter: $stackTrace");
       return DataFailed(
         DioException(
           error: e,

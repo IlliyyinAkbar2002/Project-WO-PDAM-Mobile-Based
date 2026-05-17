@@ -114,7 +114,7 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
       context: context,
       barrierDismissible: false,
       barrierLabel: 'success',
-      barrierColor: Colors.black.withOpacity(0.25),
+      barrierColor: Colors.black.withValues(alpha: 0.25),
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (_, __, ___) {
         return Scaffold(
@@ -123,7 +123,7 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
             children: [
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: Container(color: Colors.black.withOpacity(0.15)),
+                child: Container(color: Colors.black.withValues(alpha: 0.15)),
               ),
               Center(
                 child: Container(
@@ -289,7 +289,7 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
                           const _FieldLabel('Jenis Pekerjaan'),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: _selectedWorkType,
+                            initialValue: _selectedWorkType,
                             decoration: _inputDecoration(
                               hint: 'Pilih jenis pekerjaan...',
                             ),

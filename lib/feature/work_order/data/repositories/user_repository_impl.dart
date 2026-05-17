@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
@@ -19,7 +20,7 @@ class UserRepositoryImpl implements UserRepository {
         departemenId: departemenId,
         jabatanIds: jabatanIds,
       );
-      print("UserRepository - Fetched Users: $response");
+      debugPrint("UserRepository - Fetched Users: $response");
       if (response is DataSuccess<List<UserModel>>) {
         final entities = response.data!
             .map((model) => model.toEntity())
@@ -35,6 +36,7 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<DataState<UserEntity>> getUserDetail(int id) async {
+    debugPrint("UserRepository - Fetching User Detail: $id");
     final response = await remoteDataSource.fetchUserDetail(id);
     if (response is DataSuccess<UserModel>) {
       return DataSuccess(response.data!.toEntity());

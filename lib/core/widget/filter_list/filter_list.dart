@@ -249,7 +249,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
                   fontSize: 16,
                   color: selectedAssigneeName != null
                       ? Colors.black
-                      : Colors.black.withOpacity(0.6),
+                      : Colors.black.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -937,7 +937,7 @@ class _OfficerSearchSheetState extends State<OfficerSearchSheet> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2D499B).withOpacity(0.1),
+                    color: const Color(0xFF2D499B).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
