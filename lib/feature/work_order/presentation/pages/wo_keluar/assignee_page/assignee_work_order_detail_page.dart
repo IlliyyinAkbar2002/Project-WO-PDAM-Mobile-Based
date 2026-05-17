@@ -146,10 +146,9 @@ class _AssigneeWorkOrderDetailPageState
   int _countSubmittedToday() {
     final today = DateTime.now();
     return progresses.where((p) {
-      // Hanya hitung yang sudah punya submitTime (bukan draft)
+      if (p.isDibatalkan) return false;
       final t = p.submitTime;
       if (t == null) return false;
-      // Konversi ke local time untuk pengecekan tanggal
       final local = t.toLocal();
       return local.year == today.year &&
           local.month == today.month &&
@@ -217,29 +216,7 @@ class _AssigneeWorkOrderDetailPageState
             ],
           ),
         ...progresses.map(
-          (progressIndex) => ProgressCard(
-            type: progressIndex.progressType ?? '-',
-            index: progressIndex.order ?? 0,
-            description: progressIndex.description,
-            dateTime: _resolveProgressDateTime(progressIndex),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => WorkOrderReportPage(
-                    mode: progressIndex.progressType ?? '-',
-                    status: widget.status,
-                    isAssignee: widget.isAssignee,
-                    progressId: progressIndex.id,
-                    workOrderTypeId: widget.workOrderTypeId,
-                    lngLat: widget.lngLat,
-                    locationName: widget.locationName,
-                    radiusMeter: widget.radiusMeter,
-                  ),
-                ),
-              );
-            },
-          ),
+          (progressIndex) => _buildProgressEntry(progressIndex),
         ),
         if (hasMulai && !hasSelesai) ...[
           const SizedBox(height: 8),
@@ -300,6 +277,133 @@ class _AssigneeWorkOrderDetailPageState
         progress.submitTime ?? progress.updatedAt ?? progress.createdAt;
     if (sourceTime == null) return null;
     return _formatEndDateTime(sourceTime);
+  }
+
+  Widget _buildProgressEntry(WorkOrderProgressEntity progress) {
+    return Stack(
+      children: [
+        ProgressCard(
+          type: progress.progressType ?? '-',
+          index: progress.order ?? 0,
+          description: progress.isDibatalkan
+              ? '[Dibatalkan] ${progress.description ?? ''}'
+              : progress.description,
+          dateTime: _resolveProgressDateTime(progress),
+          onTap: progress.isDibatalkan
+              ? () {}
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WorkOrderReportPage(
+                        mode: progress.progressType ?? '-',
+                        status: widget.status,
+                        isAssignee: widget.isAssignee,
+                        progressId: progress.id,
+                        workOrderId: widget.workOrderId,
+                        workOrderTypeId: widget.workOrderTypeId,
+                        lngLat: widget.lngLat,
+                        locationName: widget.locationName,
+                        radiusMeter: widget.radiusMeter,
+                      ),
+                    ),
+                  );
+                },
+        ),
+        if (progress.canCancel)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _buildCancelButton(progress),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCancelButton(WorkOrderProgressEntity progress) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _confirmCancel(progress),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.danger.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.danger, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.undo, size: 14, color: color.danger),
+              const SizedBox(width: 4),
+              Text(
+                'Batalkan',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color.danger,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Batalkan Laporan?'),
+        content: const Text(
+          'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
+          'Tindakan ini tidak dapat diurungkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Tidak'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: color.danger),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _executeCancelProgress(progress);
+  }
+
+  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
+    if (progress.id == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
+    if (!mounted) return;
+    if (result is DataSuccess) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Laporan berhasil dibatalkan. Kuota dikembalikan.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _fetchProgresses();
+    } else {
+      final errorMsg = result.error?.response?.data is Map
+          ? (result.error!.response!.data['message'] ??
+              'Gagal membatalkan laporan.')
+          : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(errorMsg.toString()),
+          backgroundColor: color.danger,
+        ),
+      );
+    }
   }
 
   Widget _buildActionButton(String mode, {bool disabled = false}) {

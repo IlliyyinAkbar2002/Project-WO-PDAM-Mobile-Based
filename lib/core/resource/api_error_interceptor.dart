@@ -23,7 +23,8 @@ class ApiErrorInterceptor extends Interceptor {
     Map<String, List<String>> fieldErrors = const {};
 
     if (data is Map) {
-      final dynamic rawMessage = data['message'];
+      final dynamic rawMessage =
+          data['message'] ?? data['error'];
       if (rawMessage is String && rawMessage.isNotEmpty) {
         message = rawMessage;
       }

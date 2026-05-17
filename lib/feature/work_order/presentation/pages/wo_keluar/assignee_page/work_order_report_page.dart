@@ -642,7 +642,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       }
 
       final workOrderProgress = WorkOrderProgressModel(
-        id: widget.progressId,
+        id: null,
         workOrderId: widget.workOrderId,
         tipeProgressId: widget.mode == 'Mulai'
             ? 1

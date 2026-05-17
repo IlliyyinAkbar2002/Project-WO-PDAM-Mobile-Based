@@ -43,10 +43,12 @@ class ProgressStatusId {
   static const int draft = 9;
   static const int submitted = 10;
   static const int verified = 11;
+  static const int dibatalkan = 18;
 
   static bool isDraft(int? id) => id == draft;
   static bool isSubmitted(int? id) => id == submitted;
   static bool isVerified(int? id) => id == verified;
+  static bool isDibatalkan(int? id) => id == dibatalkan;
 }
 
 /// Kode master action dari TKT-01 (stabil, tidak tergantung id numerik).

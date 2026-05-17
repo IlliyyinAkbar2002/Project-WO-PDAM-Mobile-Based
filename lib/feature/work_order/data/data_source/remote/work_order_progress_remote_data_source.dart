@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 
@@ -130,6 +129,20 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     }
   }
 
+  Future<DataState<void>> cancelProgress(int progressId) async {
+    try {
+      await post(path: '/v1/progress-workorder/$progressId/cancel');
+      return const DataSuccess(null);
+    } catch (e) {
+      final dioError = _toDioException(
+        e,
+        '/v1/progress-workorder/$progressId/cancel',
+      );
+      _logDioError('cancelProgress', dioError);
+      return DataFailed(dioError);
+    }
+  }
+
   Future<DataState<WorkOrderProgressModel>> getWorkOrderProgressDetail(
     int id,
   ) async {
@@ -154,21 +167,13 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
   ) async {
     try {
       final formData = FormData();
-      // final token = RemoteDatasource.authTokenGetter();
-      // debugPrint("🔑 Token: $token");
 
-      // Tambah fields
-      formData.fields.addAll([
+      // hasil_pengerjaan is required by all endpoints
+      formData.fields.add(
         MapEntry('hasil_pengerjaan', workOrderProgress.description ?? ''),
-        MapEntry(
-          'waktu_submit',
-          workOrderProgress.submitTime?.toIso8601String() ??
-              DateTime.now().toUtc().toIso8601String(),
-        ),
-      ]);
+      );
 
-      // Koordinat GPS (required oleh BE di endpoint /start, opsional di /submit).
-      // Selalu append kalau ada supaya BE bisa menyimpan posisi staff saat submit.
+      // Koordinat GPS (required oleh BE di endpoint /start dan /submit).
       if (workOrderProgress.latitude != null) {
         formData.fields.add(
           MapEntry('latitude', workOrderProgress.latitude.toString()),
@@ -221,10 +226,7 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
       final progressDetails = workOrderProgress.progressDetails ?? const [];
       if (progressDetails.isEmpty) {
-        formData.fields.add(MapEntry('detail_progress', jsonEncode([])));
-        debugPrint(
-          "⚠️ No progress details provided, sending detail_progress=[]",
-        );
+        debugPrint("⚠️ No progress details provided, skipping detail_progress");
       } else {
         for (int i = 0; i < progressDetails.length; i++) {
           final detailItem = progressDetails[i];
@@ -377,6 +379,11 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ),
           const MapEntry('tipe_progress_kode', progressKode),
           const MapEntry('tipe_progress', progressKode),
+          MapEntry(
+            'waktu_submit',
+            workOrderProgress.submitTime?.toIso8601String() ??
+                DateTime.now().toUtc().toIso8601String(),
+          ),
         ]);
         response = await post(
           path: '/v1/progress-workorder/start',
@@ -394,17 +401,25 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ),
           );
         }
+        if (workOrderProgress.latitude == null ||
+            workOrderProgress.longitude == null) {
+          return DataFailed(
+            DioException(
+              error:
+                  'Koordinat GPS (latitude & longitude) wajib diisi untuk submit progress. '
+                  'Pastikan izin lokasi diaktifkan dan GPS menyala.',
+              requestOptions: RequestOptions(
+                path: '/v1/progress-workorder/submit',
+              ),
+            ),
+          );
+        }
         final progressKode =
             workOrderProgress.tipeProgressId == TipeProgressId.selesai
             ? TipeProgressId.kodeSelesai
             : TipeProgressId.kodeProgress;
         formData.fields.addAll([
           MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
-          if (workOrderProgress.tipeProgressId != null)
-            MapEntry(
-              'tipe_progress_id',
-              workOrderProgress.tipeProgressId.toString(),
-            ),
           MapEntry('tipe_progress_kode', progressKode),
           MapEntry('tipe_progress', progressKode),
         ]);

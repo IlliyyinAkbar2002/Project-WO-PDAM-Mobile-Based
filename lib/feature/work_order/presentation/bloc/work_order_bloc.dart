@@ -308,7 +308,20 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     if (error.isServerError) {
       return 'Data work order belum dapat dimuat. Silakan coba lagi.';
     }
-    return error.allErrorsJoined();
+    final joined = error.allErrorsJoined();
+    if (joined.isNotEmpty && joined != error.message) {
+      return joined;
+    }
+    if (error.fieldErrors.isNotEmpty) {
+      final parts = <String>[];
+      error.fieldErrors.forEach((field, msgs) {
+        for (final m in msgs) {
+          parts.add(m);
+        }
+      });
+      if (parts.isNotEmpty) return parts.join('; ');
+    }
+    return error.message;
   }
 
   Future<void> _onUpdateWorkOrderEvent(
