@@ -47,6 +47,19 @@ class WorkOrderModel extends WorkOrderEntity {
       return null;
     }
 
+    double? parseDouble(dynamic value) {
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
+    Map<String, dynamic>? parseMap(dynamic value) {
+      if (value is Map<String, dynamic>) return value;
+      if (value is Map) return Map<String, dynamic>.from(value);
+      return null;
+    }
+
     DateTime? parseDateTime(dynamic value) {
       if (value is DateTime) return value;
       if (value is String) {
@@ -128,9 +141,25 @@ class WorkOrderModel extends WorkOrderEntity {
       return null;
     }
 
+    UserModel? parseUser(dynamic value) {
+      final userMap = parseMap(value);
+      if (userMap == null) return null;
+      return UserModel.fromMap(userMap);
+    }
+
+    final Map<String, dynamic>? assignmentMap =
+        parseMap(map['workorder_assignment']) ??
+        parseMap(map['work_order_assignment']) ??
+        parseMap(map['workorderAssignment']) ??
+        parseMap(map['assignment']);
+
     List<UserModel>? assignees;
-    if (map['assignment_members'] is List) {
-      assignees = (map['assignment_members'] as List)
+    final dynamic rawAssignmentMembers =
+        assignmentMap?['members'] ??
+        assignmentMap?['assignment_members'] ??
+        map['assignment_members'];
+    if (rawAssignmentMembers is List) {
+      assignees = rawAssignmentMembers
           .whereType<Map>()
           .map((member) {
             final userMap = member['user'];
@@ -156,12 +185,10 @@ class WorkOrderModel extends WorkOrderEntity {
         UserModel.fromMap(Map<String, dynamic>.from(map['petugas'])),
       ];
     }
-
-    // Untuk backward-compat kode UI yang masih baca `assignee` single,
-    // isi otomatis dari elemen pertama `assignees`.
-    final UserModel? assignee = (assignees != null && assignees.isNotEmpty)
+    final UserModel? assigneeCandidate =
+        (assignees != null && assignees.isNotEmpty)
         ? assignees.first
-        : null;
+        : parseUser(assignmentMap?['spv']) ?? parseUser(map['spv']);
 
     final dynamic rawJenisWorkorder =
         map['jenis_workorder'] ?? map['workorder_type'];
@@ -218,25 +245,55 @@ class WorkOrderModel extends WorkOrderEntity {
     }
 
     final parsedAssigneeId =
+        parseIdFromAny(assignmentMap?['assigned_to']) ??
+        parseIdFromAny(assignmentMap?['petugas_id']) ??
+        parseIdFromAny(assignmentMap?['spv_id']) ??
+        parseIdFromAny(assignmentMap?['spv']) ??
         parseIdFromAny(map['assigned_to']) ??
         parseIdFromAny(map['petugas_id']) ??
-        assignee?.id;
+        assigneeCandidate?.id;
+
+    final UserModel? assignee = (assignees != null && assignees.isNotEmpty)
+        ? (parsedAssigneeId != null
+              ? assignees.firstWhere(
+                  (user) => user.id == parsedAssigneeId,
+                  orElse: () => assignees!.first,
+                )
+              : assignees.first)
+        : assigneeCandidate;
+
+    final Map<String, dynamic>? assignmentLocationMap =
+        parseMap(assignmentMap?['location']) ?? parseMap(map['location']);
 
     final assignment = AssignmentWorkorderEntity(
+      id: parseIdFromAny(assignmentMap?['id']),
+      workOrderId:
+          parseIdFromAny(assignmentMap?['workorder_id']) ??
+          parseIdFromAny(assignmentMap?['work_order_id']) ??
+          parseIdFromAny(map['id']),
       assignees: assignees,
       assignee: assignee,
       assigneeId: parsedAssigneeId,
-      latitude: map['latitude'] != null
-          ? double.tryParse(map['latitude'].toString())
+      latitude:
+          parseDouble(assignmentMap?['latitude']) ??
+          parseDouble(map['latitude']),
+      longitude:
+          parseDouble(assignmentMap?['longitude']) ??
+          parseDouble(map['longitude']),
+      accuracy:
+          parseDouble(assignmentMap?['accuracy']) ??
+          parseDouble(map['accuracy']),
+      locationId:
+          parseIdFromAny(assignmentMap?['location_id']) ??
+          parseIdFromAny(map['location_id']) ??
+          parseIdFromAny(assignmentMap?['location']),
+      location: assignmentLocationMap != null
+          ? MasterLocationModel.fromMap(assignmentLocationMap)
           : null,
-      longitude: map['longitude'] != null
-          ? double.tryParse(map['longitude'].toString())
-          : null,
-      locationId: parseIdFromAny(map['location_id']),
-      location: map['location'] != null
-          ? MasterLocationModel.fromMap(map['location'])
-          : null,
-      description: map['deskripsi'] as String?,
+      description:
+          assignmentMap?['deskripsi'] as String? ??
+          assignmentMap?['description'] as String? ??
+          map['deskripsi'] as String?,
     );
 
     return WorkOrderModel(

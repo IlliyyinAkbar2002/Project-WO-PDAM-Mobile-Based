@@ -1,6 +1,6 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
@@ -96,7 +96,10 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           }
           return _buildWorkOrderList(state.workOrders);
         } else if (state is WorkOrderError) {
-          return Center(child: Text('Error: ${state.message}')); // ✅ Jika Error
+          return _WorkOrderListErrorView(
+            message: state.message,
+            onRetry: _fetchWorkOrders,
+          );
         }
         return const Center(child: Text('Anda offline.'));
       },
@@ -308,5 +311,39 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       return 'meter';
     }
     return null;
+  }
+}
+
+class _WorkOrderListErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _WorkOrderListErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

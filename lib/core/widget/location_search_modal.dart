@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
+import 'package:project_mobile_pdam/core/utils/debug_log.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 
 class LocationSearchModal extends StatefulWidget {
@@ -15,9 +15,8 @@ class LocationSearchModal extends StatefulWidget {
 
 class _LocationSearchModalState extends State<LocationSearchModal> {
   final TextEditingController _searchController = TextEditingController();
-  final Dio _dio = Dio();
-  
-  List<Map<String, dynamic>> _results = [];
+
+  List<MasterLocationEntity> _results = MapsSeedModel.entities;
   bool _isLoading = false;
   Timer? _debounce;
   String _errorMsg = '';
@@ -29,62 +28,48 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     if (query.isEmpty) {
       setState(() {
-        _results = [];
+        _results = MapsSeedModel.entities;
         _errorMsg = '';
       });
       return;
     }
 
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _searchGooglePlaces(query);
+      _searchSeedLocations(query);
     });
   }
 
-  /// Mencari lokasi menggunakan Google Places Autocomplete API
-  Future<void> _searchGooglePlaces(String query) async {
+  /// Mencari lokasi dari seed lokal karena demo key Google tidak mendukung
+  /// Places Autocomplete API untuk mobile REST calls.
+  void _searchSeedLocations(String query) {
     setState(() {
       _isLoading = true;
       _errorMsg = '';
     });
 
     try {
-      final apiKey = AppConfig.googleMapsApiKey;
-      if (apiKey.isEmpty) {
-        setState(() {
-          _errorMsg = 'Google Maps API key belum dikonfigurasi.';
-        });
-        return;
-      }
-
-      final response = await _dio.get(
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-        queryParameters: {
-          'input': query,
-          'key': apiKey,
-          'components': 'country:id', // batasi Indonesia
-          'language': 'id',
-        },
+      DebugLog.info(
+        message: '[LocationSearch] Searching local seed for: "$query"',
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final predictions = data['predictions'];
-        if (predictions is List && predictions.isNotEmpty) {
-          setState(() {
-            _results = List<Map<String, dynamic>>.from(predictions);
-          });
-        } else {
-          setState(() {
-            _results = [];
-          });
-        }
-      }
-    } catch (e) {
+      final results = MapsSeedModel.search(query);
+
+      DebugLog.info(
+        message: '[LocationSearch] Found ${results.length} seeded results',
+      );
+
       setState(() {
-        _errorMsg = 'Terjadi kesalahan jaringan.';
+        _results = results;
+      });
+    } catch (e, stackTrace) {
+      DebugLog.error(
+        message: '[LocationSearch] Unexpected error: $e\n$stackTrace',
+      );
+      setState(() {
+        _errorMsg = 'Terjadi kesalahan: $e';
       });
     } finally {
       if (mounted) {
@@ -95,59 +80,13 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
     }
   }
 
-  /// Mengambil detail lokasi (lat/lng) dari Google Place Details API
-  Future<void> _selectLocation(Map<String, dynamic> prediction) async {
-    final placeId = prediction['place_id'] as String?;
-    final description = prediction['description'] as String? ?? '';
-
-    if (placeId == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final apiKey = AppConfig.googleMapsApiKey;
-      final response = await _dio.get(
-        'https://maps.googleapis.com/maps/api/place/details/json',
-        queryParameters: {
-          'place_id': placeId,
-          'key': apiKey,
-          'fields': 'geometry',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final result = response.data['result'];
-        final location = result?['geometry']?['location'];
-        if (location != null) {
-          final lat = (location['lat'] as num).toDouble();
-          final lng = (location['lng'] as num).toDouble();
-
-          final locationEntity = MasterLocationEntity(
-            id: null,
-            nama: description,
-            latitude: lat,
-            longitude: lng,
-            radiusMeter: 1000,
-          );
-
-          widget.onLocationSelected(locationEntity);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMsg = 'Gagal mengambil detail lokasi.';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+  void _selectLocation(MasterLocationEntity location) {
+    DebugLog.info(
+      message:
+          '[LocationSearch] Selected seeded location: ${location.nama} '
+          '(${location.latitude}, ${location.longitude})',
+    );
+    widget.onLocationSelected(location);
   }
 
   @override
@@ -256,81 +195,80 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
                     ),
                   )
                 : _errorMsg.isNotEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Text(
-                            _errorMsg,
-                            style: const TextStyle(
-                              fontFamily: 'Arial',
-                              fontSize: 16,
-                              color: Colors.red,
-                            ),
-                          ),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        _errorMsg,
+                        style: const TextStyle(
+                          fontFamily: 'Arial',
+                          fontSize: 16,
+                          color: Colors.red,
                         ),
-                      )
-                    : _results.isEmpty
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32.0),
-                              child: Text(
-                                'No locations found',
-                                style: TextStyle(
-                                  fontFamily: 'Arial',
-                                  fontSize: 16,
-                                  color: Color(0xFF6B7280),
-                                ),
+                      ),
+                    ),
+                  )
+                : _results.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text(
+                        'No locations found',
+                        style: TextStyle(
+                          fontFamily: 'Arial',
+                          fontSize: 16,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _results.length,
+                    itemBuilder: (context, index) {
+                      final result = _results[index];
+
+                      return InkWell(
+                        onTap: () {
+                          _selectLocation(result);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color(0xFFF3F4F6),
+                                width: 1.18,
                               ),
                             ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: _results.length,
-                            itemBuilder: (context, index) {
-                              final result = _results[index];
-                              final description = result['description'] ?? '';
-
-                              return InkWell(
-                                onTap: () {
-                                  _selectLocation(result);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 16,
-                                  ),
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: Color(0xFFF3F4F6),
-                                        width: 1.18,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.location_on_outlined,
-                                        color: Color(0xFF6B7280),
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          description,
-                                          style: const TextStyle(
-                                            fontFamily: 'Arial',
-                                            fontSize: 16,
-                                            color: Color(0xFF101828),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                color: Color(0xFF6B7280),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  result.nama,
+                                  style: const TextStyle(
+                                    fontFamily: 'Arial',
+                                    fontSize: 16,
+                                    color: Color(0xFF101828),
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

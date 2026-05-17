@@ -16,7 +16,10 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
   DioException _toDioException(Object error, String path) {
     if (error is DioException) return error;
-    return DioException(error: error, requestOptions: RequestOptions(path: path));
+    return DioException(
+      error: error,
+      requestOptions: RequestOptions(path: path),
+    );
   }
 
   void _logDioError(String context, DioException error) {
@@ -32,11 +35,13 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
 
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
-    if (normalized == 'accept' || normalized == 'terima' || normalized == 'approve') {
+    if (normalized == 'accept' ||
+        normalized == 'terima' ||
+        normalized == 'approve') {
       return 'accept';
     } else if (normalized == 'reject' || normalized == 'tolak') {
       return 'reject';
-    }else if (normalized == 'revision' || normalized == 'revisi') {
+    } else if (normalized == 'revision' || normalized == 'revisi') {
       return 'revisi';
     }
     return normalized;
@@ -217,7 +222,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
       final progressDetails = workOrderProgress.progressDetails ?? const [];
       if (progressDetails.isEmpty) {
         formData.fields.add(MapEntry('detail_progress', jsonEncode([])));
-        debugPrint("⚠️ No progress details provided, sending detail_progress=[]");
+        debugPrint(
+          "⚠️ No progress details provided, sending detail_progress=[]",
+        );
       } else {
         for (int i = 0; i < progressDetails.length; i++) {
           final detailItem = progressDetails[i];
@@ -415,9 +422,19 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         );
       }
 
-      final dynamic payload = response.data is Map<String, dynamic>
+      final dynamic rawData = response.data is Map<String, dynamic>
           ? (response.data['data'] ?? response.data)
           : response.data;
+
+      // Handle new response shape: { progress: {...}, workorder: {...} }
+      // as well as old shape where data IS the progress directly.
+      final dynamic payload;
+      if (rawData is Map<String, dynamic> && rawData.containsKey('progress')) {
+        payload = rawData['progress'];
+      } else {
+        payload = rawData;
+      }
+
       final data = payload is Map<String, dynamic>
           ? WorkOrderProgressModel.fromMap(payload)
           : workOrderProgress;

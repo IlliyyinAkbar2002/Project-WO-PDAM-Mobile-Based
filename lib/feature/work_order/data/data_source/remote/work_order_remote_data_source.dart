@@ -69,6 +69,8 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         totalPages: totalPages,
         currentPage: currentPage,
       );
+    } on DioException catch (e) {
+      return DataFailed(e);
     } catch (e) {
       return DataFailed(
         DioException(
@@ -189,6 +191,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     String? deskripsi,
     double? latitude,
     double? longitude,
+    String? lokasi,
     double? accuracy,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
@@ -208,6 +211,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         'petugas': petugas,
         if (deskripsi != null && deskripsi.trim().isNotEmpty)
           'deskripsi': deskripsi.trim(),
+        if (lokasi != null && lokasi.trim().isNotEmpty) 'lokasi': lokasi.trim(),
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (accuracy != null) 'accuracy': accuracy,

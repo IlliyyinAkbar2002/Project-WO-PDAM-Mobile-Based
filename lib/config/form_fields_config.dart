@@ -93,14 +93,11 @@ class FormFieldsConfig {
       {
         "key": "locationPicker",
         "type": "custom",
-        // Tampilkan map di detail jika koordinat tersedia (termasuk saat assign mode),
-        // tapi tetap read-only agar tidak mengubah titik WO asal.
-        "showIf": (formData) =>
-            formData["latitude"] != null && formData["longitude"] != null,
+        "showIf": (formData) => true,
         "latitude": (formData) => formData["latitude"],
         "longitude": (formData) => formData["longitude"],
         "locationId": (formData) => formData["locationId"],
-        "isReadOnly": true,
+        "isReadOnly": !isAssignMode,
       },
       {
         "key": "timeEstimate",
@@ -123,10 +120,7 @@ class FormFieldsConfig {
         "type": "custom",
         "key": "assignee",
         "options": assigneeOptions,
-        // BUG 3: Read-only saat bukan assign mode (view-only untuk SPV yang sudah assign).
-        // isReadOnly=false hanya saat isAssignMode=true.
         "isReadOnly": !isAssignMode,
-        // BUG 3: Tampil untuk SPV (isAssignee=false), tidak tampil untuk staff (isAssignee=true).
         "showIf": !isAssignee,
       },
       {

@@ -28,20 +28,26 @@ class AssignerWorkOrderListPage extends StatefulWidget {
 }
 
 class _AssignerWorkOrderListPageState
-  extends AppStatePage<AssignerWorkOrderListPage> {
-    final _searchController = TextEditingController();
-    late WorkOrderBloc _workOrderBloc;
-    Timer? _debounce;
+    extends AppStatePage<AssignerWorkOrderListPage> {
+  final _searchController = TextEditingController();
+  late WorkOrderBloc _workOrderBloc;
+  Timer? _debounce;
 
   // Filter state
-    FilterResult? _currentFilter;
+  FilterResult? _currentFilter;
 
-    @override
-    void initState() {
-      super.initState();
-      _workOrderBloc = context.read<WorkOrderBloc>();
-      _fetchWorkOrders();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _workOrderBloc = context.read<WorkOrderBloc>();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _fetchWorkOrders() {
     _workOrderBloc.add(

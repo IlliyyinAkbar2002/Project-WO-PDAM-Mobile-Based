@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
@@ -47,10 +48,12 @@ class DetailWorkOrderPageMasuk extends StatefulWidget {
   });
 
   @override
-  State<DetailWorkOrderPageMasuk> createState() => _DetailWorkOrderPageMasukState();
+  State<DetailWorkOrderPageMasuk> createState() =>
+      _DetailWorkOrderPageMasukState();
 }
 
-class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMasuk> {
+class _DetailWorkOrderPageMasukState
+    extends AppStatePage<DetailWorkOrderPageMasuk> {
   static const String _assigneeKey = "assignee";
   static const String _assigneesKey = "assignees";
 
@@ -261,7 +264,7 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
             if (!mounted) return;
             AppSnackbar.showSuccess("Work order berhasil dibuat.");
             final route = ModalRoute.of(context);
-          
+
             if (route != null &&
                 route.isActive &&
                 route.isCurrent &&
@@ -317,7 +320,8 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
               "endDateTime": state.workOrder.endDateTime,
-              "deskripsiPekerjaan": state.workOrder.assignment?.description ?? "",
+              "deskripsiPekerjaan":
+                  state.workOrder.assignment?.description ?? "",
               ..._buildKategoriFormData(state.workOrder),
               _assigneeKey:
                   state.workOrder.assignment?.assignees ??
@@ -447,6 +451,20 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
                                   mode: progressIndex.progressType!,
                                   status: widget.status,
                                   progressId: progressIndex.id,
+                                  workOrderId: widget.workOrderId,
+                                  lngLat: (formData["latitude"] != null &&
+                                          formData["longitude"] != null)
+                                      ? LatLng(
+                                          (formData["latitude"] as num)
+                                              .toDouble(),
+                                          (formData["longitude"] as num)
+                                              .toDouble(),
+                                        )
+                                      : null,
+                                  locationName:
+                                      formData["locationName"] as String?,
+                                  radiusMeter:
+                                      (formData["radiusMeter"] as int?) ?? 100,
                                 ),
                               ),
                             );
@@ -529,10 +547,9 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
     final int? duration = _toInt(formData["duration"]);
     final String durationUnit = _readTrimmedString("durationUnit");
     final DateTime? endDateTime = _toDateTime(formData["endDateTime"]);
-    final List<int> assigneeIds = _toUserEntityList(formData[_assigneesKey])
-        .map((user) => user.id)
-        .whereType<int>()
-        .toList();
+    final List<int> assigneeIds = _toUserEntityList(
+      formData[_assigneesKey],
+    ).map((user) => user.id).whereType<int>().toList();
     final int? locationId = _toInt(formData["locationId"]);
     final double? latitude = _toDouble(formData["latitude"]);
     final double? longitude = _toDouble(formData["longitude"]);
@@ -719,9 +736,11 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
         break;
     }
 
-    // BUG 1: Jangan kirim lat/lng dari WO asal ke payload assign.
-    // Map tetap ditampilkan sebagai referensi (read-only), sehingga assign staff
-    // tidak boleh mengubah maupun mengirim ulang koordinat WO.
+    // Kirim lokasi yang dipilih SPV (dari location search) ke backend.
+    // Jika SPV memilih lokasi baru via search, formData akan ter-update.
+    final double? assignLatitude = _toDouble(formData["latitude"]);
+    final double? assignLongitude = _toDouble(formData["longitude"]);
+    final String lokasiText = _readTrimmedString("lokasi");
     final DateTime? tanggalMulai = _toDateTime(formData["startDateTime"]);
     final DateTime? tanggalSelesai = _toDateTime(formData["endDateTime"]);
     final DateTime? estimasiSelesai = _toDateTime(formData["endDateTime"]);
@@ -746,7 +765,9 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
       kategoriForm: kategori,
       formKategori: formKategori,
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
-      // BUG 1: latitude/longitude tidak dikirim (null) saat assign staff.
+      lokasi: lokasiText.isEmpty ? null : lokasiText,
+      latitude: assignLatitude,
+      longitude: assignLongitude,
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       estimasiSelesai: estimasiSelesai,
@@ -758,11 +779,18 @@ class _DetailWorkOrderPageMasukState extends AppStatePage<DetailWorkOrderPageMas
       _isSubmitting = false;
     });
 
-    if (result is DataSuccess<void>) {
+    if (result is DataSuccess<WorkOrderModel?>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
-      context.read<WorkOrderBloc>().add(
-        GetWorkOrderDetailEvent(widget.workOrderId!),
-      );
+      final WorkOrderModel? updatedWorkOrder = result.data;
+      if (updatedWorkOrder != null) {
+        context.read<WorkOrderBloc>().add(
+          SetWorkOrderDetailEvent(updatedWorkOrder),
+        );
+      } else {
+        context.read<WorkOrderBloc>().add(
+          GetWorkOrderDetailEvent(widget.workOrderId!),
+        );
+      }
       context.read<WorkOrderBloc>().add(
         GetProgressByWorkOrderIdEvent(widget.workOrderId!),
       );

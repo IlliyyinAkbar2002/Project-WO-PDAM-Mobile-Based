@@ -14,11 +14,9 @@ import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
-import 'package:project_mobile_pdam/feature/work_order/data/models/form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/form_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
@@ -102,21 +100,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
 
     if (widget.progressId == null) {
-      if (widget.mode == 'Selesai' && widget.workOrderTypeId != null) {
-        _workOrderBloc.add(
-          GetFormByWorkOrderTypeIdEvent(widget.workOrderTypeId!),
-        );
+      if (widget.mode == 'Selesai') {
         setState(() {
-          isDataLoaded = false;
-          _inRange = true;
-          _isCheckingDistance = false;
-        });
-        return;
-      }
-      if (widget.mode == 'Selesai' && widget.workOrderId != null) {
-        _workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
-        setState(() {
-          isDataLoaded = false;
+          _progressDetails = [];
+          isDataLoaded = true;
           _inRange = true;
           _isCheckingDistance = false;
         });
@@ -154,22 +141,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     });
   }
 
-  List<ProgressDetailEntity> _buildProgressDetailsFromForms(
-    List<FormEntity> forms,
-  ) {
-    final sortedForms = List<FormEntity>.from(forms)
-      ..sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
-
-    return sortedForms
-        .where((form) => form.id != null && (form.isVisible ?? true))
-        .map(
-          (form) => ProgressDetailModel(
-            detailFormId: form.id,
-            form: FormModel.fromEntity(form),
-          ),
-        )
-        .toList(growable: false);
-  }
 
   void _checkDataLoaded() {
     // Removed nested setState - this method is now only for logging
@@ -188,29 +159,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       appBar: const CustomAppBar(title: "Form Jurnal"),
       body: BlocListener<WorkOrderBloc, WorkOrderState>(
         listener: (context, state) {
-          if (state is FormsLoaded &&
-              widget.progressId == null &&
-              widget.mode == 'Selesai') {
-            final progressDetails = _buildProgressDetailsFromForms(state.forms);
-
-            SchedulerBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              setState(() {
-                _progressDetails = progressDetails;
-                isDataLoaded = true;
-              });
-            });
-          }
-          if (state is WorkOrderDetailLoaded &&
-              widget.progressId == null &&
-              widget.mode == 'Selesai' &&
-              widget.workOrderId != null &&
-              state.workOrder.id == widget.workOrderId &&
-              state.workOrder.workOrderTypeId != null) {
-            _workOrderBloc.add(
-              GetFormByWorkOrderTypeIdEvent(state.workOrder.workOrderTypeId!),
-            );
-          }
           if (state is WorkOrderProgressDetailLoaded) {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
@@ -409,7 +357,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (widget.mode == 'Selesai') _buildDynamicForm(),
+                          if (widget.mode == 'Selesai' &&
+                              _progressDetails.isNotEmpty)
+                            _buildDynamicForm(),
                           const SizedBox(height: 24),
                           widget.isAssignee && !isDetailMode
                               ? ElevatedButton(

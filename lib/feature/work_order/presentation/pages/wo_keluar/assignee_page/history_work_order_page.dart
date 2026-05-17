@@ -30,7 +30,13 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
   void initState() {
     super.initState();
     _workOrderBloc = context.read<WorkOrderBloc>();
-    _fetchWorkOrders();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _fetchWorkOrders() {

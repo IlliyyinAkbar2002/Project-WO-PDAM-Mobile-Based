@@ -29,7 +29,6 @@ class _ApprovalWorkOrderListPageState
   void initState() {
     super.initState();
     _workOrderBloc = context.read<WorkOrderBloc>();
-    _fetchWorkOrders();
   }
 
   void _fetchWorkOrders() {

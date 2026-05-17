@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/resource/api_exception.dart';
 import 'package:project_mobile_pdam/core/usecase/usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
@@ -182,10 +183,10 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         totalPages = dataState.totalPages;
         emit(WorkOrderLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
-      emit(WorkOrderError("Terjadi kesalahan saat mengambil data: $e"));
+      emit(WorkOrderError(_friendlyErrorMessage(e)));
     }
   }
 
@@ -269,6 +270,11 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   /// Laravel mengirim `{ message: "...", errors: {...} }` atau `{ error: "..." }`.
   String _friendlyErrorMessage(dynamic error) {
     if (error is DioException) {
+      final apiError = error.error;
+      if (apiError is ApiException) {
+        return _safeApiErrorMessage(apiError);
+      }
+
       final data = error.response?.data;
       if (data is Map) {
         final errors = data['errors'];
@@ -281,9 +287,28 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         if (message != null) return message.toString();
       }
       if (data is String && data.isNotEmpty) return data;
-      return error.message ?? 'Terjadi kesalahan jaringan.';
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        return 'Koneksi ke server terlalu lama. Silakan coba lagi.';
+      }
+      if (error.type == DioExceptionType.connectionError) {
+        return 'Tidak dapat terhubung ke server. Periksa koneksi Anda.';
+      }
+      return 'Terjadi kesalahan jaringan. Silakan coba lagi.';
+    }
+    if (error is ApiException) {
+      return _safeApiErrorMessage(error);
     }
     return error?.toString() ?? 'Terjadi kesalahan tidak diketahui.';
+  }
+
+  /// Menjaga UI dari pesan teknis backend, terutama saat endpoint list gagal.
+  String _safeApiErrorMessage(ApiException error) {
+    if (error.isServerError) {
+      return 'Data work order belum dapat dimuat. Silakan coba lagi.';
+    }
+    return error.allErrorsJoined();
   }
 
   Future<void> _onUpdateWorkOrderEvent(
@@ -344,10 +369,10 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {
         emit(WorkOrderLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
-        emit(WorkOrderError(dataState.error.toString()));
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
-      emit(WorkOrderError("Gagal mencari pekerjaan: $e"));
+      emit(WorkOrderError(_friendlyErrorMessage(e)));
     }
   }
 

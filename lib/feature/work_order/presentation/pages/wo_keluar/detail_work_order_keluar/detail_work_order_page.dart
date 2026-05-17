@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
@@ -451,6 +452,20 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                                   mode: progressIndex.progressType!,
                                   status: widget.status,
                                   progressId: progressIndex.id,
+                                  workOrderId: widget.workOrderId,
+                                  lngLat: (formData["latitude"] != null &&
+                                          formData["longitude"] != null)
+                                      ? LatLng(
+                                          (formData["latitude"] as num)
+                                              .toDouble(),
+                                          (formData["longitude"] as num)
+                                              .toDouble(),
+                                        )
+                                      : null,
+                                  locationName:
+                                      formData["locationName"] as String?,
+                                  radiusMeter:
+                                      (formData["radiusMeter"] as int?) ?? 100,
                                 ),
                               ),
                             );
@@ -722,9 +737,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         break;
     }
 
-    // BUG 1: Jangan kirim lat/lng dari WO asal ke payload assign.
-    // locationPicker sudah disembunyikan untuk SPV (BUG 4), jadi tidak ada
-    // koordinat SPV yang bisa dipilih. Kirim null agar tidak salah lokasi.
+    final double? assignLatitude = _toDouble(formData["latitude"]);
+    final double? assignLongitude = _toDouble(formData["longitude"]);
+    final String lokasiText = _readTrimmedString("lokasi");
     final DateTime? tanggalMulai = _toDateTime(formData["startDateTime"]);
     final DateTime? tanggalSelesai = _toDateTime(formData["endDateTime"]);
     final DateTime? estimasiSelesai = _toDateTime(formData["endDateTime"]);
@@ -749,7 +764,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       kategoriForm: kategori,
       formKategori: formKategori,
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
-      // BUG 1: latitude/longitude tidak dikirim (null) karena map dimatikan untuk SPV.
+      lokasi: lokasiText.isEmpty ? null : lokasiText,
+      latitude: assignLatitude,
+      longitude: assignLongitude,
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       estimasiSelesai: estimasiSelesai,
@@ -761,7 +778,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
       _isSubmitting = false;
     });
 
-    if (result is DataSuccess<void>) {
+    if (result is DataSuccess<WorkOrderModel?>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
       context.read<WorkOrderBloc>().add(
         GetWorkOrderDetailEvent(widget.workOrderId!),

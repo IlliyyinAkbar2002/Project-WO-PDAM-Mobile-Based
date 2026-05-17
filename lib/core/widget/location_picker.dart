@@ -6,7 +6,13 @@ import 'package:project_mobile_pdam/core/widget/location_search_modal.dart';
 
 class LocationPicker extends StatefulWidget {
   final int? workOrderId;
-  final Function(double lat, double lng, {int? locationId, int? radiusMeter, String? locationName})
+  final Function(
+    double lat,
+    double lng, {
+    int? locationId,
+    int? radiusMeter,
+    String? locationName,
+  })
   onLocationSelected;
   final bool isStatic;
   final bool isReadOnly;
@@ -47,6 +53,34 @@ class _LocationPickerState extends AppStatePage<LocationPicker> {
 
     if (widget.latitude != null && widget.longitude != null) {
       locationInfo = "Lokasi dipilih";
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LocationPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update posisi map jika koordinat berubah dari parent
+    if (widget.latitude != oldWidget.latitude ||
+        widget.longitude != oldWidget.longitude) {
+      final newLocation = (widget.latitude != null && widget.longitude != null)
+          ? LatLng(widget.latitude!, widget.longitude!)
+          : const LatLng(-7.2704960, 112.5672211);
+      if (newLocation != _selectedLocation) {
+        setState(() {
+          _selectedLocation = newLocation;
+          if (widget.latitude != null && widget.longitude != null) {
+            locationInfo = "Lokasi dipilih";
+          }
+        });
+        if (_mapControllerCompleter.isCompleted) {
+          _moveCamera(newLocation);
+        }
+      }
+    }
+    if (widget.locationName != oldWidget.locationName) {
+      setState(() {
+        selectedLocationName = widget.locationName ?? "";
+      });
     }
   }
 

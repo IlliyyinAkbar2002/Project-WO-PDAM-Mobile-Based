@@ -11,6 +11,21 @@ typedef CustomFieldBuilder =
     );
 
 class CustomFieldWidgets {
+  static dynamic _resolveFieldValue(
+    Map<String, dynamic> field,
+    Map<String, dynamic> formData,
+    String key,
+  ) {
+    final dynamic value = field[key];
+    if (value is Function) {
+      return value(formData);
+    }
+    if (field.containsKey(key)) {
+      return value;
+    }
+    return formData[key];
+  }
+
   static final Map<String, CustomFieldBuilder> fields = {
     "locationPicker": (field, formData, onFieldChanged) => LocationPicker(
       isStatic: true,
@@ -45,10 +60,22 @@ class CustomFieldWidgets {
       isReadOnly: field["isReadOnly"] ?? false,
       hideStartDateTime: field["hideStartDateTime"] ?? false,
       status: field["status"],
-      startDateTime: formData["startDateTime"], // ✅ Data awal
-      duration: formData["duration"], // ✅ Data awal
-      durationUnit: formData["durationUnit"], // ✅ Data awal
-      endDateTime: formData["endDateTime"], // ✅ Data awal
+      startDateTime: _resolveFieldValue(
+        field,
+        formData,
+        "startDateTime",
+      ), // ✅ Data awal
+      duration: _resolveFieldValue(field, formData, "duration"), // ✅ Data awal
+      durationUnit: _resolveFieldValue(
+        field,
+        formData,
+        "durationUnit",
+      ), // ✅ Data awal
+      endDateTime: _resolveFieldValue(
+        field,
+        formData,
+        "endDateTime",
+      ), // ✅ Data awal
       onChanged: (startDateTime, duration, durationUnit, endDateTime) {
         if (!(field["isReadOnly"] ?? false)) {
           onFieldChanged("startDateTime", startDateTime);

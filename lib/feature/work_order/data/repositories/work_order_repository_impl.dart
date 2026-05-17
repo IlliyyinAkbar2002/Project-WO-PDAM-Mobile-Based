@@ -52,7 +52,7 @@ class WorkOrderRepositoryImpl implements WorkOrderRepository {
         return DataFailed(response.error!);
       }
     } catch (e) {
-      return DataFailed("Terjadi kesalahan: $e");
+      return DataFailed(e);
     }
   }
 
