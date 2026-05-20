@@ -72,4 +72,23 @@ class WorkOrderProgressRepositoryImpl implements WorkOrderProgressRepository {
       return DataFailed("Terjadi kesalahan: $e");
     }
   }
+
+  @override
+  Future<DataState<WorkOrderProgressEntity>> resubmitProgress(
+    int progressWorkorderId,
+  ) async {
+    try {
+      final response = await remoteDataSource.resubmitProgress(
+        progressWorkorderId,
+      );
+      debugPrint("📥 Resubmit response: $response");
+      if (response is DataSuccess<WorkOrderProgressModel>) {
+        return DataSuccess(response.data!.toEntity());
+      } else {
+        return DataFailed(response.error!);
+      }
+    } catch (e) {
+      return DataFailed("Terjadi kesalahan: $e");
+    }
+  }
 }

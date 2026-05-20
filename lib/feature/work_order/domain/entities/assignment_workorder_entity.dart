@@ -15,6 +15,11 @@ class AssignmentWorkorderEntity extends Equatable {
   final int? locationId;
   final MasterLocationEntity? location;
   final String? description;
+  final String? lokasiText;
+  final DateTime? startDateTime;
+  final int? duration;
+  final String? durationUnit;
+  final DateTime? endDateTime;
 
   const AssignmentWorkorderEntity({
     this.id,
@@ -29,6 +34,11 @@ class AssignmentWorkorderEntity extends Equatable {
     this.locationId,
     this.location,
     this.description,
+    this.lokasiText,
+    this.startDateTime,
+    this.duration,
+    this.durationUnit,
+    this.endDateTime,
   });
 
   @override
@@ -45,6 +55,11 @@ class AssignmentWorkorderEntity extends Equatable {
         locationId,
         location,
         description,
+        lokasiText,
+        startDateTime,
+        duration,
+        durationUnit,
+        endDateTime,
       ];
 
   AssignmentWorkorderEntity copyWith({
@@ -60,6 +75,11 @@ class AssignmentWorkorderEntity extends Equatable {
     int? locationId,
     MasterLocationEntity? location,
     String? description,
+    String? lokasiText,
+    DateTime? startDateTime,
+    int? duration,
+    String? durationUnit,
+    DateTime? endDateTime,
   }) {
     return AssignmentWorkorderEntity(
       id: id ?? this.id,
@@ -74,6 +94,11 @@ class AssignmentWorkorderEntity extends Equatable {
       locationId: locationId ?? this.locationId,
       location: location ?? this.location,
       description: description ?? this.description,
+      lokasiText: lokasiText ?? this.lokasiText,
+      startDateTime: startDateTime ?? this.startDateTime,
+      duration: duration ?? this.duration,
+      durationUnit: durationUnit ?? this.durationUnit,
+      endDateTime: endDateTime ?? this.endDateTime,
     );
   }
 }

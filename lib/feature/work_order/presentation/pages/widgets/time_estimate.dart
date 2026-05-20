@@ -424,11 +424,17 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   }
 
   Future<void> _selectDate() async {
+    final DateTime today = DateTime.now();
+    final DateTime minDate = DateTime(today.year, today.month, today.day);
+    final DateTime initial =
+        (selectedDate != null && !selectedDate!.isBefore(minDate))
+        ? selectedDate!
+        : minDate;
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(DateTime.now().year),
-      lastDate: DateTime(DateTime.now().year + 10),
+      initialDate: initial,
+      firstDate: minDate,
+      lastDate: DateTime(today.year + 10),
     );
 
     if (pickedDate != null) {

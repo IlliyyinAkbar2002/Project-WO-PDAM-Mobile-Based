@@ -10,4 +10,7 @@ abstract class WorkOrderProgressRepository {
   Future<DataState<WorkOrderProgressEntity>> updateWorkOrderProgress(
     WorkOrderProgressModel workOrderProgress,
   );
+  Future<DataState<WorkOrderProgressEntity>> resubmitProgress(
+    int progressWorkorderId,
+  );
 }

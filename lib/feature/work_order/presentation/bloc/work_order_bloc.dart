@@ -17,6 +17,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usec
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progress_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/resubmit_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
 import '/feature/work_order/domain/usecases/get_work_orders_usecase.dart';
@@ -60,6 +61,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   final GetProgressByWorkOrderIdUsecase getProgressByWorkOrderIdUsecase;
   final GetWorkOrderProgressDetailUsecase getWorkOrderProgressDetailUsecase;
   final UpdateWorkOrderProgressUseCase updateWorkOrderProgressUseCase;
+  final ResubmitProgressUseCase resubmitProgressUseCase;
 
   //progress detail
   final GetProgressDetailsUsecase getProgressDetailsUsecase;
@@ -99,6 +101,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     this.getProgressByWorkOrderIdUsecase,
     this.getWorkOrderProgressDetailUsecase,
     this.updateWorkOrderProgressUseCase,
+    this.resubmitProgressUseCase,
 
     //progress detail
     this.getProgressDetailsUsecase,
@@ -140,6 +143,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     on<GetProgressByWorkOrderIdEvent>(_onGetProgressByWorkOrderIdEvent);
     on<GetWorkOrderProgressDetailEvent>(_onGetWorkOrderProgressDetailEvent);
     on<UpdateWorkOrderProgressEvent>(_onUpdateWorkOrderProgressEvent);
+    on<ResubmitProgressEvent>(_onResubmitProgressEvent);
 
     //progress detail
     on<GetProgressDetailsEvent>(_onGetProgressDetailsEvent);
@@ -591,6 +595,23 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     }
   }
 
+  Future<void> _onResubmitProgressEvent(
+    ResubmitProgressEvent event,
+    Emitter<WorkOrderState> emit,
+  ) async {
+    emit(WorkOrderLoading());
+    try {
+      final dataState = await resubmitProgressUseCase(event.progressWorkorderId);
+      if (dataState is DataSuccess) {
+        emit(WorkOrderProgressUpdated(dataState.data!));
+      } else if (dataState is DataFailed) {
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
+      }
+    } catch (e) {
+      emit(WorkOrderError("Gagal resubmit progres: $e"));
+    }
+  }
+
   //progress detail
   Future<void> _onGetProgressDetailsEvent(
     GetProgressDetailsEvent event,
@@ -598,11 +619,15 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   ) async {
     emit(WorkOrderLoading());
     try {
-      final dataState = await getProgressDetailsUsecase(
+      final dataState = await getWorkOrderProgressDetailUsecase(
         event.workOrderProgressId,
       );
       if (dataState is DataSuccess) {
-        emit(ProgressDetailsLoaded(dataState.data!));
+        final progress = dataState.data!;
+        final details = (progress.progressDetail ?? []).map((d) {
+          return d.copyWith(workOrderProgress: progress);
+        }).toList();
+        emit(ProgressDetailsLoaded(details));
       } else if (dataState is DataFailed) {
         emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }

@@ -1,0 +1,124 @@
+@startuml Activity Diagram Penugasan WO Jaringan
+title Activity Diagram - Penugasan Work Order Jaringan oleh Supervisor (PDAM Surya Sembada Mobile)
+
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityDiamondBackgroundColor #FFF59D
+skinparam ActivityDiamondBorderColor #F9A825
+skinparam ArrowColor #455A64
+skinparam DefaultFontName Arial
+
+|Supervisor|
+start
+:Membuka aplikasi mobile
+dan login sebagai Supervisor;
+:Membuka halaman
+"Work Order Masuk";
+
+|Aplikasi Mobile|
+:Meminta daftar Work Order
+yang ditujukan ke Supervisor
+dari server;
+
+|Backend|
+:Mengambil daftar Work Order
+yang sudah dibuat Super Admin
+dengan status
+"Ditugaskan ke Supervisor";
+note right
+  Work Order Jaringan
+  sebelumnya telah dibuat
+  oleh Super Admin melalui
+  aplikasi web (proses
+  pembuatan tidak dirinci
+  dalam alur ini).
+end note
+:Mengirim daftar Work Order
+ke aplikasi;
+
+|Aplikasi Mobile|
+:Menampilkan daftar Work Order
+pada halaman "Work Order Masuk";
+
+|Supervisor|
+:Memilih salah satu Work Order
+Jaringan yang akan ditugaskan;
+
+|Aplikasi Mobile|
+:Meminta detail Work Order
+dari server;
+
+|Backend|
+:Mengirim detail Work Order
+beserta informasi awal
+yang dibuat Super Admin;
+
+|Aplikasi Mobile|
+:Menampilkan formulir
+detail Work Order Jaringan
+(judul, deskripsi, lokasi,
+tanggal mulai);
+
+|Supervisor|
+:Melengkapi informasi
+jaringan pipa
+(jenis pipa, diameter pipa,
+panjang pipa, tingkat kerusakan);
+:Mengatur waktu pengerjaan
+(tanggal mulai dan estimasi
+waktu selesai);
+:Memilih lokasi pekerjaan
+di peta jika perlu;
+:Memilih anggota staff
+yang akan ditugaskan;
+:Menentukan satu staff
+sebagai Koordinator (PIC);
+:Menekan tombol "Tugaskan";
+
+|Aplikasi Mobile|
+:Memeriksa kelengkapan
+data formulir;
+if (Data sudah lengkap dan benar?) then (belum)
+  :Menampilkan pesan kesalahan
+  pada bagian yang masih
+  belum lengkap;
+  stop
+else (sudah)
+  :Mengirim data penugasan
+  ke server;
+endif
+
+|Backend|
+:Menyimpan data penugasan
+(staff terpilih, koordinator,
+detail jaringan, waktu, lokasi);
+if (Penugasan berhasil disimpan?) then (tidak)
+  :Mengirim pesan kesalahan;
+
+  |Aplikasi Mobile|
+  :Menampilkan pesan
+  "Gagal menugaskan staff";
+  stop
+else (ya)
+  :Mengubah status Work Order
+  menjadi "Ditugaskan ke Staff";
+  :Mengirim konfirmasi
+  penugasan berhasil;
+endif
+
+|Aplikasi Mobile|
+:Menampilkan pesan
+"Penugasan staff berhasil";
+:Memperbarui tampilan
+detail Work Order
+dengan data terbaru;
+
+|Supervisor|
+:Melihat Work Order
+sudah berpindah ke
+daftar "Work Order Keluar"
+dengan status
+"Ditugaskan ke Staff";
+stop
+
+@enduml

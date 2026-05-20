@@ -56,6 +56,7 @@ class WorkOrderProgressEntity extends Equatable {
   bool get isDraft => ProgressStatusId.isDraft(statusId);
   bool get isSubmitted => ProgressStatusId.isSubmitted(statusId);
   bool get isVerified => ProgressStatusId.isVerified(statusId);
+  bool get isRevisiRequested => ProgressStatusId.isRevisiRequested(statusId);
   bool get isDibatalkan => ProgressStatusId.isDibatalkan(statusId);
 
   bool get canCancel {

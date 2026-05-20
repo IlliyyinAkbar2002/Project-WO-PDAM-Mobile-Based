@@ -182,6 +182,12 @@ class UpdateWorkOrderProgressEvent extends WorkOrderEvent {
   UpdateWorkOrderProgressEvent(this.progress);
 }
 
+class ResubmitProgressEvent extends WorkOrderEvent {
+  final int progressWorkorderId;
+
+  ResubmitProgressEvent(this.progressWorkorderId);
+}
+
 //progress detail
 class GetProgressDetailsEvent extends WorkOrderEvent {
   final int workOrderProgressId;

@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
@@ -56,6 +57,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   late JournalDraftCubit _journalDraftCubit;
   bool get isDetailMode =>
       widget.status == 5 || widget.status == 6 || !widget.isAssignee;
+  bool get isRejected => _progressStatusId != null &&
+      ProgressStatusId.isRevisiRequested(_progressStatusId);
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descriptionController = TextEditingController();
@@ -63,6 +66,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   List<ProgressDetailEntity> _progressDetails = [];
   List<dynamic> _images = [];
   DateTime? _submitTime;
+  int? _progressStatusId;
   bool _inRange = true;
   bool _isCheckingDistance = true;
   bool isDataLoaded = false;
@@ -163,6 +167,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
             final submitTime = state.progress.submitTime;
+            final statusId = state.progress.statusId;
             final images = (state.progress.documentation ?? [])
                 .map((doc) => doc.url)
                 .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
@@ -182,6 +187,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   _images = images;
                 }
                 _submitTime = submitTime;
+                _progressStatusId = statusId;
                 _requestedHeaderFallback = false;
                 isDataLoaded = true;
               });
@@ -218,6 +224,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 progressDetails.first.workOrderProgress?.description ?? '';
             final submitTime =
                 progressDetails.first.workOrderProgress?.submitTime;
+            final statusId =
+                progressDetails.first.workOrderProgress?.statusId;
 
             // Ambil images dari workOrderProgress.documentation
             final images =
@@ -257,6 +265,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   _images = images;
                 }
                 _submitTime = submitTime;
+                _progressStatusId = statusId;
                 isDataLoaded = true;
               });
               _checkDataLoaded();
@@ -271,7 +280,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               });
             }
             AppSnackbar.showSuccess("Form berhasil disubmit.");
-            if (widget.isAssignee && !isDetailMode) {
+            if ((widget.isAssignee && !isDetailMode) || !widget.isAssignee) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
                 _journalDraftCubit.clearDraft(_draftKey);
@@ -378,7 +387,63 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                     ),
                                   ),
                                 )
-                              : widget.mode == 'Selesai' && !widget.isAssignee
+                              : widget.isAssignee && isRejected
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: color.danger.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: color.danger,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.info_outline,
+                                                color: color.danger,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Progress Ditolak',
+                                                style: textTheme.titleMedium?.copyWith(
+                                                  color: color.danger,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Silakan perbaiki progress sesuai catatan supervisor dan kirim ulang.',
+                                            style: textTheme.bodyMedium?.copyWith(
+                                              color: color.foreground[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: color.primary[500],
+                                      ),
+                                      onPressed: _onResubmit,
+                                      child: const Text('Kirim Ulang Progress'),
+                                    ),
+                                  ],
+                                )
+                              : widget.mode == 'Selesai' &&
+                                    !widget.isAssignee &&
+                                    ProgressStatusId.isSubmitted(_progressStatusId)
                               ? Row(
                                   children: [
                                     Expanded(
@@ -676,6 +741,17 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       reviewAction: action,
     );
     _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
+  }
+
+  void _onResubmit() {
+    if (widget.progressId == null) {
+      AppSnackbar.showError("Progress ID tidak ditemukan.");
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+    });
+    _workOrderBloc.add(ResubmitProgressEvent(widget.progressId!));
   }
 
   dynamic _getOptionIdFromValue(ProgressDetailEntity detail) {

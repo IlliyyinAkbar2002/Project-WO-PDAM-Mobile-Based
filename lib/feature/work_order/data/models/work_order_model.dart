@@ -70,13 +70,20 @@ class WorkOrderModel extends WorkOrderEntity {
       return null;
     }
 
-    DateTime? parseDateTimeFromKeys(List<String> keys) {
+    DateTime? parseDateTimeFromKeysIn(
+      Map<String, dynamic>? source,
+      List<String> keys,
+    ) {
+      if (source == null) return null;
       for (final key in keys) {
-        final parsed = parseDateTime(map[key]);
+        final parsed = parseDateTime(source[key]);
         if (parsed != null) return parsed;
       }
       return null;
     }
+
+    DateTime? parseDateTimeFromKeys(List<String> keys) =>
+        parseDateTimeFromKeysIn(map, keys);
 
     String? normalizeDurationUnit(dynamic value) {
       final normalized = (value ?? '').toString().trim().toLowerCase();
@@ -197,19 +204,46 @@ class WorkOrderModel extends WorkOrderEntity {
 
     final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
     final detailKategori = _extractDetailKategoriMap(map);
-    final DateTime? parsedStartDateTime = parseDateTimeFromKeys([
+
+    // Assignment-side schedule + lokasi take precedence over the workorder
+    // row, because the workorder row keeps the original values set at
+    // creation time while the SPV's reassignment is persisted on the
+    // workorder_assignment row.
+    const startDateKeys = [
       'tanggal_mulai',
       'tanggalMulai',
       'waktu_penugasan',
       'waktuPenugasan',
-    ]);
-    final DateTime? parsedEndDateTime = parseDateTimeFromKeys([
+    ];
+    const endDateKeys = [
       'estimasi_selesai',
       'estimasiSelesai',
       'tanggal_selesai',
       'tanggalSelesai',
-    ]);
+    ];
+
+    final DateTime? assignmentStartDateTime =
+        parseDateTimeFromKeysIn(assignmentMap, startDateKeys);
+    final DateTime? assignmentEndDateTime =
+        parseDateTimeFromKeysIn(assignmentMap, endDateKeys);
+    final int? assignmentDuration =
+        parseInt(assignmentMap?['estimasi_durasi']) ??
+        parseInt(assignmentMap?['duration']) ??
+        parseInt(assignmentMap?['durasi']);
+    final String? assignmentRawDurationUnit =
+        assignmentMap?['unit_waktu']?.toString() ??
+        assignmentMap?['duration_unit']?.toString() ??
+        assignmentMap?['durasi_unit']?.toString();
+    final String? assignmentNormalizedDurationUnit =
+        normalizeDurationUnit(assignmentRawDurationUnit);
+    final String? assignmentLokasiText = assignmentMap?['lokasi'] as String?;
+
+    final DateTime? parsedStartDateTime =
+        assignmentStartDateTime ?? parseDateTimeFromKeys(startDateKeys);
+    final DateTime? parsedEndDateTime =
+        assignmentEndDateTime ?? parseDateTimeFromKeys(endDateKeys);
     final String? rawDurationUnit =
+        assignmentRawDurationUnit ??
         map['unit_waktu']?.toString() ??
         map['duration_unit']?.toString() ??
         map['durasi_unit']?.toString();
@@ -218,6 +252,7 @@ class WorkOrderModel extends WorkOrderEntity {
     );
     String? resolvedDurationUnit = normalizedDurationUnit ?? rawDurationUnit;
     int? resolvedDuration =
+        assignmentDuration ??
         parseInt(map['estimasi_durasi']) ??
         parseInt(map['duration']) ??
         parseInt(map['durasi']);
@@ -294,6 +329,12 @@ class WorkOrderModel extends WorkOrderEntity {
           assignmentMap?['deskripsi'] as String? ??
           assignmentMap?['description'] as String? ??
           map['deskripsi'] as String?,
+      lokasiText: assignmentLokasiText,
+      startDateTime: assignmentStartDateTime,
+      duration: assignmentDuration,
+      durationUnit:
+          assignmentNormalizedDurationUnit ?? assignmentRawDurationUnit,
+      endDateTime: assignmentEndDateTime,
     );
 
     return WorkOrderModel(
@@ -303,7 +344,9 @@ class WorkOrderModel extends WorkOrderEntity {
       duration: resolvedDuration,
       durationUnit: resolvedDurationUnit,
       endDateTime: parsedEndDateTime,
-      lokasiText: map['lokasi'] as String?, // Parse field "lokasi" dari backend
+      lokasiText:
+          assignmentLokasiText ??
+          map['lokasi'] as String?, // Parse field "lokasi" dari backend
       creator:
           parseIdFromAny(map['created_by_user_id']) ??
           parseIdFromAny(map['pic_id']),

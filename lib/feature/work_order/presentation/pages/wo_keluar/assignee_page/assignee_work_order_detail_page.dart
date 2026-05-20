@@ -141,11 +141,12 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
-  /// Hitung jumlah progress yang sudah disubmit hari ini (bukan draft).
-  /// Backend menghitung semua progress (termasuk Mulai) dalam limit harian.
+  /// Hitung jumlah laporan yang sudah disubmit hari ini (bukan draft).
+  /// Mulai tidak dihitung karena tidak mengonsumsi kuota.
   int _countSubmittedToday() {
     final today = DateTime.now();
     return progresses.where((p) {
+      if (p.isMulai) return false;
       if (p.isDibatalkan) return false;
       final t = p.submitTime;
       if (t == null) return false;
@@ -354,14 +355,15 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
+    final String message = progress.isMulai
+        ? 'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.'
+        : 'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
+            'Tindakan ini tidak dapat diurungkan.';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Batalkan Laporan?'),
-        content: const Text(
-          'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
-          'Tindakan ini tidak dapat diurungkan.',
-        ),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -385,9 +387,12 @@ class _AssigneeWorkOrderDetailPageState
     final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
     if (!mounted) return;
     if (result is DataSuccess) {
+      final String successMsg = progress.isMulai
+          ? 'Laporan berhasil dibatalkan.'
+          : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Laporan berhasil dibatalkan. Kuota dikembalikan.'),
+        SnackBar(
+          content: Text(successMsg),
           backgroundColor: Colors.green,
         ),
       );

@@ -162,6 +162,34 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     }
   }
 
+  Future<DataState<WorkOrderProgressModel>> resubmitProgress(
+    int progressWorkorderId,
+  ) async {
+    try {
+      final response = await post(
+        path: '/v1/progress-detail/resubmit',
+        data: {'progress_workorder_id': progressWorkorderId},
+      );
+      final dynamic rawData = response.data is Map<String, dynamic>
+          ? (response.data['data'] ?? response.data)
+          : response.data;
+      final dynamic payload;
+      if (rawData is Map<String, dynamic> && rawData.containsKey('progress')) {
+        payload = rawData['progress'];
+      } else {
+        payload = rawData;
+      }
+      final data = payload is Map<String, dynamic>
+          ? WorkOrderProgressModel.fromMap(payload)
+          : throw const FormatException('Invalid resubmit response format');
+      return DataSuccess(data);
+    } catch (e) {
+      final dioError = _toDioException(e, '/v1/progress-detail/resubmit');
+      _logDioError('resubmitProgress', dioError);
+      return DataFailed(dioError);
+    }
+  }
+
   Future<DataState<WorkOrderProgressModel>> updateWorkOrderProgressDetail(
     WorkOrderProgressModel workOrderProgress,
   ) async {
