@@ -11,6 +11,8 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 import 'service/service_locator.dart' as di;
 
 void main() async {
@@ -42,6 +44,37 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends AppStatePage<App> {
+  Widget _getInitialPage() {
+    // Check if user has a valid session
+    if (!AuthStorage.isLoggedIn()) {
+      return const LoginPage();
+    }
+
+    // Get user data to determine role-based landing page
+    final user = AuthStorage.getUserSync();
+    if (user == null) {
+      return const LoginPage();
+    }
+
+    final roleId = user['role_id'] as int?;
+    final positionId = user['employee']?['position_id'] as int?;
+
+    debugPrint('🔄 Restoring session for role: $roleId, position: $positionId');
+
+
+    if (roleId == 3) {
+      if (positionId == 4) {
+        return const SpvLandingPage();
+      } else {
+        return const StaffLandingPage();
+      }
+    }
+
+    // Role selain employee (staff/spv) belum didukung, kembali ke login
+    AuthStorage.clearAuth();
+    return const LoginPage();
+  }
+
   @override
   Widget buildPage(BuildContext context) {
     AppSnackbar.setTheme(ThemeManager.theme);
@@ -53,7 +86,7 @@ class _AppState extends AppStatePage<App> {
       ],
       child: MaterialApp(
         theme: ThemeManager.theme,
-        home: const LoginPage(),
+        home: _getInitialPage(),
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.light,
       ),

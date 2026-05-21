@@ -56,11 +56,14 @@ class _LandingPageHeader extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await AuthStorage.clearAuth();
+                debugPrint('🚪 User logged out from landing page, session cleared');
                 if (!dialogContext.mounted) return;
                 Navigator.of(dialogContext).pop();
                 if (!context.mounted) return;
-                Navigator.of(context).pushReplacement(
+                // Clear entire navigation stack and go to login
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
                 );
               },
               style: TextButton.styleFrom(foregroundColor: dangerColor),

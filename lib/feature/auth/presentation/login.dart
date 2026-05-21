@@ -7,9 +7,6 @@ import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart'
-    as admin;
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/register.dart';
@@ -577,23 +574,29 @@ class _LoginPageState extends State<LoginPage> {
           debugPrint('🎭 Role ID: $roleId');
           debugPrint('👔 Position ID: $positionId');
 
-          if (roleId == 1) {
-            targetPage = const admin.LandingPage();
-          } else if (roleId == 2) {
-            targetPage = const ManajerLandingPage();
-          } else if (roleId == 3) {
+          if (roleId == 3) {
             if (positionId == 4) {
               targetPage = const SpvLandingPage();
             } else {
               targetPage = const StaffLandingPage();
             }
-          } else {
-            targetPage = const admin.LandingPage();
-          }
 
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => targetPage),
-          );
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => targetPage),
+            );
+          } else {
+            await AuthStorage.clearAuth();
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Aplikasi saat ini hanya tersedia untuk Staff dan Supervisor.'),
+                backgroundColor: Color(0xFFF44336),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
         } else if (result is DataFailed) {
           String errorMessage = 'Email atau password salah';
 

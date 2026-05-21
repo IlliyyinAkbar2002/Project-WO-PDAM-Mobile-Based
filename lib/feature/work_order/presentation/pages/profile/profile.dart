@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/personal_data.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 
@@ -149,6 +151,20 @@ class ProfilePage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _handleLogout(BuildContext context) async {
+    // Clear the session from local storage
+    await AuthStorage.clearAuth();
+    debugPrint('🚪 User logged out, session cleared');
+
+    // Navigate to LoginPage and clear the entire navigation stack
+    if (context.mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -163,7 +179,7 @@ class ProfilePage extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              _showComingSoon(context, 'Aksi logout belum dihubungkan.');
+              _handleLogout(context);
             },
             child: const Text(
               'Logout',

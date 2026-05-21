@@ -8,6 +8,9 @@ import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/laporan_workorder_cubit.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:cross_file/cross_file.dart';
 
 class LaporanWorkorderPage extends StatefulWidget {
   final Map<String, dynamic> payload;
@@ -274,7 +277,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
     final nomorLaporan = p['nomor_laporan']?.toString() ?? '-';
     final workorderId = p['workorder_id']?.toString() ?? '-';
     final tanggal = DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.now());
-    final waktu = DateFormat('HH:mm', 'id_ID').format(DateTime.now()) + ' WIB';
+    final waktu = "${DateFormat('HH:mm', 'id_ID').format(DateTime.now())} WIB";
 
     // Petugas snapshot
     final petugasSnap = p['petugas_snapshot'];
@@ -425,8 +428,75 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
                   await file.writeAsBytes(await pdfDocument.save());
 
                   if (context.mounted) {
-                    AppSnackbar.showSuccess(
-                      'PDF berhasil disimpan di:\n${file.path}',
+                    // Tampilkan pilihan: Buka atau Bagikan
+                    showModalBottomSheet(
+                      context: context,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                      ),
+                      builder: (_) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 8),
+                            Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'PDF Berhasil Dibuat',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Pilih tindakan:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ListTile(
+                              leading: const Icon(
+                                Icons.open_in_new,
+                                color: Colors.blueAccent,
+                              ),
+                              title: const Text('Buka PDF'),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                await OpenFilex.open(file.path);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(
+                                Icons.share,
+                                color: Colors.green,
+                              ),
+                              title: const Text('Bagikan PDF'),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                await SharePlus.instance.share(
+                                  ShareParams(
+                                    files: [XFile(file.path)],
+                                    text: 'Laporan Work Order - PDAM Perumda Surya Sembada',
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ),
                     );
                   }
                 } catch (e) {
@@ -469,7 +539,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -5),
                       ),
