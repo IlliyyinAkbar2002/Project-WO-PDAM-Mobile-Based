@@ -21,8 +21,8 @@ class _AssignerWorkOrderMasukPageState
   int _selectedFilter = 0;
 
   final List<String> _filterLabels = [
-    'Pembuatan Work Order',
-    'Persetujuan Work Order',
+    'Asignment Work Order',
+    'History Work Order',
   ];
 
   @override

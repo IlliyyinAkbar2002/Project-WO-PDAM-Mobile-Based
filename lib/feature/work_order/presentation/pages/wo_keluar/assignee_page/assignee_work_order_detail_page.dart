@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+// import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
@@ -15,8 +16,6 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widget
 
 final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},
-  // {"id": 2, "type": "progress", "isFilled": true, "index": 1},
-  // {"id": 3, "type": "progress", "isFilled": false, "index": 2},
   {"id": 4, "type": "finish", "isFilled": false},
 ];
 
@@ -312,11 +311,7 @@ class _AssigneeWorkOrderDetailPageState
                 },
         ),
         if (progress.canCancel)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: _buildCancelButton(progress),
-          ),
+          Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
       ],
     );
   }
@@ -355,10 +350,14 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
+    // ✅ Capture sebelum async gap manapun
+    final messenger = ScaffoldMessenger.of(context);
+
     final String message = progress.isMulai
         ? 'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.'
         : 'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
-            'Tindakan ini tidak dapat diurungkan.';
+              'Tindakan ini tidak dapat diurungkan.';
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -377,37 +376,46 @@ class _AssigneeWorkOrderDetailPageState
         ],
       ),
     );
+
     if (confirmed != true || !mounted) return;
-    await _executeCancelProgress(progress);
+
+    // ✅ Teruskan messenger yang sudah di-capture
+    await _executeCancelProgress(progress, messenger);
   }
 
-  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
+  Future<void> _executeCancelProgress(
+    WorkOrderProgressEntity progress,
+    ScaffoldMessengerState messenger, // ✅ Terima dari caller
+  ) async {
     if (progress.id == null) return;
-    final messenger = ScaffoldMessenger.of(context);
     final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
     if (!mounted) return;
     if (result is DataSuccess) {
       final String successMsg = progress.isMulai
           ? 'Laporan berhasil dibatalkan.'
           : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(successMsg),
-          backgroundColor: Colors.green,
-        ),
-      );
+
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(successMsg), backgroundColor: Colors.green),
+        );
+      }
+
       _fetchProgresses();
     } else {
       final errorMsg = result.error?.response?.data is Map
           ? (result.error!.response!.data['message'] ??
-              'Gagal membatalkan laporan.')
+                'Gagal membatalkan laporan.')
           : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(errorMsg.toString()),
-          backgroundColor: color.danger,
-        ),
-      );
+
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(errorMsg.toString()),
+            backgroundColor: color.danger,
+          ),
+        );
+      }
     }
   }
 

@@ -20,8 +20,8 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
   // int _subFilter = 0; // Index filter kedua (jika ada)
 
   final List<String> _filterLabels = [
-    'Pembuatan Work Order',
-    'Persetujuan Work Order',
+    'List Work Order',
+    'History Work Order',
   ];
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/config/theme/app_theme.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
@@ -16,6 +17,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    await initializeDateFormatting('id_ID', null);
+
     await AppConfig.init();
 
     await AuthStorage.initialize();

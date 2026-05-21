@@ -60,6 +60,26 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool get isRejected => _progressStatusId != null &&
       ProgressStatusId.isRevisiRequested(_progressStatusId);
 
+  /// Progress sudah ter-record di backend (mis. status submitted/verified)
+  /// dan bukan dalam state revisi. Saat ini staff tidak boleh mengubah —
+  /// mereka harus membatalkan dulu lewat tombol Batalkan di halaman list.
+  bool get _isAlreadyRecorded =>
+      widget.isAssignee &&
+      widget.progressId != null &&
+      _progressStatusId != null &&
+      !isRejected;
+
+  String get _submitInProgressMessage {
+    switch (widget.mode) {
+      case 'Mulai':
+        return 'Tombol Mulai sudah pernah ditekan, mohon tunggu.';
+      case 'Selesai':
+        return 'Tombol Selesai sudah pernah ditekan, mohon tunggu.';
+      default:
+        return 'Tombol Laporan sudah pernah ditekan, mohon tunggu.';
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descriptionController = TextEditingController();
   Map<String, dynamic> _formData = {};
@@ -347,7 +367,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                   hintText: "Masukkan deskripsi pekerjaan",
                                   maxLines: 5,
                                   controller: _descriptionController,
-                                  readOnly: isDetailMode,
+                                  readOnly: isDetailMode || _isAlreadyRecorded,
                                 ),
                                 Text(
                                   "Dokumentasi",
@@ -355,7 +375,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                 ),
                                 ImagePickerField(
                                   initialImages: _images,
-                                  enabled: !isDetailMode,
+                                  enabled: !isDetailMode && !_isAlreadyRecorded,
                                   onChanged: (newImages) {
                                     setState(() {
                                       _images = newImages;
@@ -371,22 +391,44 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             _buildDynamicForm(),
                           const SizedBox(height: 24),
                           widget.isAssignee && !isDetailMode
-                              ? ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _getColor(),
-                                  ),
-                                  onPressed: _onSubmit,
-                                  child: Text(
-                                    widget.mode,
-                                    style: textTheme.labelLarge?.copyWith(
-                                      color: widget.mode == 'Selesai'
-                                          ? (widget.status == 7
-                                                ? color.foreground[100]
-                                                : color.primary[500])
-                                          : color.primary[500],
-                                    ),
-                                  ),
-                                )
+                              ? (_isAlreadyRecorded
+                                    ? _buildAlreadyRecordedBanner()
+                                    : ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: _getColor(),
+                                        ),
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : _onSubmit,
+                                        child: _isSubmitting
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.white),
+                                                    ),
+                                              )
+                                            : Text(
+                                                widget.mode,
+                                                style: textTheme.labelLarge
+                                                    ?.copyWith(
+                                                      color:
+                                                          widget.mode ==
+                                                              'Selesai'
+                                                          ? (widget.status == 7
+                                                                ? color
+                                                                      .foreground[100]
+                                                                : color
+                                                                      .primary[500])
+                                                          : color.primary[500],
+                                                    ),
+                                              ),
+                                      ))
                               : widget.isAssignee && isRejected
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -436,8 +478,23 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: color.primary[500],
                                       ),
-                                      onPressed: _onResubmit,
-                                      child: const Text('Kirim Ulang Progress'),
+                                      onPressed:
+                                          _isSubmitting ? null : _onResubmit,
+                                      child: _isSubmitting
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<Color>(
+                                                      Colors.white,
+                                                    ),
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Kirim Ulang Progress',
+                                            ),
                                     ),
                                   ],
                                 )
@@ -564,8 +621,45 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
   }
 
+  Widget _buildAlreadyRecordedBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.primary[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.primary[500]!, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, color: color.primary[500], size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Laporan sudah tercatat dan tidak dapat diubah. '
+              'Untuk mengirim ulang, batalkan laporan ini terlebih dahulu '
+              'dari halaman daftar progress.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: color.foreground[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onSubmit() async {
-    if (_isSubmitting) return;
+    if (_isSubmitting) {
+      AppSnackbar.showWarning(_submitInProgressMessage);
+      return;
+    }
+    if (_isAlreadyRecorded) {
+      AppSnackbar.showWarning(
+        'Laporan sudah tercatat. Batalkan terlebih dahulu sebelum mengubah.',
+      );
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
         AppSnackbar.showError("Deskripsi tidak boleh kosong.");
@@ -744,12 +838,19 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onResubmit() {
+    if (_isSubmitting) {
+      AppSnackbar.showWarning(
+        'Tombol Kirim Ulang sudah pernah ditekan, mohon tunggu.',
+      );
+      return;
+    }
     if (widget.progressId == null) {
       AppSnackbar.showError("Progress ID tidak ditemukan.");
       return;
     }
     setState(() {
       _isSubmitting = true;
+      _hasClosedAfterSubmit = false;
     });
     _workOrderBloc.add(ResubmitProgressEvent(widget.progressId!));
   }

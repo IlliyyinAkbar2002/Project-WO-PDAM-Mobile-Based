@@ -153,9 +153,14 @@ class _NavigationGrid extends StatelessWidget {
       ),
       _NavigationItem(
         icon: Icons.receipt_long_outlined,
-        label: 'Payslip',
+        label: 'Report',
         onTap: () {
-          // TODO: Navigate to reports page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ListLaporanWorkorderPage(),
+            ),
+          );
         },
       ),
       _NavigationItem(
