@@ -157,6 +157,15 @@ class GetSplDetailEvent extends WorkOrderEvent {
   GetSplDetailEvent(this.id);
 }
 
+class CreateSplEvent extends WorkOrderEvent {
+  /// Map payload sesuai kontrak BE: judul_pekerjaan, jenis_workorder_id,
+  /// tanggal_lembur (yyyy-MM-dd), jam_mulai (HH:mm), estimasi_jam,
+  /// alasan_lembur, members (`List<int>`).
+  final Map<String, dynamic> payload;
+
+  CreateSplEvent(this.payload);
+}
+
 class UpdateSplEvent extends WorkOrderEvent {
   final SplEntity spl;
 

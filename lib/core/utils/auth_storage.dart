@@ -54,6 +54,50 @@ class AuthStorage {
     return _cachedUser;
   }
 
+  /// Returns the user's stable jabatan kode (`SPV` / `SENIOR_STAFF` / `STAFF`
+  /// / `MANAGER`) regardless of which shape the cached user was saved under.
+  /// Resolution order:
+  ///   1. `employee.jabatan_kode` (set by `AuthRemoteDataSource.fetchMe`)
+  ///   2. `pegawai.jabatan.kode` (raw login response shape)
+  ///   3. legacy `employee.position_id` mapping for sessions cached before BE
+  ///      started returning jabatan.kode.
+  /// Returns `null` if the user is not logged in or the jabatan can't be
+  /// determined.
+  static String? getJabatanKodeSync() {
+    final user = _cachedUser;
+    if (user == null) return null;
+
+    final employee = user['employee'] as Map<String, dynamic>?;
+    final fromEmployee = employee?['jabatan_kode'] as String?;
+    if (fromEmployee != null && fromEmployee.isNotEmpty) return fromEmployee;
+
+    final pegawai = user['pegawai'] as Map<String, dynamic>?;
+    final jabatan = pegawai?['jabatan'] as Map<String, dynamic>?;
+    final fromPegawai = jabatan?['kode'] as String?;
+    if (fromPegawai != null && fromPegawai.isNotEmpty) return fromPegawai;
+
+    // Legacy fallback: map m_jabatan ids to kodes per the current seeder.
+    final positionId = _toInt(employee?['position_id']);
+    switch (positionId) {
+      case 1:
+        return 'MANAGER';
+      case 2:
+        return 'SPV';
+      case 3:
+        return 'SENIOR_STAFF';
+      case 4:
+        return 'STAFF';
+    }
+
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   static Future<void> clearAuth() async {
     _cachedToken = null;
     _cachedUser = null;

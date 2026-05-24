@@ -30,6 +30,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.createdAt,
     super.kategoriForm,
     super.detailKategori,
+    super.prioritas,
     super.assignment,
     super.assignments,
   });
@@ -222,10 +223,14 @@ class WorkOrderModel extends WorkOrderEntity {
       'tanggalSelesai',
     ];
 
-    final DateTime? assignmentStartDateTime =
-        parseDateTimeFromKeysIn(assignmentMap, startDateKeys);
-    final DateTime? assignmentEndDateTime =
-        parseDateTimeFromKeysIn(assignmentMap, endDateKeys);
+    final DateTime? assignmentStartDateTime = parseDateTimeFromKeysIn(
+      assignmentMap,
+      startDateKeys,
+    );
+    final DateTime? assignmentEndDateTime = parseDateTimeFromKeysIn(
+      assignmentMap,
+      endDateKeys,
+    );
     final int? assignmentDuration =
         parseInt(assignmentMap?['estimasi_durasi']) ??
         parseInt(assignmentMap?['duration']) ??
@@ -234,8 +239,9 @@ class WorkOrderModel extends WorkOrderEntity {
         assignmentMap?['unit_waktu']?.toString() ??
         assignmentMap?['duration_unit']?.toString() ??
         assignmentMap?['durasi_unit']?.toString();
-    final String? assignmentNormalizedDurationUnit =
-        normalizeDurationUnit(assignmentRawDurationUnit);
+    final String? assignmentNormalizedDurationUnit = normalizeDurationUnit(
+      assignmentRawDurationUnit,
+    );
     final String? assignmentLokasiText = assignmentMap?['lokasi'] as String?;
 
     final DateTime? parsedStartDateTime =
@@ -373,6 +379,9 @@ class WorkOrderModel extends WorkOrderEntity {
       progresPersen: parseInt(map['progres_persen']),
       kategoriForm: resolvedKategori,
       detailKategori: detailKategori,
+      prioritas: (map['prioritas'] as String?)?.trim().isNotEmpty == true
+          ? (map['prioritas'] as String).trim().toLowerCase()
+          : null,
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'])
           : null,
@@ -380,31 +389,65 @@ class WorkOrderModel extends WorkOrderEntity {
     );
   }
 
+  /// Payload create-WO mengikuti kontrak BE §3.3 (FE_adjustment_BE.md):
+  ///
+  /// Fields yang BE terima saat `POST /v1/workorder`:
+  ///   - nama_workorder (required, string)
+  ///   - deskripsi (string)
+  ///   - tanggal_mulai (date YYYY-MM-DD)
+  ///   - jenis_workorder_id (id of m_jenis_workorder)
+  ///   - lokasi (string, nama lokasi)
+  ///   - prioritas (enum: rendah|sedang|tinggi|darurat)
+  ///   - assigned_to (user_id SPV)
+  ///
+  /// Fields yang BE EKSPLISIT TIDAK menerima:
+  ///   - status_id (auto-set ke DITUGASKAN_KE_SPV)
+  ///   - wo_meter / wo_jaringan / wo_infrastruktur (diisi SPV saat assign-staff)
+  ///   - petugas_id, latitude, longitude, location_id (juga di-handle saat assign-staff)
+  ///   - estimasi_durasi, unit_waktu, estimasi_selesai (auto-computed)
+  ///
+  /// Fallback legacy `judul_pekerjaan` & `waktu_penugasan` di-keep untuk
+  /// backward compat dengan endpoint mobile lama, tapi ke depan BE akan
+  /// drop-nya.
   Map<String, dynamic> toMap() {
     final List<int> ids = assignment?.assigneeIds ?? const <int>[];
     final int? assignedTo =
         assignment?.assigneeId ??
         (ids.isNotEmpty ? ids.first : assignment?.assignee?.id);
-    return {
+
+    String? formatDateOnly(DateTime? dt) {
+      if (dt == null) return null;
+      // BE menerima `YYYY-MM-DD` (Laravel `date` rule). Kirim format yang
+      // explicit supaya tidak salah parse di timezone server.
+      final y = dt.year.toString().padLeft(4, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      final d = dt.day.toString().padLeft(2, '0');
+      return '$y-$m-$d';
+    }
+
+    final payload = <String, dynamic>{
       'nama_workorder': title,
-      'judul_pekerjaan': title, // fallback legacy
-      'tanggal_mulai': startDateTime?.toIso8601String(),
-      'waktu_penugasan': startDateTime?.toIso8601String(), // fallback legacy
-      'estimasi_durasi': duration,
-      'unit_waktu': durationUnit,
-      'estimasi_selesai': endDateTime?.toIso8601String(),
-      'lokasi':
-          lokasiText ??
-          assignment?.location?.nama, // Backend pakai field "lokasi" (string)
-      'deskripsi': assignment?.description,
-      'status_id': statusId,
+      // legacy fallback (akan diabaikan oleh validator BE baru):
+      'judul_pekerjaan': title,
+      'tanggal_mulai': formatDateOnly(startDateTime),
       'jenis_workorder_id': workOrderTypeId,
+      'lokasi': (lokasiText != null && lokasiText!.trim().isNotEmpty)
+          ? lokasiText
+          : assignment?.location?.nama,
+      'deskripsi': assignment?.description,
       'assigned_to': assignedTo,
-      'petugas_id': ids,
-      'latitude': assignment?.latitude,
-      'longitude': assignment?.longitude,
-      'location_id': assignment?.locationId,
+      // `prioritas` enum: rendah | sedang | tinggi | darurat. Default `sedang`
+      // kalau caller tidak set; BE wajibkan field ini.
+      'prioritas': prioritas ?? 'sedang',
     };
+
+    payload.removeWhere((key, value) {
+      if (value == null) return true;
+      if (value is String && value.trim().isEmpty) return true;
+      return false;
+    });
+
+    return payload;
   }
 
   WorkOrderEntity toEntity() {
@@ -429,6 +472,7 @@ class WorkOrderModel extends WorkOrderEntity {
       createdAt: createdAt,
       kategoriForm: kategoriForm,
       detailKategori: detailKategori,
+      prioritas: prioritas,
       assignment: assignment,
       assignments: assignments,
     );
@@ -453,6 +497,7 @@ class WorkOrderModel extends WorkOrderEntity {
       createdAt: entity.createdAt,
       kategoriForm: entity.kategoriForm,
       detailKategori: entity.detailKategori,
+      prioritas: entity.prioritas,
       assignment: entity.assignment,
       assignments: entity.assignments,
     );

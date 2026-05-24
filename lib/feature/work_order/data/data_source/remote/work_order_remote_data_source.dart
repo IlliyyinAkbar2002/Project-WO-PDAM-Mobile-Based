@@ -105,7 +105,9 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     WorkOrderModel workOrder,
   ) async {
     try {
-      debugPrint("📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder");
+      debugPrint(
+        "📤 Mengirim request ke API: ${dio.options.baseUrl}/v1/workorder",
+      );
       debugPrint("📤 Data yang dikirim: ${workOrder.toMap()}");
 
       final response = await post(
@@ -153,12 +155,21 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     WorkOrderModel workOrder,
   ) async {
     try {
-      // Use parent class's put() method which includes auth headers
+      // BE rute resmi: PUT /v1/workorder/{id} (lihat FE_adjustment_BE.md §3).
+      // Sebelumnya kita masih nge-hit `/v1/mobile/workorder/{id}` yang sudah
+      // tidak ada di routes Laravel — selalu 404. Diluruskan ke endpoint
+      // canonical-nya.
       final response = await put(
-        path: '/v1/mobile/workorder/${workOrder.id}',
+        path: '/v1/workorder/${workOrder.id}',
         data: workOrder.toMap(),
       );
-      final data = WorkOrderModel.fromMap(response.data);
+      final dynamic raw = response.data is Map<String, dynamic>
+          ? (response.data['data'] ?? response.data)
+          : response.data;
+      final Map<String, dynamic> payload = raw is List
+          ? (raw.isNotEmpty ? Map<String, dynamic>.from(raw.first as Map) : {})
+          : Map<String, dynamic>.from(raw as Map);
+      final data = WorkOrderModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(
@@ -207,22 +218,33 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         };
       }).toList();
 
+      // BE menerima `date` rule (YYYY-MM-DD). ISO datetime juga lolos validasi
+      // tapi jadi ambigu karena timezone. Pakai date-only untuk konsistensi
+      // dengan kontrak FE_adjustment_BE.md §4.
+      String? formatDateOnly(DateTime? dt) {
+        if (dt == null) return null;
+        final y = dt.year.toString().padLeft(4, '0');
+        final m = dt.month.toString().padLeft(2, '0');
+        final d = dt.day.toString().padLeft(2, '0');
+        return '$y-$m-$d';
+      }
+
       final requestBody = {
         'kategori_form': kategoriForm,
         'form_kategori': formKategori,
         'petugas': petugas,
         if (deskripsi != null && deskripsi.trim().isNotEmpty)
           'deskripsi': deskripsi.trim(),
-        if (lokasi != null && lokasi.trim().isNotEmpty) 'lokasi': lokasi.trim(),
+        if (lokasi != null && lokasi.trim().isNotEmpty)
+          'nama_lokasi': lokasi.trim(),
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (accuracy != null) 'accuracy': accuracy,
-        if (tanggalMulai != null)
-          'tanggal_mulai': tanggalMulai.toIso8601String(),
+        if (tanggalMulai != null) 'tanggal_mulai': formatDateOnly(tanggalMulai),
         if (tanggalSelesai != null)
-          'tanggal_selesai': tanggalSelesai.toIso8601String(),
+          'tanggal_selesai': formatDateOnly(tanggalSelesai),
         if (estimasiSelesai != null)
-          'estimasi_selesai': estimasiSelesai.toIso8601String(),
+          'estimasi_selesai': formatDateOnly(estimasiSelesai),
       };
 
       debugPrint("📤 assignStaff REQUEST body: $requestBody");

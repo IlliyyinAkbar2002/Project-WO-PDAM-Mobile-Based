@@ -89,22 +89,25 @@ class AuthRemoteDataSource extends RemoteDatasource {
       // Transform API response to standard format for UI
       // API returns: { id, name, email, role_id, pegawai: { nama, nip, ... } }
       // UI expects: { id, email, role_id, employee: { name, employee_id, ... } }
+      final pegawai = data['pegawai'] as Map<String, dynamic>?;
+      final jabatan = pegawai?['jabatan'] as Map<String, dynamic>?;
       final transformedData = {
         'id': data['id'],
         'email': data['email'],
         'name': data['name'],
         'role_id': data['role_id'],
-        'employee': data['pegawai'] != null
+        'employee': pegawai != null
             ? {
-                'name': data['pegawai']['nama'],
-                'employee_id': data['pegawai']['nip'],
-                'id': data['pegawai']['id'],
-                'birth_date': data['pegawai']['tanggal_lahir'],
-                'gender': data['pegawai']['jenis_kelamin'],
-                'address': data['pegawai']['alamat'],
-                'phone': data['pegawai']['telepon'],
-                'department_id': data['pegawai']['departemen_id'],
-                'position_id': data['pegawai']['jabatan_id'],
+                'name': pegawai['nama'],
+                'employee_id': pegawai['nip'],
+                'id': pegawai['id'],
+                'birth_date': pegawai['tanggal_lahir'],
+                'gender': pegawai['jenis_kelamin'],
+                'address': pegawai['alamat'],
+                'phone': pegawai['telepon'],
+                'department_id': pegawai['departemen_id'],
+                'position_id': pegawai['jabatan_id'],
+                'jabatan_kode': jabatan?['kode'],
               }
             : null,
       };

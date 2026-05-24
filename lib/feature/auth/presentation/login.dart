@@ -197,8 +197,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 12),
                 _buildLoginButton(),
                 const SizedBox(height: 20),
-                _buildForgotPasswordLink(),
-                const SizedBox(height: 16),
+                // _buildForgotPasswordLink(),
+                // const SizedBox(height: 16),
                 _buildRegisterLink(),
                 const SizedBox(height: 4),
               ],
@@ -372,26 +372,26 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildForgotPasswordLink() {
-    return Center(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _handleForgotPassword,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-          child: Text(
-            'Lupa Password?',
-            style: TextStyle(
-              color: _LoginTokens.accentGreen,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildForgotPasswordLink() {
+  //   return Center(
+  //     child: GestureDetector(
+  //       behavior: HitTestBehavior.opaque,
+  //       onTap: _handleForgotPassword,
+  //       child: const Padding(
+  //         padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+  //         child: Text(
+  //           'Lupa Password?',
+  //           style: TextStyle(
+  //             color: _LoginTokens.accentGreen,
+  //             fontSize: 13,
+  //             fontWeight: FontWeight.bold,
+  //             height: 1.5,
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildRegisterLink() {
     return Center(
@@ -566,16 +566,15 @@ class _LoginPageState extends State<LoginPage> {
 
           Widget targetPage;
 
-          int? positionId;
-          if (meResult is DataSuccess<Map<String, dynamic>>) {
-            positionId = meResult.data?['employee']?['position_id'] as int?;
-          }
+          // AuthStorage already has the freshly-saved user, so the helper
+          // resolves kode from the same source for login and session restore.
+          final jabatanKode = AuthStorage.getJabatanKodeSync();
 
           debugPrint('🎭 Role ID: $roleId');
-          debugPrint('👔 Position ID: $positionId');
+          debugPrint('👔 Jabatan Kode: $jabatanKode');
 
           if (roleId == 3) {
-            if (positionId == 4) {
+            if (jabatanKode == 'SPV') {
               targetPage = const SpvLandingPage();
             } else {
               targetPage = const StaffLandingPage();
@@ -590,7 +589,9 @@ class _LoginPageState extends State<LoginPage> {
 
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Aplikasi saat ini hanya tersedia untuk Staff dan Supervisor.'),
+                content: Text(
+                  'Aplikasi saat ini hanya tersedia untuk Staff dan Supervisor.',
+                ),
                 backgroundColor: Color(0xFFF44336),
                 behavior: SnackBarBehavior.floating,
                 duration: Duration(seconds: 3),
@@ -648,15 +649,15 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _handleForgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur lupa password akan segera tersedia'),
-        backgroundColor: Color(0xFF2196F3),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  // void _handleForgotPassword() {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Text('Fitur lupa password akan segera tersedia'),
+  //       backgroundColor: Color(0xFF2196F3),
+  //       behavior: SnackBarBehavior.floating,
+  //     ),
+  //   );
+  // }
 
   void _testConnection() async {
     ScaffoldMessenger.of(context).showSnackBar(

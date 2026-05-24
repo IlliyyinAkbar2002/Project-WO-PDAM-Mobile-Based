@@ -32,15 +32,23 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     );
   }
 
+  /// Normalisasi UI action ke kontrak BE `/progress-workorder/review`.
+  /// BE validator: `decision: required, in:accept,revisi,tolak`.
+  /// Sebelumnya kita memetakan `reject` → `reject` (salah). Harus `tolak`.
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
     if (normalized == 'accept' ||
         normalized == 'terima' ||
-        normalized == 'approve') {
+        normalized == 'approve' ||
+        normalized == 'setuju') {
       return 'accept';
-    } else if (normalized == 'reject' || normalized == 'tolak') {
-      return 'reject';
-    } else if (normalized == 'revision' || normalized == 'revisi') {
+    } else if (normalized == 'reject' ||
+        normalized == 'tolak' ||
+        normalized == 'rejected') {
+      return 'tolak';
+    } else if (normalized == 'revision' ||
+        normalized == 'revisi' ||
+        normalized == 'revise') {
       return 'revisi';
     }
     return normalized;
@@ -357,17 +365,24 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         final decision = _normalizeReviewDecision(
           workOrderProgress.reviewAction!,
         );
-        formData.fields.addAll([
-          MapEntry('progress_workorder_id', workOrderProgress.id.toString()),
+        // BE kontrak (§9 FE_adjustment_BE.md):
+        //   - decision=accept   → kirim `approval_notes` (catatan SPV)
+        //   - decision=revisi   → kirim `alasan_penolakan` + opsional `field_to_revise`
+        //   - decision=tolak    → kirim `alasan_penolakan`
+        // Multipart pakai field tunggal (BE menerima string biasa, bukan array
+        // dengan bracket) supaya Laravel `Validator::make` baca langsung.
+        final String note = (workOrderProgress.description ?? '').trim();
+        formData.fields.add(
           MapEntry('progress_id', workOrderProgress.id.toString()),
-          MapEntry('decision', decision),
-          MapEntry('action', decision),
-          MapEntry('review_action', decision),
-          if ((workOrderProgress.description ?? '').trim().isNotEmpty)
-            MapEntry('alasan_penolakan', workOrderProgress.description!.trim()),
-          if ((workOrderProgress.description ?? '').trim().isNotEmpty)
-            MapEntry('catatan', workOrderProgress.description!.trim()),
-        ]);
+        );
+        formData.fields.add(MapEntry('decision', decision));
+        if (note.isNotEmpty) {
+          if (decision == 'accept') {
+            formData.fields.add(MapEntry('approval_notes', note));
+          } else {
+            formData.fields.add(MapEntry('alasan_penolakan', note));
+          }
+        }
         response = await post(
           path: '/v1/progress-workorder/review',
           data: formData,

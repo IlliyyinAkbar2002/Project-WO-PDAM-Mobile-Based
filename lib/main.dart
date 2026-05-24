@@ -57,13 +57,13 @@ class _AppState extends AppStatePage<App> {
     }
 
     final roleId = user['role_id'] as int?;
-    final positionId = user['employee']?['position_id'] as int?;
+    final jabatanKode = AuthStorage.getJabatanKodeSync();
 
-    debugPrint('🔄 Restoring session for role: $roleId, position: $positionId');
+    debugPrint('🔄 Restoring session for role: $roleId, jabatan: $jabatanKode');
 
 
     if (roleId == 3) {
-      if (positionId == 4) {
+      if (jabatanKode == 'SPV') {
         return const SpvLandingPage();
       } else {
         return const StaffLandingPage();

@@ -87,6 +87,12 @@ class SplDetailLoaded extends WorkOrderState {
   SplDetailLoaded(this.spl);
 }
 
+class SplCreated extends WorkOrderState {
+  final SplEntity spl;
+
+  SplCreated(this.spl);
+}
+
 class SplUpdated extends WorkOrderState {
   final SplEntity spl;
 

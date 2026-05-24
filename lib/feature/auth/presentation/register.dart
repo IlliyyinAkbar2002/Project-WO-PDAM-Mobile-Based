@@ -918,8 +918,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (loginResult is DataFailed) {
         setState(() => _isLoading = false);
-        // Login gagal walau register sukses → kemungkinan backend block
-        // pending users. Tampilkan dialog info, minta user login manual nanti.
+
         await _showPendingApprovalDialog();
         if (!mounted) return;
         Navigator.of(context).pop(); // back to login page
@@ -928,13 +927,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
       final authResponse = (loginResult as DataSuccess).data!;
 
-      // Simpan token sementara agar bisa fetch /me
       if (authResponse.token != null) {
         await AuthStorage.saveToken(authResponse.token!);
       }
 
-      // Ambil full profile untuk cek apakah sudah di-ACC Super Admin
-      // (position_id != null berarti Super Admin sudah meng-assign jabatan).
       final meResult = await authDataSource.fetchMe();
 
       if (!mounted) return;
@@ -971,10 +967,7 @@ class _RegisterPageState extends State<RegisterPage> {
       await _showSuccessDialog();
       if (!mounted) return;
 
-      final targetPage = _resolveLandingPage(
-        roleId: roleId,
-        positionId: positionId,
-      );
+      final targetPage = _resolveLandingPage(roleId: roleId);
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => targetPage),
         (route) => false,
@@ -986,13 +979,13 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Widget _resolveLandingPage({required int? roleId, required int? positionId}) {
+  Widget _resolveLandingPage({required int? roleId}) {
     if (roleId == 1) {
       return const admin.LandingPage();
     } else if (roleId == 2) {
       return const ManajerLandingPage();
     } else if (roleId == 3) {
-      if (positionId == 4) {
+      if (AuthStorage.getJabatanKodeSync() == 'SPV') {
         return const SpvLandingPage();
       }
       return const StaffLandingPage();

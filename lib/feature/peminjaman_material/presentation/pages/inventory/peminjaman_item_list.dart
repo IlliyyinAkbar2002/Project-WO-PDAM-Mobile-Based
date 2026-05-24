@@ -12,15 +12,13 @@ class PeminjamanItemListPage extends StatelessWidget {
   bool get _isStaff {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    final positionId = user?['employee']?['position_id'] as int?;
-    return roleId == 3 && positionId != 4;
+    return roleId == 3 && AuthStorage.getJabatanKodeSync() != 'SPV';
   }
 
   bool get _isSpv {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    final positionId = user?['employee']?['position_id'] as int?;
-    return roleId == 3 && positionId == 4;
+    return roleId == 3 && AuthStorage.getJabatanKodeSync() == 'SPV';
   }
 
   void _navigateToRoleDashboard(BuildContext context) {

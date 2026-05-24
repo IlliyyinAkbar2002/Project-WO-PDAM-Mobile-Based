@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/create_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
@@ -56,6 +57,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   // final GetSplsUsecase getSplsUsecase;
   final GetSplDetailUseCase getSplDetailUsecase;
   final UpdateSplUseCase updateSplUsecase;
+  final CreateSplUseCase createSplUsecase;
 
   //progress
   final GetProgressByWorkOrderIdUsecase getProgressByWorkOrderIdUsecase;
@@ -96,6 +98,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     // this.getSplsUsecase,
     this.getSplDetailUsecase,
     this.updateSplUsecase,
+    this.createSplUsecase,
 
     //progress
     this.getProgressByWorkOrderIdUsecase,
@@ -138,6 +141,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     // on<GetSplsEvent>(_onGetSplsEvent);
     on<GetSplDetailEvent>(_onGetSplDetailEvent);
     on<UpdateSplEvent>(_onUpdateSplEvent);
+    on<CreateSplEvent>(_onCreateSplEvent);
 
     //progress
     on<GetProgressByWorkOrderIdEvent>(_onGetProgressByWorkOrderIdEvent);
@@ -541,6 +545,23 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     }
   }
 
+  Future<void> _onCreateSplEvent(
+    CreateSplEvent event,
+    Emitter<WorkOrderState> emit,
+  ) async {
+    emit(WorkOrderLoading());
+    try {
+      final dataState = await createSplUsecase(event.payload);
+      if (dataState is DataSuccess) {
+        emit(SplCreated(dataState.data!));
+      } else if (dataState is DataFailed) {
+        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
+      }
+    } catch (e) {
+      emit(WorkOrderError("Gagal mengirim pengajuan lembur: $e"));
+    }
+  }
+
   //progress
   Future<void> _onGetProgressByWorkOrderIdEvent(
     GetProgressByWorkOrderIdEvent event,
@@ -601,7 +622,9 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   ) async {
     emit(WorkOrderLoading());
     try {
-      final dataState = await resubmitProgressUseCase(event.progressWorkorderId);
+      final dataState = await resubmitProgressUseCase(
+        event.progressWorkorderId,
+      );
       if (dataState is DataSuccess) {
         emit(WorkOrderProgressUpdated(dataState.data!));
       } else if (dataState is DataFailed) {

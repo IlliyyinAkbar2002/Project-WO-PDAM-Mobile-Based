@@ -32,10 +32,8 @@ class _NavigationGrid extends StatelessWidget {
         label: 'Approval',
         onTap: () {
           final user = AuthStorage.getUserSync();
-          final roleId = user?['role_id'] as int?;
-          final positionId = user?['employee']?['position_id'] as int?;
-          final isSpv = roleId == 3 && positionId == 4;
-          final isManajer = roleId == 2;
+          final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+          final isManajer = user?['role_id'] == 2;
 
           if (!isSpv && !isManajer) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -65,6 +63,7 @@ class _NavigationGrid extends StatelessWidget {
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
           final positionId = user?['employee']?['position_id'] as int?;
+          final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
           // Show role-specific tasks modal bottom sheet
           showModalBottomSheet(
@@ -74,8 +73,8 @@ class _NavigationGrid extends StatelessWidget {
             backgroundColor: Colors.transparent,
             barrierColor: Colors.black.withValues(alpha: 0.3),
             builder: (ctx) {
-              // Manajer role (role_id: 2) - Show Manajer tasks
-              if (roleId == 2 || (roleId == 3 && positionId == 4)) {
+              // Manajer (role_id: 2) and SPV share the same tasks sheet
+              if (roleId == 2 || isSpv) {
                 return _TasksBottomSheetManajer(
                   onWorkOrderKeluar: () {
                     // picId tidak lagi diperlukan untuk filter - backend menggunakan authenticated user
@@ -169,7 +168,6 @@ class _NavigationGrid extends StatelessWidget {
         onTap: () {
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
-          final positionId = user?['employee']?['position_id'] as int?;
           if (roleId != 3) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -181,7 +179,7 @@ class _NavigationGrid extends StatelessWidget {
             );
             return;
           }
-          final isSpv = roleId == 3 && positionId == 4;
+          final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
           showModalBottomSheet(
             context: context,

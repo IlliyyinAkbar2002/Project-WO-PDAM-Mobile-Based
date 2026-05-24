@@ -28,7 +28,11 @@ class WorkOrderEntity extends Equatable {
   /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
   final String? kategoriForm;
   final Map<String, dynamic>? detailKategori;
-  
+
+  /// Prioritas WO sesuai BE enum: rendah | sedang | tinggi | darurat.
+  /// Default `sedang` saat create kalau caller tidak set.
+  final String? prioritas;
+
   /// Relasi ke entity assignment
   final AssignmentWorkorderEntity? assignment;
   final List<AssignmentWorkorderEntity>? assignments;
@@ -54,35 +58,37 @@ class WorkOrderEntity extends Equatable {
     this.createdAt,
     this.kategoriForm,
     this.detailKategori,
+    this.prioritas,
     this.assignment,
     this.assignments,
   });
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        startDateTime,
-        duration,
-        durationUnit,
-        endDateTime,
-        lokasiText,
-        creator,
-        statusId,
-        workOrderTypeId,
-        splId,
-        locationTypeId,
-        requiresApproval,
-        locationType,
-        workOrderType,
-        status,
-        progresPersen,
-        createdAt,
-        kategoriForm,
-        detailKategori,
-        assignment,
-        assignments,
-      ];
+    id,
+    title,
+    startDateTime,
+    duration,
+    durationUnit,
+    endDateTime,
+    lokasiText,
+    creator,
+    statusId,
+    workOrderTypeId,
+    splId,
+    locationTypeId,
+    requiresApproval,
+    locationType,
+    workOrderType,
+    status,
+    progresPersen,
+    createdAt,
+    kategoriForm,
+    detailKategori,
+    prioritas,
+    assignment,
+    assignments,
+  ];
 
   WorkOrderEntity copyWith({
     int? id,
@@ -105,6 +111,7 @@ class WorkOrderEntity extends Equatable {
     DateTime? createdAt,
     String? kategoriForm,
     Map<String, dynamic>? detailKategori,
+    String? prioritas,
     AssignmentWorkorderEntity? assignment,
     List<AssignmentWorkorderEntity>? assignments,
   }) {
@@ -129,6 +136,7 @@ class WorkOrderEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       kategoriForm: kategoriForm ?? this.kategoriForm,
       detailKategori: detailKategori ?? this.detailKategori,
+      prioritas: prioritas ?? this.prioritas,
       assignment: assignment ?? this.assignment,
       assignments: assignments ?? this.assignments,
     );

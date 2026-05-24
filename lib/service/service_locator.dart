@@ -5,10 +5,12 @@ import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/f
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/master_location_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/progress_detail_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/laporan_workorder_remote.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/spl_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/laporan_workorder_remote.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/laporan_workorder_repository_impl.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/laporan_workorder_repository.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/usecases/create_laporan_workorder_usecase.dart';import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/create_laporan_workorder_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_type_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/form_repository_impl.dart';
@@ -33,6 +35,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/master_location_usecases/get_master_locations_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/get_progress_details_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/create_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
@@ -241,6 +244,7 @@ Future<void> init() async {
     // sl.registerLazySingleton(() => GetSplsUsecase(sl<SplRepository>()));
     sl.registerLazySingleton(() => GetSplDetailUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => UpdateSplUseCase(sl<SplRepository>()));
+    sl.registerLazySingleton(() => CreateSplUseCase(sl<SplRepository>()));
 
     //progress
     sl.registerLazySingleton(
@@ -288,7 +292,9 @@ Future<void> init() async {
     debugPrint("✅ Semua use case terdaftar");
 
     // **5️⃣ Bloc**
-    sl.registerFactory(() => LaporanWorkorderCubit(sl<CreateLaporanWorkorderUseCase>()));
+    sl.registerFactory(
+      () => LaporanWorkorderCubit(sl<CreateLaporanWorkorderUseCase>()),
+    );
     sl.registerFactory(
       () => WorkOrderBloc(
         sl<GetWorkOrdersUseCase>(),
@@ -312,6 +318,7 @@ Future<void> init() async {
         //spl
         sl<GetSplDetailUseCase>(),
         sl<UpdateSplUseCase>(),
+        sl<CreateSplUseCase>(),
 
         //progress
         sl<GetProgressByWorkOrderIdUsecase>(),

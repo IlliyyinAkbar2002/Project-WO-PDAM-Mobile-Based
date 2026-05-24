@@ -106,16 +106,15 @@ class ProfileViewDataResolver {
   }
 
   static String resolvePositionLabel(Map<String, dynamic> user) {
-    final employee =
-        (user['employee'] as Map<String, dynamic>?) ?? <String, dynamic>{};
     final roleId = _toInt(user['role_id']);
-    final positionId = _toInt(employee['position_id']);
 
     if (roleId == 1) return 'Superadmin';
     if (roleId == 2) return 'Manager';
     if (roleId == 3) {
-      if (positionId == 4) return 'SPV';
-      return 'Staff';
+      // Stable jabatan.kode resolved via AuthStorage helper. Senior Staff and
+      // Staff are both surfaced as 'Staff' to match the role matrix in
+      // FE_adjustment_BE.md.
+      return AuthStorage.getJabatanKodeSync() == 'SPV' ? 'SPV' : 'Staff';
     }
     return 'User';
   }

@@ -90,12 +90,12 @@ class _PersetujuanPeminjamanBarangPageState
   void _navigateToRoleDashboard() {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    final positionId = user?['employee']?['position_id'] as int?;
+    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
     Widget target;
     if (roleId == 2) {
       target = const ManajerLandingPage();
-    } else if (roleId == 3 && positionId == 4) {
+    } else if (roleId == 3 && isSpv) {
       target = const SpvLandingPage();
     } else {
       target = const StaffLandingPage();
