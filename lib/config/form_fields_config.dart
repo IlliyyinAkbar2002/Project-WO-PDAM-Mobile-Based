@@ -85,6 +85,13 @@ class FormFieldsConfig {
       },
       {
         "type": "text",
+        "key": "prioritas",
+        "label": "Prioritas",
+        "hint": "Prioritas pekerjaan",
+        "isReadOnly": true,
+      },
+      {
+        "type": "text",
         "key": "lokasi",
         "label": "Lokasi",
         "hint": "Nama lokasi",

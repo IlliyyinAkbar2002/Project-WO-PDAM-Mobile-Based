@@ -304,6 +304,12 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "title": state.workOrder.title,
               "jobType": _resolveJobTypeLabel(state.workOrder),
               "kategoriForm": state.workOrder.kategoriForm,
+              "prioritas":
+                  (state.workOrder.prioritas != null &&
+                      state.workOrder.prioritas!.isNotEmpty)
+                  ? (state.workOrder.prioritas![0].toUpperCase() +
+                        state.workOrder.prioritas!.substring(1).toLowerCase())
+                  : "Sedang",
               "lokasi":
                   state.workOrder.lokasiText ??
                   state.workOrder.assignment?.location?.nama ??
@@ -453,7 +459,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                                   status: widget.status,
                                   progressId: progressIndex.id,
                                   workOrderId: widget.workOrderId,
-                                  lngLat: (formData["latitude"] != null &&
+                                  lngLat:
+                                      (formData["latitude"] != null &&
                                           formData["longitude"] != null)
                                       ? LatLng(
                                           (formData["latitude"] as num)
@@ -739,6 +746,50 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     final double? assignLatitude = _toDouble(formData["latitude"]);
     final double? assignLongitude = _toDouble(formData["longitude"]);
+    final int? locationId = _toInt(formData["locationId"]);
+    final String locationName = _readTrimmedString("locationName");
+
+    // Location is considered unset if locationId is null, locationName is empty,
+    // coordinates are null/zero, or coordinates match the default fallback (-7.2704960, 112.5672211).
+    final bool isDefaultLocation = assignLatitude != null &&
+        assignLongitude != null &&
+        (assignLatitude - -7.2704960).abs() < 0.000001 &&
+        (assignLongitude - 112.5672211).abs() < 0.000001;
+
+    if (locationId == null ||
+        locationName.isEmpty ||
+        assignLatitude == null ||
+        assignLongitude == null ||
+        (assignLatitude == 0 && assignLongitude == 0) ||
+        isDefaultLocation) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Lokasi Belum Ditentukan'),
+          content: const Text(
+            'Lokasi penugasan belum diatur. Apakah Anda yakin ingin melanjutkan penugasan ke staff tanpa lokasi?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+              ),
+              child: const Text('Ya, Lanjutkan'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) {
+        return;
+      }
+    }
+
     final String lokasiText = _readTrimmedString("lokasi");
     final DateTime? tanggalMulai = _toDateTime(formData["startDateTime"]);
     final DateTime? tanggalSelesai = _toDateTime(formData["endDateTime"]);

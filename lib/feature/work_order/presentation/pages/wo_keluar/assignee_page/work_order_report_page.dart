@@ -63,10 +63,15 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   /// Progress sudah ter-record di backend (mis. status submitted/verified)
   /// dan bukan dalam state revisi. Saat ini staff tidak boleh mengubah —
   /// mereka harus membatalkan dulu lewat tombol Batalkan di halaman list.
+  ///
+  /// Catatan: tidak men-syaratkan `_progressStatusId != null`. Saat user membuka
+  /// entri yang sudah ada (`progressId != null`), kita harus mengunci form
+  /// sebagai "sudah tercatat" by default; hanya buka kembali tombol kirim kalau
+  /// status memang `revisi`. Tanpa default-lock ini, jeda load status memberi
+  /// celah untuk men-submit ulang dan membuat entri duplikat di backend.
   bool get _isAlreadyRecorded =>
       widget.isAssignee &&
       widget.progressId != null &&
-      _progressStatusId != null &&
       !isRejected;
 
   String get _submitInProgressMessage {
@@ -294,11 +299,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           if (state is WorkOrderProgressUpdated) {
             if (_hasClosedAfterSubmit) return;
             _hasClosedAfterSubmit = true;
-            if (mounted) {
-              setState(() {
-                _isSubmitting = false;
-              });
-            }
+            // Sengaja TIDAK reset `_isSubmitting = false` di sukses. Page akan
+            // pop pada post-frame berikutnya; sampai itu, tombol harus tetap
+            // terkunci agar tap kedua di window pop tidak mengirim payload
+            // duplikat ke /start atau /submit.
             AppSnackbar.showSuccess("Form berhasil disubmit.");
             if ((widget.isAssignee && !isDetailMode) || !widget.isAssignee) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -670,11 +674,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         return;
       }
 
+      // Kunci tombol secepat mungkin untuk mencegah double-tap mengirim
+      // payload yang sama dua kali (terutama saat GPS sudah tersedia
+      // sehingga jalur sinkron langsung menuju submit tanpa await).
+      setState(() {
+        _isSubmitting = true;
+        _hasClosedAfterSubmit = false;
+      });
+
       // Pastikan lokasi diambil untuk semua mode submit jika belum ada
       if (_currentPosition == null) {
-        setState(() {
-          _isSubmitting = true;
-        });
         try {
           bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
           if (!serviceEnabled) {
@@ -742,6 +751,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         );
 
         if (resolvedDetailFormId == null) {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
           AppSnackbar.showError(
             "Struktur form tidak valid: detail_form_id tidak ditemukan.",
           );
@@ -754,6 +768,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             (dynamicValue is List && dynamicValue.isEmpty);
 
         if (mandatoryField && isEmptyDynamicValue) {
+          if (mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
           AppSnackbar.showError(
             "Field ${detail.form?.fieldName ?? resolvedDetailFormId} tidak boleh kosong.",
           );
@@ -818,10 +837,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       debugPrint(
         "📩 Submitting Progress: photos=${workOrderProgress.photos?.map((p) => p.path).toList()}, details=${progressDetails.map((d) => d.detailFormId).toList()}",
       );
-      setState(() {
-        _isSubmitting = true;
-        _hasClosedAfterSubmit = false;
-      });
       _workOrderBloc.add(UpdateWorkOrderProgressEvent(workOrderProgress));
     }
   }

@@ -180,14 +180,20 @@ class _ListLaporanWorkorderPageState
   }
 
   void _navigateToDetail(WorkOrderEntity wo) {
-    // Get assignee name from assignment if available
+    // Get assignee details from assignment if available
     final assigneeName = wo.assignment?.assignee?.employee?.name ?? '-';
+    final assigneeNip = wo.assignment?.assignee?.employee?.nip ?? '-';
+    final assigneeUnit = wo.assignment?.assignee?.employee?.departemen ?? '-';
 
     final payload = <String, dynamic>{
       'workorder_id': wo.id,
       'nomor_laporan': 'LP-${wo.id}',
       'hasil_akhir_snapshot': wo.title,
-      'petugas_snapshot': {'nama': assigneeName, 'nip': '-', 'unit': '-'},
+      'petugas_snapshot': {
+        'nama': assigneeName,
+        'nip': assigneeNip,
+        'unit': assigneeUnit,
+      },
     };
 
     Navigator.push(

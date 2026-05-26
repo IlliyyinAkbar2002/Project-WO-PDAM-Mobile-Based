@@ -54,7 +54,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
   /// Render section label with left accent bar.
   Widget _sectionLabel(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      padding: const EdgeInsets.only(top: 14, bottom: 8),
       child: Row(
         children: [
           Container(width: 3, height: 16, color: Colors.black87),
@@ -159,7 +159,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
   }) {
     return TableCell(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isLeft ? Colors.grey.shade50 : Colors.white,
           border: Border(
@@ -208,7 +208,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         border: Border.all(color: Colors.grey.shade300, width: 0.5),
@@ -228,7 +228,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
   /// Signature column box.
   Widget _signBox(String role, String name) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300, width: 0.5),
         borderRadius: BorderRadius.circular(6),
@@ -243,16 +243,16 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
               letterSpacing: 0.6,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Container(
-            height: 56,
+            height: 40,
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Colors.grey.shade400, width: 0.5),
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             name,
             style: const TextStyle(
@@ -281,14 +281,25 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
 
     // Petugas snapshot
     final petugasSnap = p['petugas_snapshot'];
-    final petugasMap = petugasSnap is Map ? petugasSnap : <String, dynamic>{};
+    Map<String, dynamic> petugasMap = {};
+    if (petugasSnap is Map) {
+      petugasMap = Map<String, dynamic>.from(petugasSnap);
+    } else if (petugasSnap is List && petugasSnap.isNotEmpty) {
+      final first = petugasSnap.first;
+      if (first is Map) {
+        petugasMap = Map<String, dynamic>.from(first);
+      }
+    }
     final namaPetugas = petugasMap['nama']?.toString() ?? '-';
     final nip = petugasMap['nip']?.toString() ?? '-';
-    final unit = petugasMap['unit']?.toString() ?? '-';
+    final unit =
+        petugasMap['unit']?.toString() ??
+        petugasMap['departemen']?.toString() ??
+        '-';
 
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -310,13 +321,13 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
                 'Kota Surabaya  ·  Portal Work Order  ·  Sistem Manajemen Pekerjaan',
                 style: TextStyle(fontSize: 10, color: Colors.black45),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Container(height: 2, color: Colors.black87),
             ],
           ),
 
           // ── JUDUL DOKUMEN ────────────────────────────
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Center(
             child: Column(
               children: [
@@ -337,7 +348,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Divider(color: Colors.grey.shade300, thickness: 0.5),
 
           // ── IDENTITAS DOKUMEN ───────────────────────
@@ -374,9 +385,9 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
           ),
 
           // ── FOOTER ──────────────────────────────────
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Divider(color: Colors.grey.shade300, thickness: 0.5),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             spacing: 8,
@@ -418,6 +429,9 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
 
                   final pdfDocument = await exportDelegate.exportToPdfDocument(
                     'laporan_workorder_frame',
+                    overrideOptions: ExportOptions(
+                      pageFormatOptions: PageFormatOptions.a4(clip: false),
+                    ),
                   );
 
                   final outputDirectory =
@@ -488,7 +502,8 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
                                 await SharePlus.instance.share(
                                   ShareParams(
                                     files: [XFile(file.path)],
-                                    text: 'Laporan Work Order - PDAM Perumda Surya Sembada',
+                                    text:
+                                        'Laporan Work Order - PDAM Perumda Surya Sembada',
                                   ),
                                 );
                               },
@@ -533,51 +548,51 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
                 ),
 
                 // ── Submit Button ──────────────────────
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: state is LaporanWorkorderLoading
-                          ? null
-                          : _submitReport,
-                      child: state is LaporanWorkorderLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text(
-                              'Submit Laporan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.all(16),
+                //   decoration: BoxDecoration(
+                //     color: Colors.white,
+                //     boxShadow: [
+                //       BoxShadow(
+                //         color: Colors.black.withValues(alpha: 0.05),
+                //         blurRadius: 10,
+                //         offset: const Offset(0, -5),
+                //       ),
+                //     ],
+                //   ),
+                //   child: SizedBox(
+                //     width: double.infinity,
+                //     height: 48,
+                //     child: ElevatedButton(
+                //       style: ElevatedButton.styleFrom(
+                //         backgroundColor: Colors.blueAccent,
+                //         shape: RoundedRectangleBorder(
+                //           borderRadius: BorderRadius.circular(8),
+                //         ),
+                //       ),
+                //       onPressed: state is LaporanWorkorderLoading
+                //           ? null
+                //           : _submitReport,
+                //       child: state is LaporanWorkorderLoading
+                //           ? const SizedBox(
+                //               height: 24,
+                //               width: 24,
+                //               child: CircularProgressIndicator(
+                //                 color: Colors.white,
+                //                 strokeWidth: 2.5,
+                //               ),
+                //             )
+                //           : const Text(
+                //               'Submit Laporan',
+                //               style: TextStyle(
+                //                 fontSize: 16,
+                //                 fontWeight: FontWeight.bold,
+                //                 color: Colors.white,
+                //               ),
+                //             ),
+                //     ),
+                //   ),
+                // ),
               ],
             );
           },

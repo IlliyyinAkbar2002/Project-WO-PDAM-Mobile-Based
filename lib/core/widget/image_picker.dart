@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
@@ -131,6 +132,77 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
     return AppConfig.baseStorageUrl + path;
   }
 
+  void _showFullScreenImage(BuildContext context, dynamic image) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.75),
+        barrierDismissible: true,
+        pageBuilder: (context, _, __) {
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: InteractiveViewer(
+                        panEnabled: true,
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Center(
+                          child: image is XFile
+                              ? Image.file(
+                                  File(image.path),
+                                  fit: BoxFit.contain,
+                                )
+                              : Image.network(
+                                  getFullImageUrl(image as String),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.broken_image,
+                                        size: 100,
+                                        color: Colors.white,
+                                      ),
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      },
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 10,
+                    right: 20,
+                    child: SafeArea(
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget buildPage(BuildContext context) {
     if (widget.singleImage) {
@@ -161,9 +233,12 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
           if (_singleImage != null)
             Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: imageWidget,
+                GestureDetector(
+                  onTap: () => _showFullScreenImage(context, _singleImage),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageWidget,
+                  ),
                 ),
                 if (widget.enabled)
                   Positioned(
@@ -276,9 +351,12 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
               itemIdentifier,
             ), // Memberikan key unik untuk setiap item
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: displayItemWidget,
+              GestureDetector(
+                onTap: () => _showFullScreenImage(context, item),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: displayItemWidget,
+                ),
               ),
               if (widget.enabled)
                 Positioned(

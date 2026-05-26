@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
-// import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
@@ -73,6 +73,7 @@ class _AssigneeWorkOrderDetailPageState
     extends AppStatePage<AssigneeWorkOrderDetailPage> {
   List<WorkOrderProgressEntity> progresses = [];
   bool _progressesLoaded = false;
+  bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
 
   String _resolveAppBarTitle() {
@@ -161,8 +162,17 @@ class _AssigneeWorkOrderDetailPageState
       return const Center(child: CircularProgressIndicator());
     }
 
-    final bool hasMulai = progresses.any((item) => item.isMulai);
-    final bool hasSelesai = progresses.any((item) => item.isSelesai);
+    // Entri yang sudah dibatalkan disembunyikan dari tampilan — secara UX user
+    // ingin entrinya hilang, bukan tetap muncul dengan prefix "[Dibatalkan]".
+    // Backend masih menyimpannya untuk audit. Konsekuensi penting: `hasMulai`
+    // dan `hasSelesai` ikut menjadi false bila satu-satunya entri sudah
+    // dibatalkan, sehingga user bisa memulai ulang.
+    final List<WorkOrderProgressEntity> visibleProgresses = progresses
+        .where((p) => !p.isDibatalkan)
+        .toList();
+
+    final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
+    final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
     final int submittedToday = _countSubmittedToday();
     final int sisaKuota = (_kDailyReportLimit - submittedToday).clamp(
       0,
@@ -215,7 +225,7 @@ class _AssigneeWorkOrderDetailPageState
               ),
             ],
           ),
-        ...progresses.map(
+        ...visibleProgresses.map(
           (progressIndex) => _buildProgressEntry(progressIndex),
         ),
         if (hasMulai && !hasSelesai) ...[
@@ -285,30 +295,26 @@ class _AssigneeWorkOrderDetailPageState
         ProgressCard(
           type: progress.progressType ?? '-',
           index: progress.order ?? 0,
-          description: progress.isDibatalkan
-              ? '[Dibatalkan] ${progress.description ?? ''}'
-              : progress.description,
+          description: progress.description,
           dateTime: _resolveProgressDateTime(progress),
-          onTap: progress.isDibatalkan
-              ? () {}
-              : () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WorkOrderReportPage(
-                        mode: progress.progressType ?? '-',
-                        status: widget.status,
-                        isAssignee: widget.isAssignee,
-                        progressId: progress.id,
-                        workOrderId: widget.workOrderId,
-                        workOrderTypeId: widget.workOrderTypeId,
-                        lngLat: widget.lngLat,
-                        locationName: widget.locationName,
-                        radiusMeter: widget.radiusMeter,
-                      ),
-                    ),
-                  );
-                },
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => WorkOrderReportPage(
+                  mode: progress.progressType ?? '-',
+                  status: widget.status,
+                  isAssignee: widget.isAssignee,
+                  progressId: progress.id,
+                  workOrderId: widget.workOrderId,
+                  workOrderTypeId: widget.workOrderTypeId,
+                  lngLat: widget.lngLat,
+                  locationName: widget.locationName,
+                  radiusMeter: widget.radiusMeter,
+                ),
+              ),
+            );
+          },
         ),
         if (progress.canCancel)
           Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
@@ -350,9 +356,6 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    // ✅ Capture sebelum async gap manapun
-    final messenger = ScaffoldMessenger.of(context);
-
     final String message = progress.isMulai
         ? 'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.'
         : 'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
@@ -379,14 +382,10 @@ class _AssigneeWorkOrderDetailPageState
 
     if (confirmed != true || !mounted) return;
 
-    // ✅ Teruskan messenger yang sudah di-capture
-    await _executeCancelProgress(progress, messenger);
+    await _executeCancelProgress(progress);
   }
 
-  Future<void> _executeCancelProgress(
-    WorkOrderProgressEntity progress,
-    ScaffoldMessengerState messenger, // ✅ Terima dari caller
-  ) async {
+  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
     if (progress.id == null) return;
     final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
     if (!mounted) return;
@@ -394,28 +393,14 @@ class _AssigneeWorkOrderDetailPageState
       final String successMsg = progress.isMulai
           ? 'Laporan berhasil dibatalkan.'
           : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
-
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(successMsg), backgroundColor: Colors.green),
-        );
-      }
-
+      AppSnackbar.showSuccess(successMsg);
       _fetchProgresses();
     } else {
       final errorMsg = result.error?.response?.data is Map
           ? (result.error!.response!.data['message'] ??
                 'Gagal membatalkan laporan.')
           : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
-
-      if (messenger.mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(errorMsg.toString()),
-            backgroundColor: color.danger,
-          ),
-        );
-      }
+      AppSnackbar.showError(errorMsg.toString());
     }
   }
 
@@ -425,24 +410,36 @@ class _AssigneeWorkOrderDetailPageState
 
     Future<void> handleTap() async {
       if (disabled) return;
-      final bool? shouldRefresh = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WorkOrderReportPage(
-            mode: reportMode,
-            status: widget.status,
-            isAssignee: widget.isAssignee,
-            progressId: null,
-            workOrderId: widget.workOrderId,
-            workOrderTypeId: widget.workOrderTypeId,
-            lngLat: widget.lngLat,
-            locationName: widget.locationName,
-            radiusMeter: widget.radiusMeter,
+      if (_isNavigatingToReport) {
+        // Tap kedua saat navigasi push masih berjalan: tampilkan pesan sekali
+        // alih-alih diam-diam mengabaikan, supaya user tahu tombolnya memang
+        // sudah ter-respon dan tidak perlu menekan berulang.
+        AppSnackbar.showWarning('Tombol $mode sudah ditekan, mohon tunggu.');
+        return;
+      }
+      _isNavigatingToReport = true;
+      try {
+        final bool? shouldRefresh = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WorkOrderReportPage(
+              mode: reportMode,
+              status: widget.status,
+              isAssignee: widget.isAssignee,
+              progressId: null,
+              workOrderId: widget.workOrderId,
+              workOrderTypeId: widget.workOrderTypeId,
+              lngLat: widget.lngLat,
+              locationName: widget.locationName,
+              radiusMeter: widget.radiusMeter,
+            ),
           ),
-        ),
-      );
-      if (shouldRefresh == true && mounted && widget.workOrderId != null) {
-        _fetchProgresses();
+        );
+        if (shouldRefresh == true && mounted && widget.workOrderId != null) {
+          _fetchProgresses();
+        }
+      } finally {
+        if (mounted) _isNavigatingToReport = false;
       }
     }
 

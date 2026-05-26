@@ -86,9 +86,6 @@ class AuthRemoteDataSource extends RemoteDatasource {
 
       final data = response.data as Map<String, dynamic>;
 
-      // Transform API response to standard format for UI
-      // API returns: { id, name, email, role_id, pegawai: { nama, nip, ... } }
-      // UI expects: { id, email, role_id, employee: { name, employee_id, ... } }
       final pegawai = data['pegawai'] as Map<String, dynamic>?;
       final jabatan = pegawai?['jabatan'] as Map<String, dynamic>?;
       final transformedData = {

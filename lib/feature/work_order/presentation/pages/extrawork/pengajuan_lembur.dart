@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 
 class PengajuanLemburPage extends StatefulWidget {
@@ -13,21 +19,27 @@ class PengajuanLemburPage extends StatefulWidget {
 
 class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
   final TextEditingController _judulController = TextEditingController();
-  final TextEditingController _durasiController = TextEditingController(text: '2');
+  final TextEditingController _durasiController = TextEditingController(
+    text: '2',
+  );
   final TextEditingController _alasanController = TextEditingController();
 
-  final List<String> _workTypes = [
+  List<UserEntity> _availableUsers = const [];
+  // Internal selection state
+  String? _selectedWorkType;
+  final List<String> _workTypes = const [
     'Network Repair',
     'Asset Maintenance',
     'Emergency Response',
     'Quality Inspection',
   ];
+  final List<UserEntity> _selectedMembers = [];
 
-  final List<String> _teamMembers = ['Illiyyin', 'Fajar', 'Nabila'];
-
-  String? _selectedWorkType;
   DateTime? _tanggalLembur;
-  DateTime? _mulaiLembur;
+  TimeOfDay? _jamMulai;
+
+  bool _isSubmitting = false;
+  bool _usersRequested = false;
 
   ({String name, String npp, String jabatan}) _getEmployeeInfo() {
     final user = AuthStorage.getUserSync() ?? <String, dynamic>{};
@@ -36,10 +48,11 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
 
     final name =
         (employee['name'] ?? user['name'] ?? '-').toString().trim().isEmpty
-            ? '-'
-            : (employee['name'] ?? user['name']).toString();
+        ? '-'
+        : (employee['name'] ?? user['name']).toString();
 
-    final rawNpp = employee['employee_id'] ?? employee['nip'] ?? employee['npp'];
+    final rawNpp =
+        employee['employee_id'] ?? employee['nip'] ?? employee['npp'];
     final npp = (rawNpp == null || rawNpp.toString().trim().isEmpty)
         ? '-'
         : rawNpp.toString();
@@ -47,6 +60,41 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
     final jabatan = ProfileViewDataResolver.resolvePositionLabel(user);
 
     return (name: name, npp: npp, jabatan: jabatan);
+  }
+
+  /// Hitung jabatan ids yang boleh dipilih sebagai anggota tim. Mirror dari
+  /// pola yang dipakai `DetailWorkOrderPageMasuk._assignableJabatanIds()`:
+  /// staff yang levelnya di bawah pemohon. Server tetap clamp ke hirarki.
+  List<int>? _assignableJabatanIds() {
+    final user = AuthStorage.getUserSync();
+    final employee = user?['employee'];
+    final dynamic rawPositionId = (employee is Map)
+        ? employee['position_id']
+        : null;
+    final int? callerJabatanId = rawPositionId is int
+        ? rawPositionId
+        : int.tryParse(rawPositionId?.toString() ?? '');
+    if (callerJabatanId == null) return null;
+    const int lookahead = 20;
+    return List<int>.generate(
+      lookahead,
+      (index) => callerJabatanId + index + 1,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Defer first event dispatch to after the first frame so the bloc that's
+    // provided up the tree (in main.dart) is reliably reachable via context.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bloc = context.read<WorkOrderBloc>();
+      if (!_usersRequested) {
+        _usersRequested = true;
+        bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds()));
+      }
+    });
   }
 
   @override
@@ -70,31 +118,147 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
     }
   }
 
-  Future<void> _pickMulaiLembur() async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _mulaiLembur ?? _tanggalLembur ?? now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 2),
-    );
-    if (date == null || !mounted) return;
-
+  Future<void> _pickJamMulai() async {
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_mulaiLembur ?? now),
+      initialTime: _jamMulai ?? const TimeOfDay(hour: 16, minute: 0),
     );
-    if (time == null) return;
+    if (time != null) {
+      setState(() => _jamMulai = time);
+    }
+  }
 
-    setState(() {
-      _mulaiLembur = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-    });
+  Future<void> _pickMembers() async {
+    if (_availableUsers.isEmpty) {
+      AppSnackbar.showInfo('Daftar pegawai belum tersedia.');
+      return;
+    }
+    // Snapshot selection so user can cancel.
+    final tempSelected = <int>{
+      for (final m in _selectedMembers)
+        if (m.id != null) m.id!,
+    };
+
+    final result = await showModalBottomSheet<List<UserEntity>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (_, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Pilih Anggota Tim',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: _availableUsers.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, index) {
+                            final user = _availableUsers[index];
+                            final id = user.id;
+                            final checked =
+                                id != null && tempSelected.contains(id);
+                            final name =
+                                user.employee?.name ?? user.email ?? '-';
+                            final subtitle = [
+                              if (user.employee?.nip != null)
+                                'NPP: ${user.employee?.nip}',
+                              if (user.employee?.jabatan != null)
+                                user.employee!.jabatan!,
+                            ].join(' · ');
+                            return CheckboxListTile(
+                              value: checked,
+                              onChanged: id == null
+                                  ? null
+                                  : (val) {
+                                      setSheetState(() {
+                                        if (val == true) {
+                                          tempSelected.add(id);
+                                        } else {
+                                          tempSelected.remove(id);
+                                        }
+                                      });
+                                    },
+                              title: Text(name),
+                              subtitle: subtitle.isEmpty
+                                  ? null
+                                  : Text(subtitle),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final picked = _availableUsers
+                                .where(
+                                  (u) =>
+                                      u.id != null &&
+                                      tempSelected.contains(u.id),
+                                )
+                                .toList();
+                            Navigator.pop(sheetCtx, picked);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            minimumSize: const Size.fromHeight(46),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Simpan'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedMembers
+          ..clear()
+          ..addAll(result);
+      });
+    }
   }
 
   String _formatDate(DateTime? date) {
@@ -102,14 +266,86 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  String _formatDateTime(DateTime? date) {
-    if (date == null) return 'Senin, 6 Januari 2025 18:00 WIB';
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '${_formatDate(date)} $hour:$minute WIB';
+  String _formatJamMulaiDisplay(TimeOfDay? time) {
+    if (time == null) return 'Pilih jam mulai';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatSelesaiPreview() {
+    if (_tanggalLembur == null || _jamMulai == null) {
+      return 'Selesai akan dihitung otomatis';
+    }
+    final durasi = int.tryParse(_durasiController.text.trim()) ?? 0;
+    final mulai = DateTime(
+      _tanggalLembur!.year,
+      _tanggalLembur!.month,
+      _tanggalLembur!.day,
+      _jamMulai!.hour,
+      _jamMulai!.minute,
+    );
+    final selesai = mulai.add(Duration(hours: durasi));
+    final jam = selesai.hour.toString().padLeft(2, '0');
+    final menit = selesai.minute.toString().padLeft(2, '0');
+    return 'Selesai: ${_formatDate(selesai)} $jam:$menit WIB';
+  }
+
+  /// Validate form and return null if OK, otherwise an error message.
+  String? _validate() {
+    if (_judulController.text.trim().isEmpty) {
+      return 'Judul pekerjaan wajib diisi.';
+    }
+    if (_selectedWorkType == null) {
+      return 'Jenis pekerjaan wajib dipilih.';
+    }
+    if (_tanggalLembur == null) {
+      return 'Tanggal lembur wajib dipilih.';
+    }
+    if (_jamMulai == null) {
+      return 'Jam mulai wajib dipilih.';
+    }
+    final estimasi = int.tryParse(_durasiController.text.trim());
+    if (estimasi == null || estimasi <= 0) {
+      return 'Estimasi waktu lembur tidak valid.';
+    }
+    if (_alasanController.text.trim().isEmpty) {
+      return 'Alasan lembur wajib diisi.';
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _buildPayload() {
+    final tanggal =
+        '${_tanggalLembur!.year.toString().padLeft(4, '0')}-${_tanggalLembur!.month.toString().padLeft(2, '0')}-${_tanggalLembur!.day.toString().padLeft(2, '0')}';
+    final jamMulai =
+        '${_jamMulai!.hour.toString().padLeft(2, '0')}:${_jamMulai!.minute.toString().padLeft(2, '0')}';
+    final memberIds = _selectedMembers
+        .map((u) => u.id)
+        .whereType<int>()
+        .toSet()
+        .toList();
+    return {
+      'judul_pekerjaan': _judulController.text.trim(),
+      'jenis_pekerjaan': _selectedWorkType,
+      'tanggal_lembur': tanggal,
+      'jam_mulai': jamMulai,
+      'estimasi_jam': int.parse(_durasiController.text.trim()),
+      'alasan_lembur': _alasanController.text.trim(),
+      'members': memberIds,
+    };
   }
 
   void _submit() {
+    if (_isSubmitting) return;
+    final error = _validate();
+    if (error != null) {
+      AppSnackbar.showError(error);
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    context.read<WorkOrderBloc>().add(CreateSplEvent(_buildPayload()));
+  }
+
+  void _showSuccessDialog() {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -178,21 +414,26 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
                       const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.of(context).pop();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2563EB),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Builder(
+                          builder: (dialogCtx) => ElevatedButton(
+                            onPressed: () {
+                              // Tutup dialog & halaman pengajuan.
+                              Navigator.of(dialogCtx).pop();
+                              if (mounted && Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              minimumSize: const Size.fromHeight(48),
                             ),
-                            minimumSize: const Size.fromHeight(48),
+                            child: const Text('Kembali ke Beranda'),
                           ),
-                          child: const Text('Kembali ke Beranda'),
                         ),
                       ),
                     ],
@@ -214,244 +455,309 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
-        body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    color: const Color(0xFF0F172A),
+      child: BlocListener<WorkOrderBloc, WorkOrderState>(
+        listenWhen: (prev, curr) => prev != curr,
+        listener: (context, state) {
+          if (state is UsersLoaded) {
+            setState(() {
+              _availableUsers = state.users;
+              // Drop selections that no longer exist in the latest list.
+              _selectedMembers.removeWhere(
+                (u) => !_availableUsers.any((au) => au.id == u.id),
+              );
+            });
+          } else if (state is SplCreated && _isSubmitting) {
+            setState(() => _isSubmitting = false);
+            _showSuccessDialog();
+          } else if (state is WorkOrderError && _isSubmitting) {
+            setState(() => _isSubmitting = false);
+            AppSnackbar.showError(state.message);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F7FB),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
                   ),
-                  const Expanded(
-                    child: Text(
-                      'Pengajuan Lembur',
-                      style: TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                        color: const Color(0xFF0F172A),
                       ),
-                    ),
+                      const Expanded(
+                        child: Text(
+                          'Pengajuan Lembur',
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
-                  children: [
-                    Builder(
-                      builder: (context) {
-                        final info = _getEmployeeInfo();
-                        return _SectionCard(
-                          title: 'Informasi Pegawai',
-                          child: Column(
-                            children: [
-                              _InfoRow(
-                                label: 'Nama Pegawai',
-                                value: info.name,
-                              ),
-                              const SizedBox(height: 8),
-                              _InfoRow(label: 'NPP', value: info.npp),
-                              const SizedBox(height: 8),
-                              _InfoRow(
-                                label: 'Jabatan',
-                                value: info.jabatan,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _SectionCard(
-                      title: 'Detail Lembur',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _FieldLabel('Judul Pekerjaan'),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _judulController,
-                            decoration: _inputDecoration(
-                              hint: 'Masukan judul pekerjaan...',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const _FieldLabel('Jenis Pekerjaan'),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedWorkType,
-                            decoration: _inputDecoration(
-                              hint: 'Pilih jenis pekerjaan...',
-                            ),
-                            items: _workTypes
-                                .map(
-                                  (e) => DropdownMenuItem<String>(
-                                    value: e,
-                                    child: Text(e),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    child: Column(
+                      children: [
+                        Builder(
+                          builder: (context) {
+                            final info = _getEmployeeInfo();
+                            return _SectionCard(
+                              title: 'Informasi Pegawai',
+                              child: Column(
+                                children: [
+                                  _InfoRow(
+                                    label: 'Nama Pegawai',
+                                    value: info.name,
                                   ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() => _selectedWorkType = value);
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          const _FieldLabel('Tanggal Lembur'),
-                          const SizedBox(height: 6),
-                          InkWell(
-                            onTap: _pickTanggalLembur,
-                            borderRadius: BorderRadius.circular(12),
-                            child: InputDecorator(
-                              decoration: _inputDecoration(
-                                hint: 'Pilih tanggal lembur...',
-                                suffixIcon: const Icon(Icons.calendar_today),
+                                  const SizedBox(height: 8),
+                                  _InfoRow(label: 'NPP', value: info.npp),
+                                  const SizedBox(height: 8),
+                                  _InfoRow(
+                                    label: 'Jabatan',
+                                    value: info.jabatan,
+                                  ),
+                                ],
                               ),
-                              child: Text(
-                                _tanggalLembur == null
-                                    ? 'Pilih tanggal lembur...'
-                                    : _formatDate(_tanggalLembur),
-                                style: TextStyle(
-                                  color: _tanggalLembur == null
-                                      ? const Color(0xFF94A3B8)
-                                      : const Color(0xFF0F172A),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _SectionCard(
+                          title: 'Detail Lembur',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _FieldLabel('Judul Pekerjaan'),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _judulController,
+                                decoration: _inputDecoration(
+                                  hint: 'Masukan judul pekerjaan...',
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          const Text(
-                            'Estimasi Waktu Lembur',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: _pickMulaiLembur,
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: InputDecorator(
-                                    decoration: _inputDecoration(
-                                      hint: 'Mulai',
+                              const SizedBox(height: 12),
+                              const _FieldLabel('Jenis Pekerjaan'),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedWorkType,
+                                decoration: _inputDecoration(
+                                  hint: 'Pilih jenis pekerjaan...',
+                                ),
+                                items: _workTypes
+                                    .map(
+                                      (t) => DropdownMenuItem<String>(
+                                        value: t,
+                                        child: Text(t),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedWorkType = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              const _FieldLabel('Tanggal Lembur'),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: _pickTanggalLembur,
+                                borderRadius: BorderRadius.circular(12),
+                                child: InputDecorator(
+                                  decoration: _inputDecoration(
+                                    hint: 'Pilih tanggal lembur...',
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
                                     ),
-                                    child: Text(
-                                      _mulaiLembur == null
-                                          ? 'Mulai'
-                                          : _formatDate(_mulaiLembur),
-                                      style: TextStyle(
-                                        color: _mulaiLembur == null
-                                            ? const Color(0xFF94A3B8)
-                                            : const Color(0xFF0F172A),
+                                  ),
+                                  child: Text(
+                                    _tanggalLembur == null
+                                        ? 'Pilih tanggal lembur...'
+                                        : _formatDate(_tanggalLembur),
+                                    style: TextStyle(
+                                      color: _tanggalLembur == null
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              const Text(
+                                'Estimasi Waktu Lembur',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _pickJamMulai,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: InputDecorator(
+                                        decoration: _inputDecoration(
+                                          hint: 'Mulai',
+                                        ),
+                                        child: Text(
+                                          _formatJamMulaiDisplay(_jamMulai),
+                                          style: TextStyle(
+                                            color: _jamMulai == null
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF0F172A),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _durasiController,
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => setState(() {}),
+                                      decoration: _inputDecoration(
+                                        hint: '2',
+                                        suffixText: 'Jam',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Text(
+                                  _formatSelesaiPreview(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF334155),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  controller: _durasiController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: _inputDecoration(
-                                    hint: '2',
-                                    suffixText: 'Jam',
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const _FieldLabel('Anggota Tim'),
+                                  const Spacer(),
+                                  TextButton.icon(
+                                    onPressed: _pickMembers,
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text('Pilih'),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              if (_selectedMembers.isEmpty)
+                                Text(
+                                  _availableUsers.isEmpty
+                                      ? 'Memuat daftar pegawai...'
+                                      : 'Belum ada anggota dipilih',
+                                  style: const TextStyle(
+                                    color: Color(0xFF94A3B8),
+                                    fontSize: 13,
+                                  ),
+                                )
+                              else
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _selectedMembers.map((m) {
+                                    final name =
+                                        m.employee?.name ??
+                                        m.email ??
+                                        'User #${m.id}';
+                                    return Chip(
+                                      label: Text(name),
+                                      deleteIcon: const Icon(
+                                        Icons.close,
+                                        size: 18,
+                                      ),
+                                      onDeleted: () {
+                                        setState(() {
+                                          _selectedMembers.remove(m);
+                                        });
+                                      },
+                                      backgroundColor: const Color(0xFFE2E8F0),
+                                    );
+                                  }).toList(),
+                                ),
+                              const SizedBox(height: 12),
+                              const _FieldLabel('Alasan Lembur'),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _alasanController,
+                                maxLines: 4,
+                                decoration: _inputDecoration(
+                                  hint: 'Tuliskan alasan lembur...',
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(52),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
-                            child: Text(
-                              'Selesai: ${_formatDateTime(_mulaiLembur)}',
-                              style: const TextStyle(color: Color(0xFF334155)),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const _FieldLabel('Anggota Tim'),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _teamMembers
-                                .map(
-                                  (member) => Chip(
-                                    label: Text(member),
-                                    deleteIcon: const Icon(Icons.close, size: 18),
-                                    onDeleted: () {
-                                      setState(() {
-                                        _teamMembers.remove(member);
-                                      });
-                                    },
-                                    backgroundColor: const Color(0xFFE2E8F0),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.4,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Ajukan Lembur',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 12),
-                          const _FieldLabel('Alasan Lembur'),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _alasanController,
-                            maxLines: 4,
-                            decoration: _inputDecoration(
-                              hint: 'Tuliskan alasan lembur...',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(52),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Ajukan Lembur',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -556,10 +862,7 @@ class _InfoRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 110,
-          child: Text(
-            label,
-            style: const TextStyle(color: Color(0xFF64748B)),
-          ),
+          child: Text(label, style: const TextStyle(color: Color(0xFF64748B))),
         ),
         const Text(':  '),
         Expanded(

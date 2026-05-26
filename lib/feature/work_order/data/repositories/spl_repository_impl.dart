@@ -48,15 +48,23 @@ class SplRepositoryImpl implements SplRepository {
       final model = SplModel.fromEntity(spl);
       final response = await remoteDataSource.updateSpl(model);
       if (response is DataSuccess<SplModel>) {
-        // await localDataSource.update(response.data!);
         return DataSuccess(response.data!.toEntity());
       } else {
-        // final localResponse = await localDataSource.update(model);
-        // if (localResponse is DataSuccess<SplModel>) {
-        //   return DataSuccess(localResponse.data!.toEntity());
-        // } else {
         return DataFailed(response.error!);
-        // }
+      }
+    } catch (e) {
+      return DataFailed("Terjadi kesalahan: $e");
+    }
+  }
+
+  @override
+  Future<DataState<SplEntity>> createSpl(Map<String, dynamic> payload) async {
+    try {
+      final response = await remoteDataSource.createSpl(payload);
+      if (response is DataSuccess<SplModel>) {
+        return DataSuccess(response.data!.toEntity());
+      } else {
+        return DataFailed(response.error!);
       }
     } catch (e) {
       return DataFailed("Terjadi kesalahan: $e");

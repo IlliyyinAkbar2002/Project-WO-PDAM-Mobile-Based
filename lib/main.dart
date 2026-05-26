@@ -61,7 +61,6 @@ class _AppState extends AppStatePage<App> {
 
     debugPrint('🔄 Restoring session for role: $roleId, jabatan: $jabatanKode');
 
-
     if (roleId == 3) {
       if (jabatanKode == 'SPV') {
         return const SpvLandingPage();
