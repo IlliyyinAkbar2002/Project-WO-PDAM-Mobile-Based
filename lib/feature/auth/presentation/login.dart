@@ -10,6 +10,8 @@ import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_so
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/register.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 
 class _LoginTokens {
   static const Color bgGradientStart = Color(0xFFCEFAFE); // rgb(206,250,254)
@@ -495,7 +497,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         const SizedBox(height: 20),
         const Text(
-          '© 2024 PDAM SURYA SEMBADA. SEMUA HAK DILINDUNGI.',
+          '© 2026 PDAM SURYA SEMBADA. SEMUA HAK DILINDUNGI.',
           style: TextStyle(
             color: Color(0x660B4F4A), // rgba(11,79,74,0.4)
             fontSize: 11,
@@ -578,6 +580,10 @@ class _LoginPageState extends State<LoginPage> {
               targetPage = const SpvLandingPage();
             } else {
               targetPage = const StaffLandingPage();
+            }
+
+            if (context.mounted) {
+              context.read<NotificationBloc>().add(FetchNotificationsEvent());
             }
 
             Navigator.of(context).pushReplacement(

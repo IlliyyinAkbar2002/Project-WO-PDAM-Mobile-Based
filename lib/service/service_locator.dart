@@ -65,6 +65,13 @@ import '/feature/work_order/domain/usecases/delete_work_order_usecase.dart';
 import '/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/laporan_workorder_cubit.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/notification_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/notification_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/notification_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/notification_usecases/get_notifications_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/notification_usecases/mark_notification_as_read_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
+
 
 final sl = GetIt.instance;
 
@@ -77,6 +84,11 @@ Future<void> init() async {
       () => WorkOrderRemoteDataSource(),
     );
     debugPrint("✅ WorkOrderRemoteDataSource terdaftar");
+
+    sl.registerLazySingleton<NotificationRemoteDataSource>(
+      () => NotificationRemoteDataSource(),
+    );
+    debugPrint("✅ NotificationRemoteDataSource terdaftar");
 
     sl.registerLazySingleton<WorkOrderTypeRemoteDataSource>(
       () => WorkOrderTypeRemoteDataSource(),
@@ -130,6 +142,11 @@ Future<void> init() async {
       () => WorkOrderRepositoryImpl(sl<WorkOrderRemoteDataSource>()),
     );
     debugPrint("✅ WorkOrderRepository terdaftar");
+
+    sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(sl<NotificationRemoteDataSource>()),
+    );
+    debugPrint("✅ NotificationRepository terdaftar");
 
     sl.registerLazySingleton<WorkOrderTypeRepository>(
       () => WorkOrderTypeRepositoryImpl(
@@ -202,6 +219,12 @@ Future<void> init() async {
     // **4️⃣ Use Cases**
     sl.registerLazySingleton(
       () => GetWorkOrdersUseCase(sl<WorkOrderRepository>()),
+    );
+    sl.registerLazySingleton(
+      () => GetNotificationsUseCase(sl<NotificationRepository>()),
+    );
+    sl.registerLazySingleton(
+      () => MarkNotificationAsReadUseCase(sl<NotificationRepository>()),
     );
     sl.registerLazySingleton(
       () => CreateWorkOrderUseCase(sl<WorkOrderRepository>()),
@@ -295,6 +318,13 @@ Future<void> init() async {
     sl.registerFactory(
       () => LaporanWorkorderCubit(sl<CreateLaporanWorkorderUseCase>()),
     );
+    sl.registerFactory(
+      () => NotificationBloc(
+        sl<GetNotificationsUseCase>(),
+        sl<MarkNotificationAsReadUseCase>(),
+      ),
+    );
+    debugPrint("✅ NotificationBloc terdaftar");
     sl.registerFactory(
       () => WorkOrderBloc(
         sl<GetWorkOrdersUseCase>(),

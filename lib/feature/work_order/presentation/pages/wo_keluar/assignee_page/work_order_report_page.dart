@@ -57,22 +57,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   late JournalDraftCubit _journalDraftCubit;
   bool get isDetailMode =>
       widget.status == 5 || widget.status == 6 || !widget.isAssignee;
-  bool get isRejected => _progressStatusId != null &&
+  bool get isRejected =>
+      _progressStatusId != null &&
       ProgressStatusId.isRevisiRequested(_progressStatusId);
 
-  /// Progress sudah ter-record di backend (mis. status submitted/verified)
-  /// dan bukan dalam state revisi. Saat ini staff tidak boleh mengubah —
-  /// mereka harus membatalkan dulu lewat tombol Batalkan di halaman list.
-  ///
-  /// Catatan: tidak men-syaratkan `_progressStatusId != null`. Saat user membuka
-  /// entri yang sudah ada (`progressId != null`), kita harus mengunci form
-  /// sebagai "sudah tercatat" by default; hanya buka kembali tombol kirim kalau
-  /// status memang `revisi`. Tanpa default-lock ini, jeda load status memberi
-  /// celah untuk men-submit ulang dan membuat entri duplikat di backend.
   bool get _isAlreadyRecorded =>
-      widget.isAssignee &&
-      widget.progressId != null &&
-      !isRejected;
+      widget.isAssignee && widget.progressId != null && !isRejected;
 
   String get _submitInProgressMessage {
     switch (widget.mode) {
@@ -170,7 +160,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     });
   }
 
-
   void _checkDataLoaded() {
     // Removed nested setState - this method is now only for logging
     if (_progressDetails.isNotEmpty) {
@@ -249,8 +238,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 progressDetails.first.workOrderProgress?.description ?? '';
             final submitTime =
                 progressDetails.first.workOrderProgress?.submitTime;
-            final statusId =
-                progressDetails.first.workOrderProgress?.statusId;
+            final statusId = progressDetails.first.workOrderProgress?.statusId;
 
             // Ambil images dari workOrderProgress.documentation
             final images =
@@ -408,39 +396,39 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                             ? const SizedBox(
                                                 height: 20,
                                                 width: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor:
-                                                          AlwaysStoppedAnimation<
-                                                            Color
-                                                          >(Colors.white),
-                                                    ),
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                ),
                                               )
                                             : Text(
                                                 widget.mode,
-                                                style: textTheme.labelLarge
-                                                    ?.copyWith(
-                                                      color:
-                                                          widget.mode ==
-                                                              'Selesai'
-                                                          ? (widget.status == 7
-                                                                ? color
-                                                                      .foreground[100]
-                                                                : color
-                                                                      .primary[500])
-                                                          : color.primary[500],
-                                                    ),
+                                                style: textTheme.labelLarge?.copyWith(
+                                                  color:
+                                                      widget.mode == 'Selesai'
+                                                      ? (widget.status == 7
+                                                            ? color
+                                                                  .foreground[100]
+                                                            : color
+                                                                  .primary[500])
+                                                      : color.primary[500],
+                                                ),
                                               ),
                                       ))
                               : widget.isAssignee && isRejected
                               ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: color.danger.withValues(alpha: 0.1),
+                                        color: color.danger.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: color.danger,
@@ -448,7 +436,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         ),
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -460,19 +449,22 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                               const SizedBox(width: 8),
                                               Text(
                                                 'Progress Ditolak',
-                                                style: textTheme.titleMedium?.copyWith(
-                                                  color: color.danger,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                                style: textTheme.titleMedium
+                                                    ?.copyWith(
+                                                      color: color.danger,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                               ),
                                             ],
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
                                             'Silakan perbaiki progress sesuai catatan supervisor dan kirim ulang.',
-                                            style: textTheme.bodyMedium?.copyWith(
-                                              color: color.foreground[700],
-                                            ),
+                                            style: textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  color: color.foreground[700],
+                                                ),
                                           ),
                                         ],
                                       ),
@@ -482,8 +474,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: color.primary[500],
                                       ),
-                                      onPressed:
-                                          _isSubmitting ? null : _onResubmit,
+                                      onPressed: _isSubmitting
+                                          ? null
+                                          : _onResubmit,
                                       child: _isSubmitting
                                           ? const SizedBox(
                                               height: 20,
@@ -491,20 +484,20 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2,
                                                 valueColor:
-                                                    AlwaysStoppedAnimation<Color>(
-                                                      Colors.white,
-                                                    ),
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(Colors.white),
                                               ),
                                             )
-                                          : const Text(
-                                              'Kirim Ulang Progress',
-                                            ),
+                                          : const Text('Kirim Ulang Progress'),
                                     ),
                                   ],
                                 )
                               : widget.mode == 'Selesai' &&
                                     !widget.isAssignee &&
-                                    ProgressStatusId.isSubmitted(_progressStatusId)
+                                    ProgressStatusId.isSubmitted(
+                                      _progressStatusId,
+                                    )
                               ? Row(
                                   children: [
                                     Expanded(
@@ -569,10 +562,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           child: SizedBox(
             height: 165,
             child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: location,
-                zoom: 15,
-              ),
+              initialCameraPosition: CameraPosition(target: location, zoom: 15),
               markers: {
                 Marker(
                   markerId: const MarkerId('wo_location'),

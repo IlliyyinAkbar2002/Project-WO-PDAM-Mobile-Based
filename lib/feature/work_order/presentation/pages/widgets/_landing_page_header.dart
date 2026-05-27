@@ -421,17 +421,23 @@ class _NotificationButton extends StatelessWidget {
                   size: 20,
                 ),
               ),
-              Positioned(
-                top: 8,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              BlocBuilder<NotificationBloc, NotificationState>(
+                builder: (context, state) {
+                  final bool showBadge = state is NotificationLoaded && state.unreadCount > 0;
+                  if (!showBadge) return const SizedBox();
+                  return Positioned(
+                    top: 8,
+                    right: 10,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

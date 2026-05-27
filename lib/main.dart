@@ -11,6 +11,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 import 'service/service_locator.dart' as di;
@@ -82,6 +83,10 @@ class _AppState extends AppStatePage<App> {
         BlocProvider(create: (_) => di.sl<WorkOrderBloc>()),
         BlocProvider(create: (_) => di.sl<MaterialBloc>()),
         BlocProvider(create: (_) => di.sl<JournalDraftCubit>()),
+        BlocProvider(
+          create: (_) =>
+              di.sl<NotificationBloc>()..add(FetchNotificationsEvent()),
+        ),
       ],
       child: MaterialApp(
         theme: ThemeManager.theme,

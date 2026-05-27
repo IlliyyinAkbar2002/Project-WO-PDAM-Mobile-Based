@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/notification_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
   static const Color _textPrimary = Color(0xFF282A37);
@@ -10,6 +20,166 @@ class NotificationsPage extends StatelessWidget {
   static const Color _blueSoft = Color(0xFFEEF7FF);
   static const Color _cardSoft = Color(0xFFF6F7F9);
   static const Color _lineColor = Color(0xFFECEDF2);
+
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<NotificationBloc>().add(FetchNotificationsEvent());
+  }
+
+  String _getInitials(String name) {
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return '?';
+    final parts = cleaned.split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts.first.characters.take(2).toString().toUpperCase();
+    }
+    final first = parts.first.characters.firstOrNull ?? '';
+    final last = parts.last.characters.firstOrNull ?? '';
+    return '$first$last'.toUpperCase();
+  }
+
+  Color _getAvatarColor(String senderName) {
+    final code = senderName.hashCode.abs();
+    final colors = [
+      const Color(0xFFE99C11),
+      const Color(0xFF0A043C),
+      const Color(0xFFE1260D),
+      const Color(0xFFF39200),
+      const Color(0xFF8F77F6),
+      const Color(0xFF156CD7),
+    ];
+    return colors[code % colors.length];
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+  }
+
+  Future<void> _handleNotificationTap(
+    BuildContext context,
+    NotificationEntity n,
+  ) async {
+    // 1. Mark as read immediately (optimistic UI update is handled by Bloc)
+    context.read<NotificationBloc>().add(MarkNotificationAsReadEvent(n.id));
+
+    final workOrderId = n.data.workOrderId;
+    if (workOrderId <= 0) return;
+
+    // 2. Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      // 3. Fetch details
+      final ds = WorkOrderRemoteDataSource();
+      final result = await ds.fetchWorkOrderDetail(workOrderId);
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop(); // pop the dialog
+      }
+
+      if (result is DataSuccess) {
+        final workOrder = result.data!;
+
+        if (context.mounted) {
+          final user = AuthStorage.getUserSync();
+          final roleId = user?['role_id'] as int?;
+          final jabatanKode = AuthStorage.getJabatanKodeSync();
+
+          Widget detailPage;
+          if (roleId == 3 && jabatanKode != 'SPV') {
+            // Staff
+            final lnglat = workOrder.assignment?.latitude != null
+                ? LatLng(
+                    workOrder.assignment!.latitude!,
+                    workOrder.assignment!.longitude!,
+                  )
+                : null;
+            final radiusMeter =
+                workOrder.assignment?.location?.radiusMeter ?? 100;
+            final locationName = workOrder.assignment?.location?.nama;
+
+            detailPage = AssigneeWorkOrderDetailPage(
+              isAssignee: true,
+              workOrderId: workOrder.id,
+              workOrderTypeId:
+                  workOrder.workOrderTypeId ?? workOrder.workOrderType?.id,
+              status: workOrder.statusId,
+              kategoriForm: workOrder.kategoriForm,
+              lngLat: lnglat,
+              locationName: locationName,
+              radiusMeter: radiusMeter,
+            );
+          } else {
+            // SPV or fallback
+            detailPage = DetailWorkOrderPage(
+              picId: null,
+              userId: user?['id'] as int?,
+              workOrderId: workOrder.id,
+              status: workOrder.statusId,
+              isOvertime: workOrder.requiresApproval,
+            );
+          }
+
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => detailPage),
+          );
+
+          // Refresh notifications list when coming back
+          if (context.mounted) {
+            context.read<NotificationBloc>().add(FetchNotificationsEvent());
+          }
+        }
+      } else {
+        if (context.mounted) {
+          AppSnackbar.showError("Gagal mengambil detail pekerjaan.");
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close dialog on error
+        AppSnackbar.showError("Terjadi kesalahan: $e");
+      }
+    }
+  }
+
+  Widget _buildNotificationRow(BuildContext context, NotificationEntity n) {
+    return _NotificationItem(
+      initials: _getInitials(n.data.senderName),
+      actor: n.data.senderName,
+      content: n.data.message,
+      subtitle: '${n.data.title} - ${_formatTimeAgo(n.createdAt)}',
+      avatarColor: _getAvatarColor(n.data.senderName),
+      hasHeart: false,
+      isUnread: !n.isRead,
+      onTap: () => _handleNotificationTap(context, n),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,69 +193,118 @@ class NotificationsPage extends StatelessWidget {
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: ListView(
-          padding: EdgeInsets.fromLTRB(16, topInset + 18, 16, 20),
-          children: const [
-            _NotificationsHeader(),
-            SizedBox(height: 18),
-            _SectionTitle(title: 'Today'),
-            _NotificationItem(
-              initials: 'CR',
-              actor: 'Ronaldo',
-              content: 'Liked your posted',
-              subtitle: 'Favourites Places - 2h ago',
-              avatarColor: Color(0xFFE99C11),
-              hasHeart: false,
-              isUnread: true,
-            ),
-            _NotificationItem(
-              initials: 'CS',
-              actor: 'Costas',
-              content: 'Liked your posted',
-              subtitle: 'Favourites Places - 2h ago',
-              avatarColor: Color(0xFF0A043C),
-              hasHeart: false,
-              isUnread: true,
-            ),
-            _NotificationItem(
-              initials: 'JD',
-              actor: 'Jeremy',
-              content: 'mention you in new post',
-              subtitle: '@jeremypasos - 2h ago',
-              avatarColor: Color(0xFFE1260D),
-              hasHeart: true,
-              isUnread: true,
-            ),
-            SizedBox(height: 8),
-            _SectionTitle(title: 'This Week'),
-            _NotificationItem(
-              initials: 'MC',
-              actor: 'Malika',
-              content: 'Liked your posted',
-              subtitle: 'Favourites Places - 2h ago',
-              avatarColor: Color(0xFFF39200),
-              hasHeart: true,
-              isUnread: true,
-            ),
-            _NotificationItem(
-              initials: 'JF',
-              actor: 'Jonathan',
-              content: 'Liked your posted',
-              subtitle: 'Favourites Places - 2h ago',
-              avatarColor: Color(0xFF8F77F6),
-              hasHeart: true,
-              isUnread: true,
-            ),
-            _NotificationItem(
-              initials: 'WA',
-              actor: 'Warren Buffet',
-              content: 'Liked your posted',
-              subtitle: 'Favourites Places - 2h ago',
-              avatarColor: Color(0xFF156CD7),
-              hasHeart: true,
-              isUnread: true,
-            ),
-          ],
+        body: BlocBuilder<NotificationBloc, NotificationState>(
+          builder: (context, state) {
+            if (state is NotificationLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is NotificationError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: NotificationsPage._textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<NotificationBloc>().add(
+                            FetchNotificationsEvent(),
+                          );
+                        },
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            if (state is NotificationLoaded) {
+              final notifications = state.notifications;
+              final today = DateTime.now();
+
+              final todayNotifications = notifications.where((n) {
+                final local = n.createdAt.toLocal();
+                return local.year == today.year &&
+                    local.month == today.month &&
+                    local.day == today.day;
+              }).toList();
+
+              final olderNotifications = notifications.where((n) {
+                final local = n.createdAt.toLocal();
+                return !(local.year == today.year &&
+                    local.month == today.month &&
+                    local.day == today.day);
+              }).toList();
+
+              if (notifications.isEmpty) {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<NotificationBloc>().add(
+                      FetchNotificationsEvent(),
+                    );
+                  },
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(16, topInset + 18, 16, 20),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      const _NotificationsHeader(unreadCount: 0),
+                      const SizedBox(height: 100),
+                      const Center(
+                        child: Text(
+                          'Belum ada notifikasi.',
+                          style: TextStyle(
+                            color: NotificationsPage._textSecondary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<NotificationBloc>().add(
+                    FetchNotificationsEvent(),
+                  );
+                },
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(16, topInset + 18, 16, 20),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _NotificationsHeader(unreadCount: state.unreadCount),
+                    const SizedBox(height: 18),
+                    if (todayNotifications.isNotEmpty) ...[
+                      const _SectionTitle(title: 'Hari Ini'),
+                      ...todayNotifications.map(
+                        (n) => _buildNotificationRow(context, n),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (olderNotifications.isNotEmpty) ...[
+                      const _SectionTitle(title: 'Sebelumnya'),
+                      ...olderNotifications.map(
+                        (n) => _buildNotificationRow(context, n),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }
+
+            return const SizedBox();
+          },
         ),
       ),
     );
@@ -93,7 +312,8 @@ class NotificationsPage extends StatelessWidget {
 }
 
 class _NotificationsHeader extends StatelessWidget {
-  const _NotificationsHeader();
+  final int unreadCount;
+  const _NotificationsHeader({required this.unreadCount});
 
   @override
   Widget build(BuildContext context) {
@@ -135,15 +355,15 @@ class _NotificationsHeader extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-                // Red badge marker requested on the header action.
-                const Positioned(
-                  top: -1,
-                  right: -1,
-                  child: CircleAvatar(
-                    radius: 5,
-                    backgroundColor: Color(0xFFFF4D4F),
+                if (unreadCount > 0)
+                  const Positioned(
+                    top: -1,
+                    right: -1,
+                    child: CircleAvatar(
+                      radius: 5,
+                      backgroundColor: Color(0xFFFF4D4F),
+                    ),
                   ),
-                ),
               ],
             ),
           ],
@@ -159,22 +379,22 @@ class _NotificationsHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         RichText(
-          text: const TextSpan(
-            style: TextStyle(
+          text: TextSpan(
+            style: const TextStyle(
               color: NotificationsPage._textSecondary,
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
             children: [
-              TextSpan(text: 'You have '),
+              const TextSpan(text: 'You have '),
               TextSpan(
-                text: '2 Notifications',
-                style: TextStyle(
+                text: '$unreadCount Notifications',
+                style: const TextStyle(
                   color: NotificationsPage._accentBlue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              TextSpan(text: ' today.'),
+              const TextSpan(text: ' today.'),
             ],
           ),
         ),
@@ -212,6 +432,7 @@ class _NotificationItem extends StatelessWidget {
   final Color avatarColor;
   final bool hasHeart;
   final bool isUnread;
+  final VoidCallback onTap;
 
   const _NotificationItem({
     required this.initials,
@@ -221,96 +442,105 @@ class _NotificationItem extends StatelessWidget {
     required this.avatarColor,
     required this.hasHeart,
     required this.isUnread,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: NotificationsPage._lineColor),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: isUnread ? NotificationsPage._accentBlue : Colors.transparent,
-              shape: BoxShape.circle,
-            ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: NotificationsPage._lineColor),
           ),
-          Container(
-            width: 48,
-            height: 48,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(color: avatarColor, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18 / 1.3,
-                fontWeight: FontWeight.w700,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: isUnread
+                    ? NotificationsPage._accentBlue
+                    : Colors.transparent,
+                shape: BoxShape.circle,
               ),
             ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
+            Container(
+              width: 48,
+              height: 48,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: avatarColor,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18 / 1.3,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        color: NotificationsPage._textSecondary,
+                        fontSize: 30 / 2.2,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: actor,
+                          style: const TextStyle(
+                            color: NotificationsPage._accentBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextSpan(text: ' $content'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
                     style: const TextStyle(
                       color: NotificationsPage._textSecondary,
-                      fontSize: 30 / 2.2,
-                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    children: [
-                      TextSpan(
-                        text: actor,
-                        style: const TextStyle(
-                          color: NotificationsPage._accentBlue,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      TextSpan(text: ' $content'),
-                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: NotificationsPage._textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            width: 60,
-            height: 50,
-            decoration: BoxDecoration(
-              color: NotificationsPage._cardSoft,
-              borderRadius: BorderRadius.circular(8),
+            const SizedBox(width: 12),
+            Container(
+              width: 60,
+              height: 50,
+              decoration: BoxDecoration(
+                color: NotificationsPage._cardSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: hasHeart
+                  ? const Icon(
+                      Icons.favorite,
+                      color: NotificationsPage._accentBlue,
+                      size: 14,
+                    )
+                  : null,
             ),
-            alignment: Alignment.center,
-            child: hasHeart
-                ? const Icon(
-                    Icons.favorite,
-                    color: NotificationsPage._accentBlue,
-                    size: 14,
-                  )
-                : null,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
