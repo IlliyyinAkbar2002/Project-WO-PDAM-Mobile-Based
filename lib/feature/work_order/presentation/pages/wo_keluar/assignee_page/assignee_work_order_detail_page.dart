@@ -237,7 +237,13 @@ class _AssigneeWorkOrderDetailPageState
               Expanded(
                 child: _buildActionButton('Laporan', disabled: isKuotaHabis),
               ),
-              const SizedBox(width: 8),
+            ],
+          ),
+        ],
+        if (hasSelesai && widget.status == WorkOrderStatusId.pengecekan) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
               Expanded(
                 child: _buildSecondaryOutlinedButton(
                   label: 'Kembalikan Material',

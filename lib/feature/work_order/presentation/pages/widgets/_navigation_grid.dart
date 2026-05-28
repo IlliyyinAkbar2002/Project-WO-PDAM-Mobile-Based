@@ -31,7 +31,7 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.check_circle_outline,
         label: 'Approval',
         onTap: () {
-          final user = AuthStorage.getUserSync();
+          // final user = AuthStorage.getUserSync();
           final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
           // final isManajer = user?['role_id'] == 2;
 
@@ -584,18 +584,18 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                   vertical: 8,
                 ),
                 children: [
-                  _TaskMenuItem(
-                    label: 'Jurnal',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Jurnal coming soon'),
-                          backgroundColor: colors.primary[600],
-                        ),
-                      );
-                    },
-                  ),
+                  // _TaskMenuItem(
+                  //   label: 'Jurnal',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: const Text('Jurnal coming soon'),
+                  //         backgroundColor: colors.primary[600],
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                   _TaskMenuItem(
                     label: 'Work Order',
                     onTap: () {
@@ -622,42 +622,42 @@ class _TasksBottomSheetUsers extends StatelessWidget {
                       );
                     },
                   ),
-                  _TaskMenuItem(
-                    label: 'IT Support',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('IT Support coming soon'),
-                          backgroundColor: colors.primary[600],
-                        ),
-                      );
-                    },
-                  ),
-                  _TaskMenuItem(
-                    label: 'Kupon E-BBM',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Kupon E-BBM coming soon'),
-                          backgroundColor: colors.primary[600],
-                        ),
-                      );
-                    },
-                  ),
-                  _TaskMenuItem(
-                    label: 'SPPD',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('SPPD coming soon'),
-                          backgroundColor: colors.primary[600],
-                        ),
-                      );
-                    },
-                  ),
+                  // _TaskMenuItem(
+                  //   label: 'IT Support',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: const Text('IT Support coming soon'),
+                  //         backgroundColor: colors.primary[600],
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
+                  // _TaskMenuItem(
+                  //   label: 'Kupon E-BBM',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: const Text('Kupon E-BBM coming soon'),
+                  //         backgroundColor: colors.primary[600],
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
+                  // _TaskMenuItem(
+                  //   label: 'SPPD',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: const Text('SPPD coming soon'),
+                  //         backgroundColor: colors.primary[600],
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),

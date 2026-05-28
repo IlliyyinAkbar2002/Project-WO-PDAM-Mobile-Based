@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/notificat
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -72,6 +73,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
   ) async {
     // 1. Mark as read immediately (optimistic UI update is handled by Bloc)
     context.read<NotificationBloc>().add(MarkNotificationAsReadEvent(n.id));
+
+    // Redirect SPV directly to PersetujuanPeminjamanBarangPage when tapping a material return notification
+    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+    if (n.data.type == 'material_return_submitted' && isSpv) {
+      if (context.mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const PersetujuanPeminjamanBarangPage(),
+          ),
+        );
+        if (context.mounted) {
+          context.read<NotificationBloc>().add(FetchNotificationsEvent());
+        }
+      }
+      return;
+    }
 
     final workOrderId = n.data.workOrderId;
     if (workOrderId <= 0) return;

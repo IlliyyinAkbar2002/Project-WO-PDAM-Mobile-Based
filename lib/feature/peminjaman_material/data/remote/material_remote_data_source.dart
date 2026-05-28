@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
@@ -39,35 +40,70 @@ class MaterialRemoteDataSource extends RemoteDatasource {
     String? status,
   }) async {
     try {
-      final response = await get(
-        path: '/v1/peminjaman-material',
-        queryParameters: status != null ? {'status': status} : null,
+      // 1. Fetch all work orders for the current user/spv
+      final responseWo = await get(
+        path: '/v1/workorder',
+        queryParameters: {'all': true},
       );
-      final dynamic responseData = response.data;
-      final List<dynamic> dataList;
-      if (responseData is Map && responseData.containsKey('data')) {
-        dataList = responseData['data'] as List;
-      } else if (responseData is List) {
-        dataList = responseData;
+
+      final dynamic responseWoData = responseWo.data;
+      final List<dynamic> woList;
+      if (responseWoData is Map && responseWoData.containsKey('data')) {
+        woList = responseWoData['data'] as List;
+      } else if (responseWoData is List) {
+        woList = responseWoData;
       } else {
-        throw Exception(
-          'Invalid response format: expected List or Map containing data key',
-        );
+        woList = [];
       }
-      final result = dataList
-          .map(
-            (e) =>
-                PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(e)),
-          )
-          .toList();
-      return DataSuccess(result);
+
+      final List<PeminjamanMaterialModel> combinedResults = [];
+
+      // 2. For each work order, fetch its peminjaman-material
+      for (final wo in woList) {
+        final woId = wo['id'] as int?;
+        if (woId == null) continue;
+
+        try {
+          final responsePem = await get(
+            path: '/v1/workorder/$woId/peminjaman-material',
+          );
+
+          final dynamic responsePemData = responsePem.data;
+          final List<dynamic> pemList;
+          if (responsePemData is Map && responsePemData.containsKey('data')) {
+            pemList = responsePemData['data'] as List;
+          } else if (responsePemData is List) {
+            pemList = responsePemData;
+          } else {
+            pemList = [];
+          }
+
+          for (final pem in pemList) {
+            final model = PeminjamanMaterialModel.fromMap(
+              Map<String, dynamic>.from(pem),
+            );
+            combinedResults.add(model);
+          }
+        } catch (e) {
+          // Ignore single work order failures to prevent failing the entire list
+          debugPrint('Error fetching peminjaman for WO $woId: $e');
+        }
+      }
+
+      // 3. Filter combined results by status on client-side if status parameter is passed
+      List<PeminjamanMaterialModel> finalResult = combinedResults;
+      if (status != null) {
+        finalResult = combinedResults.where((p) => p.status == status).toList();
+      }
+
+      return DataSuccess(finalResult);
     } catch (e) {
       return DataFailed(
         DioException(
           error: e,
           requestOptions: RequestOptions(
-            path: '/v1/peminjaman-material',
-            queryParameters: status != null ? {'status': status} : null,
+            path: '/v1/workorder',
+            queryParameters: {'all': true},
           ),
         ),
       );
