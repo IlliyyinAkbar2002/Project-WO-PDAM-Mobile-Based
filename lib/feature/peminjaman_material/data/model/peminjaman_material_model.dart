@@ -23,20 +23,20 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
     return PeminjamanMaterialModel(
       id: map['id'],
       workorderId: map['workorder_id'],
-      materialId: map['material_id'],
-      userId: map['user_id'],
+      materialId: map['material_id'] ?? (map['material_kode'] != null ? int.tryParse(map['material_kode'].toString()) : null),
+      userId: map['user_id'] ?? map['diajukan_oleh'],
       jumlahPinjam: map['jumlah_pinjam'] != null
           ? int.tryParse(map['jumlah_pinjam'].toString())
           : null,
       waktuPinjam: map['waktu_pinjam'] != null
           ? DateTime.tryParse(map['waktu_pinjam'].toString())?.toLocal()
-          : null,
+          : (map['diajukan_at'] != null ? DateTime.tryParse(map['diajukan_at'].toString())?.toLocal() : null),
       jumlahKembali: map['jumlah_kembali'] != null
           ? int.tryParse(map['jumlah_kembali'].toString())
           : null,
       waktuKembali: map['waktu_kembali'] != null
           ? DateTime.tryParse(map['waktu_kembali'].toString())?.toLocal()
-          : null,
+          : (map['dikembalikan_at'] != null ? DateTime.tryParse(map['dikembalikan_at'].toString())?.toLocal() : null),
       kondisiKembali: map['kondisi_kembali'],
       status: map['status'],
       material: map['material'] != null
@@ -44,7 +44,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
           : null,
       user: map['user'] != null
           ? UserModel.fromMap(Map<String, dynamic>.from(map['user']))
-          : null,
+          : (map['pengaju'] != null ? UserModel.fromMap(Map<String, dynamic>.from(map['pengaju'])) : null),
     );
   }
 

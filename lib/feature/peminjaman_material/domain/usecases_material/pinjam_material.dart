@@ -7,11 +7,13 @@ class PinjamMaterialParams {
   final int workOrderId;
   final int materialId;
   final int jumlahPinjam;
+  final String? catatan;
 
   PinjamMaterialParams({
     required this.workOrderId,
     required this.materialId,
     required this.jumlahPinjam,
+    this.catatan,
   });
 }
 
@@ -32,6 +34,7 @@ class PinjamMaterial
       workOrderId: params.workOrderId,
       materialId: params.materialId,
       jumlahPinjam: params.jumlahPinjam,
+      catatan: params.catatan,
     );
   }
 }

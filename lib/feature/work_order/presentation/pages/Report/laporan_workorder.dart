@@ -10,13 +10,11 @@ import 'package:project_mobile_pdam/service/service_locator.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/laporan_workorder_cubit.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:cross_file/cross_file.dart';
 
 class LaporanWorkorderPage extends StatefulWidget {
   final Map<String, dynamic> payload;
 
-  const LaporanWorkorderPage({Key? key, required this.payload})
-    : super(key: key);
+  const LaporanWorkorderPage({super.key, required this.payload});
 
   @override
   State<LaporanWorkorderPage> createState() => _LaporanWorkorderPageState();
@@ -37,9 +35,9 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
     ).format(DateTime.now());
   }
 
-  void _submitReport() {
-    _cubit.submitLaporan(widget.payload);
-  }
+  // void _submitReport() {
+  //   _cubit.submitLaporan(widget.payload);
+  // }
 
   @override
   void dispose() {

@@ -11,6 +11,7 @@ abstract class MaterialRepository {
     required int workOrderId,
     required int materialId,
     required int jumlahPinjam,
+    String? catatan,
   });
   Future<DataState<PeminjamanMaterialEntity>> kembalikanMaterial({
     required int peminjamanId,

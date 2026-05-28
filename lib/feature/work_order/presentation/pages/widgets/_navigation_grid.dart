@@ -14,33 +14,31 @@ class _NavigationGrid extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColor>()!;
 
     final items = [
-      _NavigationItem(
-        icon: Icons.calendar_month_outlined,
-        label: 'Meeting Agenda',
-        onTap: () {
-          // picId tidak lagi diperlukan - backend menggunakan authenticated user untuk filter
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AssignerWorkOrderPage(picId: selectedPicId),
-            ),
-          );
-        },
-      ),
+      // _NavigationItem(
+      //   icon: Icons.calendar_month_outlined,
+      //   label: 'Meeting Agenda',
+      //   onTap: () {
+      //     // picId tidak lagi diperlukan - backend menggunakan authenticated user untuk filter
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(
+      //         builder: (context) => AssignerWorkOrderPage(picId: selectedPicId),
+      //       ),
+      //     );
+      //   },
+      // ),
       _NavigationItem(
         icon: Icons.check_circle_outline,
         label: 'Approval',
         onTap: () {
           final user = AuthStorage.getUserSync();
           final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
-          final isManajer = user?['role_id'] == 2;
+          // final isManajer = user?['role_id'] == 2;
 
-          if (!isSpv && !isManajer) {
+          if (!isSpv) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text(
-                  'Approval hanya tersedia untuk Supervisor / Manajer',
-                ),
+                content: const Text('Approval hanya tersedia untuk Supervisor'),
                 backgroundColor: colors.warning,
               ),
             );
@@ -97,33 +95,33 @@ class _NavigationGrid extends StatelessWidget {
                       ),
                     );
                   },
-                  onItSupport: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('IT Support coming soon'),
-                        backgroundColor: colors.primary[600],
-                      ),
-                    );
-                  },
-                  onKuponEbbm: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Kupon E-BBM coming soon'),
-                        backgroundColor: colors.primary[600],
-                      ),
-                    );
-                  },
-                  onSppd: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('SPPD coming soon'),
-                        backgroundColor: colors.primary[600],
-                      ),
-                    );
-                  },
+                  // onItSupport: () {
+                  //   Navigator.pop(ctx);
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     SnackBar(
+                  //       content: const Text('IT Support coming soon'),
+                  //       backgroundColor: colors.primary[600],
+                  //     ),
+                  //   );
+                  // },
+                  // onKuponEbbm: () {
+                  //   Navigator.pop(ctx);
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     SnackBar(
+                  //       content: const Text('Kupon E-BBM coming soon'),
+                  //       backgroundColor: colors.primary[600],
+                  //     ),
+                  //   );
+                  // },
+                  // onSppd: () {
+                  //   Navigator.pop(ctx);
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     SnackBar(
+                  //       content: const Text('SPPD coming soon'),
+                  //       backgroundColor: colors.primary[600],
+                  //     ),
+                  //   );
+                  // },
                 );
               }
               // Users role (role_id: 3) - Show Users tasks
@@ -143,13 +141,13 @@ class _NavigationGrid extends StatelessWidget {
           );
         },
       ),
-      _NavigationItem(
-        icon: Icons.people_outline,
-        label: 'Attendance',
-        onTap: () {
-          // TODO: Navigate to attendance page
-        },
-      ),
+      // _NavigationItem(
+      //   icon: Icons.people_outline,
+      //   label: 'Attendance',
+      //   onTap: () {
+      //     // TODO: Navigate to attendance page
+      //   },
+      // ),
       _NavigationItem(
         icon: Icons.receipt_long_outlined,
         label: 'Report',
@@ -210,7 +208,7 @@ class _NavigationGrid extends StatelessWidget {
               }
 
               return _OurAssetsBottomSheet(
-                title: 'Peminjaman barang',
+                title: 'Melihat stok barang',
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -235,13 +233,13 @@ class _NavigationGrid extends StatelessWidget {
           );
         },
       ),
-      _NavigationItem(
-        icon: Icons.more_horiz,
-        label: 'More',
-        onTap: () {
-          // TODO: Show more options
-        },
-      ),
+      // _NavigationItem(
+      //   icon: Icons.more_horiz,
+      //   label: 'More',
+      //   onTap: () {
+      //     // TODO: Show more options
+      //   },
+      // ),
     ];
 
     return GridView.builder(
@@ -330,16 +328,16 @@ class _NavigationGridItem extends StatelessWidget {
 class _TasksBottomSheetManajer extends StatelessWidget {
   final VoidCallback onWorkOrderKeluar;
   final VoidCallback onWorkOrderMasuk;
-  final VoidCallback onItSupport;
-  final VoidCallback onKuponEbbm;
-  final VoidCallback onSppd;
+  // final VoidCallback onItSupport;
+  // final VoidCallback onKuponEbbm;
+  // final VoidCallback onSppd;
 
   const _TasksBottomSheetManajer({
     required this.onWorkOrderKeluar,
     required this.onWorkOrderMasuk,
-    required this.onItSupport,
-    required this.onKuponEbbm,
-    required this.onSppd,
+    // required this.onItSupport,
+    // required this.onKuponEbbm,
+    // required this.onSppd,
   });
 
   @override
@@ -390,9 +388,9 @@ class _TasksBottomSheetManajer extends StatelessWidget {
                     label: 'Work Order Masuk',
                     onTap: onWorkOrderMasuk,
                   ),
-                  _TaskMenuItem(label: 'IT Support', onTap: onItSupport),
-                  _TaskMenuItem(label: 'Kupon E-BBM', onTap: onKuponEbbm),
-                  _TaskMenuItem(label: 'SPPD', onTap: onSppd),
+                  // _TaskMenuItem(label: 'IT Support', onTap: onItSupport),
+                  // _TaskMenuItem(label: 'Kupon E-BBM', onTap: onKuponEbbm),
+                  // _TaskMenuItem(label: 'SPPD', onTap: onSppd),
                 ],
               ),
             ),

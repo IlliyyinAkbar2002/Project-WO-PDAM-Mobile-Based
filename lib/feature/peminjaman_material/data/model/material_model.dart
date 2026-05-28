@@ -14,9 +14,13 @@ class MaterialModel extends MaterialEntity {
 
   factory MaterialModel.fromMap(Map<String, dynamic> map) {
     return MaterialModel(
-      id: map['id'],
-      kodeMaterial: map['kode_material'],
-      namaMaterial: map['nama_material'],
+      id:
+          map['id'] ??
+          (map['kode_material'] != null
+              ? int.tryParse(map['kode_material'].toString())
+              : null),
+      kodeMaterial: map['kode_material']?.toString(),
+      namaMaterial: map['nama'] ?? map['nama_material'],
       kategori: map['kategori'],
       satuan: map['satuan'],
       jumlahStok: map['jumlah_stok'] != null

@@ -9,15 +9,66 @@ class MaterialRemoteDataSource extends RemoteDatasource {
 
   Future<DataState<List<MaterialModel>>> getMasterMaterials() async {
     try {
-      final response = await get(path: '/v1/master/material');
-      final data = response.data['data'] as List;
-      final result = data.map((e) => MaterialModel.fromMap(e)).toList();
+      final response = await get(path: '/v1/material');
+      final dynamic responseData = response.data;
+      final List<dynamic> dataList;
+      if (responseData is Map && responseData.containsKey('data')) {
+        dataList = responseData['data'] as List;
+      } else if (responseData is List) {
+        dataList = responseData;
+      } else {
+        throw Exception(
+          'Invalid response format: expected List or Map containing data key',
+        );
+      }
+      final result = dataList
+          .map((e) => MaterialModel.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
       return DataSuccess(result);
     } catch (e) {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/master/material'),
+          requestOptions: RequestOptions(path: '/v1/material'),
+        ),
+      );
+    }
+  }
+
+  Future<DataState<List<PeminjamanMaterialModel>>> getAllPeminjaman({
+    String? status,
+  }) async {
+    try {
+      final response = await get(
+        path: '/v1/peminjaman-material',
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      final dynamic responseData = response.data;
+      final List<dynamic> dataList;
+      if (responseData is Map && responseData.containsKey('data')) {
+        dataList = responseData['data'] as List;
+      } else if (responseData is List) {
+        dataList = responseData;
+      } else {
+        throw Exception(
+          'Invalid response format: expected List or Map containing data key',
+        );
+      }
+      final result = dataList
+          .map(
+            (e) =>
+                PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(e)),
+          )
+          .toList();
+      return DataSuccess(result);
+    } catch (e) {
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(
+            path: '/v1/peminjaman-material',
+            queryParameters: status != null ? {'status': status} : null,
+          ),
         ),
       );
     }
@@ -30,9 +81,22 @@ class MaterialRemoteDataSource extends RemoteDatasource {
       final response = await get(
         path: '/v1/workorder/$workOrderId/peminjaman-material',
       );
-      final data = response.data['data'] as List;
-      final result = data
-          .map((e) => PeminjamanMaterialModel.fromMap(e))
+      final dynamic responseData = response.data;
+      final List<dynamic> dataList;
+      if (responseData is Map && responseData.containsKey('data')) {
+        dataList = responseData['data'] as List;
+      } else if (responseData is List) {
+        dataList = responseData;
+      } else {
+        throw Exception(
+          'Invalid response format: expected List or Map containing data key',
+        );
+      }
+      final result = dataList
+          .map(
+            (e) =>
+                PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(e)),
+          )
           .toList();
       return DataSuccess(result);
     } catch (e) {
@@ -51,14 +115,27 @@ class MaterialRemoteDataSource extends RemoteDatasource {
     required int workOrderId,
     required int materialId,
     required int jumlahPinjam,
+    String? catatan,
   }) async {
     try {
       final response = await post(
         path: '/v1/workorder/$workOrderId/peminjaman-material',
-        data: {'material_id': materialId, 'jumlah_pinjam': jumlahPinjam},
+        data: {
+          'material_kode': materialId,
+          'jumlah_pinjam': jumlahPinjam,
+          if (catatan != null) 'catatan': catatan,
+        },
       );
-      final data = response.data['data'];
-      return DataSuccess(PeminjamanMaterialModel.fromMap(data));
+      final dynamic responseData = response.data;
+      final dynamic data;
+      if (responseData is Map && responseData.containsKey('data')) {
+        data = responseData['data'];
+      } else {
+        data = responseData;
+      }
+      return DataSuccess(
+        PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(data)),
+      );
     } catch (e) {
       return DataFailed(
         DioException(
@@ -84,14 +161,58 @@ class MaterialRemoteDataSource extends RemoteDatasource {
           if (kondisiKembali != null) 'kondisi_kembali': kondisiKembali,
         },
       );
-      final data = response.data['data'];
-      return DataSuccess(PeminjamanMaterialModel.fromMap(data));
+      final dynamic responseData = response.data;
+      final dynamic data;
+      if (responseData is Map && responseData.containsKey('data')) {
+        data = responseData['data'];
+      } else {
+        data = responseData;
+      }
+      return DataSuccess(
+        PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(data)),
+      );
     } catch (e) {
       return DataFailed(
         DioException(
           error: e,
           requestOptions: RequestOptions(
             path: '/v1/peminjaman-material/$peminjamanId/kembalikan',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<DataState<PeminjamanMaterialModel>> verifyReturn({
+    required int peminjamanId,
+    required String status,
+    String? catatanVerifikator,
+  }) async {
+    try {
+      final response = await post(
+        path: '/v1/peminjaman-material/$peminjamanId/verify',
+        data: {
+          'status': status,
+          if (catatanVerifikator != null)
+            'catatan_verifikator': catatanVerifikator,
+        },
+      );
+      final dynamic responseData = response.data;
+      final dynamic data;
+      if (responseData is Map && responseData.containsKey('data')) {
+        data = responseData['data'];
+      } else {
+        data = responseData;
+      }
+      return DataSuccess(
+        PeminjamanMaterialModel.fromMap(Map<String, dynamic>.from(data)),
+      );
+    } catch (e) {
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(
+            path: '/v1/peminjaman-material/$peminjamanId/verify',
           ),
         ),
       );

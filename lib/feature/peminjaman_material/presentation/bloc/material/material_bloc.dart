@@ -68,6 +68,7 @@ class MaterialBloc extends Bloc<MaterialEvent, MaterialState> {
         workOrderId: event.workOrderId,
         materialId: event.materialId,
         jumlahPinjam: event.jumlahPinjam,
+        catatan: event.catatan,
       ),
     );
     if (result is DataSuccess && result.data != null) {

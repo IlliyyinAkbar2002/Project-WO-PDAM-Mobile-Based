@@ -80,9 +80,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   Map<String, dynamic> _formData = {};
   List<ProgressDetailEntity> _progressDetails = [];
   List<dynamic> _images = [];
-  DateTime? _submitTime;
   int? _progressStatusId;
-  bool _inRange = true;
   bool _isCheckingDistance = true;
   bool isDataLoaded = false;
   bool _isSubmitting = false;
@@ -123,7 +121,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         setState(() {
           _progressDetails = [];
           isDataLoaded = true;
-          _inRange = true;
           _isCheckingDistance = false;
         });
         return;
@@ -131,7 +128,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
       setState(() {
         isDataLoaded = true;
-        _inRange = true;
         _isCheckingDistance = false;
       });
       return;
@@ -148,7 +144,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _checkDistance();
     } else {
       setState(() {
-        _inRange = true;
         _isCheckingDistance = false;
       });
     }
@@ -180,7 +175,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           if (state is WorkOrderProgressDetailLoaded) {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
-            final submitTime = state.progress.submitTime;
             final statusId = state.progress.statusId;
             final images = (state.progress.documentation ?? [])
                 .map((doc) => doc.url)
@@ -200,7 +194,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   _descriptionController.text = description;
                   _images = images;
                 }
-                _submitTime = submitTime;
                 _progressStatusId = statusId;
                 _requestedHeaderFallback = false;
                 isDataLoaded = true;
@@ -236,8 +229,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
             final description =
                 progressDetails.first.workOrderProgress?.description ?? '';
-            final submitTime =
-                progressDetails.first.workOrderProgress?.submitTime;
             final statusId = progressDetails.first.workOrderProgress?.statusId;
 
             // Ambil images dari workOrderProgress.documentation
@@ -277,7 +268,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   _formData = formData;
                   _images = images;
                 }
-                _submitTime = submitTime;
                 _progressStatusId = statusId;
                 isDataLoaded = true;
               });
@@ -925,7 +915,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       if (!mounted) return; // Safety check setelah async operation
 
       setState(() {
-        _inRange = result;
         _isCheckingDistance = false;
       });
       if (!result) {
@@ -942,7 +931,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       );
       if (!mounted) return;
       setState(() {
-        _inRange = false;
         _isCheckingDistance = false;
       });
       AppSnackbar.showError("Tidak dapat menentukan lokasi. Coba lagi.");
@@ -950,7 +938,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       debugPrint("⚠️ Error pengecekan lokasi: $e");
       if (!mounted) return;
       setState(() {
-        _inRange = false;
         _isCheckingDistance = false;
       });
       AppSnackbar.showError("Error: ${e.toString()}");

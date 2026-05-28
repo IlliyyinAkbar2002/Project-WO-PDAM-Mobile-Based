@@ -1,25 +1,20 @@
-import 'package:flutter/material.dart';
-
-class BorrowItemData {
-  final String brand;
-  final String name;
-  final String description;
-  final int availableCount;
-  final String imageUrl;
-
-  const BorrowItemData({
-    required this.brand,
-    required this.name,
-    required this.description,
-    required this.availableCount,
-    required this.imageUrl,
-  });
-}
+import 'package:flutter/material.dart' hide MaterialState;
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/material_entity.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_event.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_state.dart';
 
 class PengajuanItemPage extends StatefulWidget {
-  final BorrowItemData item;
+  final MaterialEntity material;
+  final int workOrderId;
 
-  const PengajuanItemPage({super.key, required this.item});
+  const PengajuanItemPage({
+    super.key,
+    required this.material,
+    required this.workOrderId,
+  });
 
   @override
   State<PengajuanItemPage> createState() => _PengajuanItemPageState();
@@ -27,126 +22,100 @@ class PengajuanItemPage extends StatefulWidget {
 
 class _PengajuanItemPageState extends State<PengajuanItemPage> {
   final _formKey = GlobalKey<FormState>();
-  final _startDateController = TextEditingController();
-  final _endDateController = TextEditingController();
-  final _purposeController = TextEditingController();
+  final TextEditingController _jumlahController = TextEditingController();
+  final TextEditingController _catatanController = TextEditingController();
   bool _isSuccess = false;
-  bool _isFormFilled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _startDateController.addListener(_onFormChanged);
-    _endDateController.addListener(_onFormChanged);
-    _purposeController.addListener(_onFormChanged);
-  }
-
-  void _onFormChanged() {
-    final filled =
-        _startDateController.text.trim().isNotEmpty &&
-        _endDateController.text.trim().isNotEmpty &&
-        _purposeController.text.trim().isNotEmpty;
-    if (filled == _isFormFilled) return;
-    setState(() => _isFormFilled = filled);
-  }
 
   @override
   void dispose() {
-    _startDateController.removeListener(_onFormChanged);
-    _endDateController.removeListener(_onFormChanged);
-    _purposeController.removeListener(_onFormChanged);
-    _startDateController.dispose();
-    _endDateController.dispose();
-    _purposeController.dispose();
+    _jumlahController.dispose();
+    _catatanController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate(TextEditingController controller) async {
-    final now = DateTime.now();
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 3),
-    );
-    if (selected == null) return;
-    final day = selected.day.toString().padLeft(2, '0');
-    final month = selected.month.toString().padLeft(2, '0');
-    final year = selected.year.toString();
-    controller.text = '$day/$month/$year';
+  String _getMaterialAsset(String category, String name) {
+    final lowerCat = category.toLowerCase();
+    final lowerName = name.toLowerCase();
+
+    if (lowerCat.contains('pipa') || lowerCat.contains('pipe') || lowerCat.contains('perpipaan')) {
+      if (lowerName.contains('pvc')) return 'assets/images/Pipe/Pipa-PVC.jpg';
+      if (lowerName.contains('galvanis') || lowerName.contains('galvanized')) return 'assets/images/Pipe/Pipe-galvanized.jpg';
+      return 'assets/images/Pipe/Pipa HDPE.jpg';
+    } else if (lowerCat.contains('fitting')) {
+      if (lowerName.contains('valve')) return 'assets/images/Fitting/Air-Valve-Reinforced-Nylon-fitting.png';
+      if (lowerName.contains('elbow')) return 'assets/images/Fitting/Elbow-90-derajat-fitting.png';
+      if (lowerName.contains('reducer')) return 'assets/images/Fitting/Jual-Reducer-fitting.png';
+      if (lowerName.contains('clamp') || lowerName.contains('saddle')) return 'assets/images/Fitting/Pipe-Fitting-Saddle-Clamp.png';
+      if (lowerName.contains('socket') || lowerName.contains('connector') || lowerName.contains('penyambung')) {
+        return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
+      }
+      if (lowerName.contains('tee')) return 'assets/images/Fitting/Tee-fitting.jpg';
+      return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
+    } else if (lowerCat.contains('sr')) {
+      if (lowerName.contains('valve')) return 'assets/images/SR/Ball-Valve-1_2-sr.png';
+      if (lowerName.contains('box')) return 'assets/images/SR/Box-Meter_ Plug-sr.png';
+      if (lowerName.contains('3/4')) return 'assets/images/SR/Water-Meter-3_4-sr.png';
+      return 'assets/images/SR/Water-Meter-1_2-sr.png';
+    }
+
+    return 'assets/images/logo_pdam.png';
   }
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _isSuccess = true);
+    final qty = int.tryParse(_jumlahController.text.trim()) ?? 0;
+    final note = _catatanController.text.trim();
+
+    // The backend uses 'material_kode', which is an integer in the seed.
+    // In our model mapping, we parse it as String in kodeMaterial.
+    // Let's pass the integer value of kodeMaterial as materialId parameter.
+    final materialKodeInt = int.tryParse(widget.material.kodeMaterial ?? '') ?? widget.material.id ?? 0;
+
+    context.read<MaterialBloc>().add(
+          PinjamMaterialEvent(
+            workOrderId: widget.workOrderId,
+            materialId: materialKodeInt,
+            jumlahPinjam: qty,
+            catatan: note.isNotEmpty ? note : null,
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 320),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          final offset = Tween<Offset>(
-            begin: const Offset(0, 0.03),
-            end: Offset.zero,
-          ).animate(animation);
-          return SlideTransition(
-            position: offset,
-            child: FadeTransition(opacity: animation, child: child),
+      body: BlocConsumer<MaterialBloc, MaterialState>(
+        listener: (context, state) {
+          if (state is MaterialActionSuccess) {
+            setState(() {
+              _isSuccess = true;
+            });
+          } else if (state is MaterialError) {
+            AppSnackbar.showError(state.message);
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is MaterialLoading;
+
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: _isSuccess
+                ? _buildSuccessState(context)
+                : _buildFormState(context, isLoading),
           );
         },
-        child: _isSuccess
-            ? _SuccessState(
-                key: const ValueKey('success_state'),
-                onBack: () => Navigator.pop(context),
-              )
-            : _BorrowRequestForm(
-                key: const ValueKey('form_state'),
-                item: widget.item,
-                formKey: _formKey,
-                startDateController: _startDateController,
-                endDateController: _endDateController,
-                purposeController: _purposeController,
-                onPickStartDate: () => _pickDate(_startDateController),
-                onPickEndDate: () => _pickDate(_endDateController),
-                isFormFilled: _isFormFilled,
-                onSubmit: _submit,
-              ),
       ),
     );
   }
-}
 
-class _BorrowRequestForm extends StatelessWidget {
-  final BorrowItemData item;
-  final GlobalKey<FormState> formKey;
-  final TextEditingController startDateController;
-  final TextEditingController endDateController;
-  final TextEditingController purposeController;
-  final VoidCallback onPickStartDate;
-  final VoidCallback onPickEndDate;
-  final bool isFormFilled;
-  final VoidCallback onSubmit;
+  Widget _buildFormState(BuildContext context, bool isLoading) {
+    final m = widget.material;
+    final available = m.stokTersedia;
+    final imageAsset = _getMaterialAsset(m.kategori ?? '', m.namaMaterial ?? '');
 
-  const _BorrowRequestForm({
-    super.key,
-    required this.item,
-    required this.formKey,
-    required this.startDateController,
-    required this.endDateController,
-    required this.purposeController,
-    required this.onPickStartDate,
-    required this.onPickEndDate,
-    required this.isFormFilled,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return SafeArea(
       child: Column(
         children: [
@@ -178,10 +147,10 @@ class _BorrowRequestForm extends StatelessWidget {
                 ),
                 const Expanded(
                   child: Text(
-                    'Borrow Request',
+                    'Borrow Material',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 28 * 0.64,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF101828),
                     ),
@@ -203,9 +172,9 @@ class _BorrowRequestForm extends StatelessWidget {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 1),
+                        color: Color(0x0A000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
@@ -213,8 +182,8 @@ class _BorrowRequestForm extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          item.imageUrl,
+                        child: Image.asset(
+                          imageAsset,
                           width: 64,
                           height: 64,
                           fit: BoxFit.cover,
@@ -222,81 +191,96 @@ class _BorrowRequestForm extends StatelessWidget {
                             width: 64,
                             height: 64,
                             color: const Color(0xFFF3F4F6),
-                            child: const Icon(Icons.image_not_supported_outlined),
+                            child: const Icon(Icons.build_outlined),
                           ),
                         ),
                       ),
                       const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.name,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: const Color(0xFF101828),
-                              fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              m.namaMaterial ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: const Color(0xFF101828),
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Available: ${item.availableCount}',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF6A7282),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Kode: ${m.kodeMaterial} • Tersedia: $available ${m.satuan ?? ""}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFF6A7282),
+                                  ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
                 Form(
-                  key: formKey,
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(
-                        icon: Icons.calendar_month_outlined,
-                        title: 'Borrowing Period',
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DateField(
-                              label: 'Start Date',
-                              controller: startDateController,
-                              onTap: onPickStartDate,
-                            ),
+                      _buildLabel('Jumlah Pinjam (${m.satuan ?? ""})'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _jumlahController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          hintText: 'Masukkan jumlah yang ingin dipinjam',
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _DateField(
-                              label: 'End Date',
-                              controller: endDateController,
-                              onTap: onPickEndDate,
-                            ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                           ),
-                        ],
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFF155DFC), width: 1.5),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Jumlah pinjam wajib diisi';
+                          }
+                          final val = int.tryParse(value.trim());
+                          if (val == null || val <= 0) {
+                            return 'Masukkan jumlah yang valid (minimal 1)';
+                          }
+                          if (val > available) {
+                            return 'Stok tidak mencukupi (maksimal: $available)';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 20),
-                      _SectionTitle(
-                        icon: Icons.info_outline_rounded,
-                        title: 'Justification',
-                      ),
-                      const SizedBox(height: 10),
+                      _buildLabel('Catatan Peminjaman (Opsional)'),
+                      const SizedBox(height: 8),
                       TextFormField(
-                        controller: purposeController,
-                        maxLines: 5,
+                        controller: _catatanController,
+                        maxLines: 4,
                         decoration: InputDecoration(
-                          hintText: 'Please explain why you need this equipment...',
+                          hintText: 'Keterangan kebutuhan peminjaman...',
                           filled: true,
                           fillColor: Colors.white,
                           contentPadding: const EdgeInsets.all(16),
                           hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF99A1AF),
-                            fontWeight: FontWeight.w500,
-                          ),
+                                color: const Color(0xFF99A1AF),
+                                fontWeight: FontWeight.w500,
+                              ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -305,43 +289,36 @@ class _BorrowRequestForm extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                           ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Justification wajib diisi';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Clear justifications help expedite the approval process.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          color: const Color(0xFF99A1AF),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Color(0xFF155DFC), width: 1.5),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 52,
                         child: FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: isFormFilled
-                                ? const Color(0xFF155DFC)
-                                : const Color(0xFF8EC5FF),
+                            backgroundColor: const Color(0xFF155DFC),
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            shadowColor: const Color(0x40155DFC),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          onPressed: onSubmit,
-                          child: const Text(
-                            'Submit Request',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                          ),
+                          onPressed: isLoading ? null : _submit,
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Ajukan Peminjaman',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                ),
                         ),
                       ),
                     ],
@@ -354,93 +331,19 @@ class _BorrowRequestForm extends StatelessWidget {
       ),
     );
   }
-}
 
-class _SectionTitle extends StatelessWidget {
-  final IconData icon;
-  final String title;
-
-  const _SectionTitle({required this.icon, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF98A2B3)),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF111827),
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF374151),
+      ),
     );
   }
-}
 
-class _DateField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final VoidCallback onTap;
-
-  const _DateField({
-    required this.label,
-    required this.controller,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF6A7282),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          readOnly: true,
-          onTap: onTap,
-          decoration: InputDecoration(
-            hintText: 'dd/mm/yyyy',
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Pilih tanggal';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _SuccessState extends StatelessWidget {
-  final VoidCallback onBack;
-
-  const _SuccessState({super.key, required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSuccessState(BuildContext context) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -463,18 +366,18 @@ class _SuccessState extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Request Sent!',
+                'Peminjaman Berhasil!',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 10),
               Text(
-                'Your request has been submitted for approval. We will notify you shortly.',
+                'Peminjaman material berhasil diproses dan stok telah dikurangi.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF6B7280),
-                ),
+                      color: const Color(0xFF6B7280),
+                    ),
               ),
               const SizedBox(height: 28),
               SizedBox(
@@ -488,8 +391,8 @@ class _SuccessState extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: onBack,
-                  child: const Text('Back to Inventory'),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Kembali ke Inventory'),
                 ),
               ),
             ],

@@ -9,7 +9,7 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/peminjaman_material_page.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
@@ -215,8 +215,8 @@ class _AssigneeWorkOrderDetailPageState
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PeminjamanMaterialPage(
-                          workOrderId: widget.workOrderId ?? 0,
+                        builder: (_) => PeminjamanItemListPage(
+                          workOrderId: widget.workOrderId,
                         ),
                       ),
                     );
@@ -245,8 +245,8 @@ class _AssigneeWorkOrderDetailPageState
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PeminjamanMaterialPage(
-                          workOrderId: widget.workOrderId ?? 0,
+                        builder: (_) => PeminjamanItemListPage(
+                          workOrderId: widget.workOrderId,
                         ),
                       ),
                     );

@@ -26,11 +26,13 @@ class MaterialRepositoryImpl implements MaterialRepository {
     required int workOrderId,
     required int materialId,
     required int jumlahPinjam,
+    String? catatan,
   }) async {
     return await _remoteDataSource.pinjamMaterial(
       workOrderId: workOrderId,
       materialId: materialId,
       jumlahPinjam: jumlahPinjam,
+      catatan: catatan,
     );
   }
 

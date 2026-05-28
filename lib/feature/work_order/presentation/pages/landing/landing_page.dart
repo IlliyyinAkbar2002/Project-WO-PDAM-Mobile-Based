@@ -187,8 +187,8 @@ class _LandingPageState extends AppStatePage<LandingPage> {
               child: _LandingPageBody(
                 selectedPicId: null,
                 selectedUserId: null,
-                onPicIdChanged: (value) => null,
-                onUserIdChanged: (value) => null,
+                onPicIdChanged: (value) {},
+                onUserIdChanged: (value) {},
               ),
             ),
           ],
