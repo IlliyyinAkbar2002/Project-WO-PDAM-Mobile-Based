@@ -466,6 +466,20 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
           MapEntry('tipe_progress_kode', progressKode),
           MapEntry('tipe_progress', progressKode),
         ]);
+        if (workOrderProgress.kategoriData != null) {
+          workOrderProgress.kategoriData!.forEach((key, value) {
+            if (value != null) {
+              if (value is DateTime) {
+                final y = value.year.toString().padLeft(4, '0');
+                final m = value.month.toString().padLeft(2, '0');
+                final d = value.day.toString().padLeft(2, '0');
+                formData.fields.add(MapEntry(key, '$y-$m-$d'));
+              } else {
+                formData.fields.add(MapEntry(key, value.toString()));
+              }
+            }
+          });
+        }
         response = await post(
           path: '/v1/progress-workorder/submit',
           data: formData,

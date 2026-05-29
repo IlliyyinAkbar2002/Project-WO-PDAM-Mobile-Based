@@ -268,4 +268,70 @@ class FormFieldsConfig {
       ],
     ];
   }
+
+  static List<Map<String, dynamic>> getSubmissionFields({
+    required String? kategoriForm,
+    bool isReadOnly = false,
+  }) {
+    if (kategoriForm == 'jaringan') {
+      return [
+        {
+          "type": "textarea",
+          "key": "tindakan_perbaikan",
+          "label": "Tindakan Perbaikan",
+          "hint": "Masukkan tindakan perbaikan yang dilakukan",
+          "isReadOnly": isReadOnly,
+        },
+        {
+          "type": "textarea",
+          "key": "hasil_inspeksi",
+          "label": "Hasil Inspeksi",
+          "hint": "Masukkan hasil inspeksi",
+          "isReadOnly": isReadOnly,
+        },
+      ];
+    } else if (kategoriForm == 'infrastruktur') {
+      return [
+        {
+          "type": "text",
+          "key": "kondisi_akhir",
+          "label": "Kondisi Akhir",
+          "hint": "Masukkan kondisi akhir",
+          "isReadOnly": isReadOnly,
+        },
+        {
+          "type": "date",
+          "key": "jadwal_pemeliharaan",
+          "label": "Jadwal Pemeliharaan Selanjutnya",
+          "hint": "Pilih tanggal",
+          "isReadOnly": isReadOnly,
+        },
+        {
+          "type": "textarea",
+          "key": "tindakan",
+          "label": "Tindakan",
+          "hint": "Masukkan tindakan pemeliharaan",
+          "isReadOnly": isReadOnly,
+        },
+      ];
+    } else if (kategoriForm == 'meter') {
+      return [
+        {
+          "type": "text",
+          "key": "kondisi_meter_akhir",
+          "label": "Kondisi Meter Akhir",
+          "hint": "Masukkan kondisi meter akhir",
+          "isReadOnly": isReadOnly,
+        },
+        {
+          "type": "text",
+          "key": "hasil_kalibrasi",
+          "label": "Hasil Kalibrasi",
+          "hint": "Masukkan hasil kalibrasi",
+          "isReadOnly": isReadOnly,
+        },
+      ];
+    }
+    return [];
+  }
 }

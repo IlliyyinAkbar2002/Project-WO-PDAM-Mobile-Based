@@ -14,6 +14,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
   final double? latitude;
   final double? longitude;
   final double? accuracy;
+  final Map<String, dynamic>? kategoriData;
   const WorkOrderProgressModel({
     super.id,
     super.order,
@@ -32,6 +33,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     this.latitude,
     this.longitude,
     this.accuracy,
+    this.kategoriData,
   });
 
   factory WorkOrderProgressModel.fromJson(String source) =>
@@ -125,6 +127,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       'latitude': latitude,
       'longitude': longitude,
       'accuracy': accuracy,
+      if (kategoriData != null) 'kategori_data': kategoriData,
       // submitted_by_user_id TIDAK dikirim — backend inject dari auth.
       'detail_progress':
           progressDetails?.map((detail) => detail.toMap()).toList() ?? [],

@@ -13,6 +13,10 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pag
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 
 final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},
@@ -75,6 +79,7 @@ class _AssigneeWorkOrderDetailPageState
   bool _progressesLoaded = false;
   bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
+  WorkOrderEntity? _workOrder;
 
   String _resolveAppBarTitle() {
     if (widget.kategoriForm != null) {
@@ -84,12 +89,55 @@ class _AssigneeWorkOrderDetailPageState
     return widget.isOvertime ? "Work Order Lembur" : "Work Order";
   }
 
+  Map<String, dynamic> _buildKategoriFormData(WorkOrderEntity workOrder) {
+    final Map<String, dynamic>? detail = workOrder.detailKategori;
+    if (detail == null) return const {};
+
+    switch (workOrder.kategoriForm) {
+      case 'jaringan':
+        return {
+          "jenisPipa": detail["jenis_pipa"],
+          "diameterPipa": detail["diameter_pipa"]?.toString(),
+          "panjangPipa": detail["panjang_pipa"]?.toString(),
+          "tingkatKerusakan": detail["tingkat_kerusakan"],
+          "tindakan_perbaikan": detail["tindakan_perbaikan"]?.toString(),
+          "hasil_inspeksi": detail["hasil_inspeksi"]?.toString(),
+        };
+      case 'infrastruktur':
+        return {
+          "namaAset": detail["nama_aset"],
+          "jenisAset": detail["jenis_aset"],
+          "kapasitas": detail["kapasitas"]?.toString(),
+          "kondisiAwal": detail["kondisi_awal"]?.toString(),
+          "kondisi_awal": detail["kondisi_awal"]?.toString(),
+          "kondisi_akhir": detail["kondisi_akhir"]?.toString(),
+          "jadwal_pemeliharaan": detail["jadwal_pemeliharaan"]?.toString(),
+          "tindakan": detail["tindakan"]?.toString(),
+        };
+      case 'meter':
+        return {
+          "nomorMeter": detail["nomor_meter"],
+          "kondisiMeterAwal": detail["kondisi_meter_awal"],
+          "kondisi_meter_akhir": detail["kondisi_meter_akhir"]?.toString(),
+          "hasil_kalibrasi": detail["hasil_kalibrasi"]?.toString(),
+        };
+      default:
+        return const {};
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _fetchProgresses();
+
+    // Check if WorkOrderBloc already has the work order detail loaded
+    final workOrderBloc = context.read<WorkOrderBloc>();
+    if (workOrderBloc.state is WorkOrderDetailLoaded) {
+      _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
+    }
   }
 
   /// Fetch progresses directly from remote data source — bypass BLoC
@@ -135,9 +183,18 @@ class _AssigneeWorkOrderDetailPageState
 
   @override
   Widget buildPage(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(title: _resolveAppBarTitle()),
-      body: _buildBody(),
+    return BlocListener<WorkOrderBloc, WorkOrderState>(
+      listener: (context, state) {
+        if (state is WorkOrderDetailLoaded) {
+          setState(() {
+            _workOrder = state.workOrder;
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(title: _resolveAppBarTitle()),
+        body: _buildBody(),
+      ),
     );
   }
 
@@ -162,11 +219,6 @@ class _AssigneeWorkOrderDetailPageState
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Entri yang sudah dibatalkan disembunyikan dari tampilan — secara UX user
-    // ingin entrinya hilang, bukan tetap muncul dengan prefix "[Dibatalkan]".
-    // Backend masih menyimpannya untuk audit. Konsekuensi penting: `hasMulai`
-    // dan `hasSelesai` ikut menjadi false bila satu-satunya entri sudah
-    // dibatalkan, sehingga user bisa memulai ulang.
     final List<WorkOrderProgressEntity> visibleProgresses = progresses
         .where((p) => !p.isDibatalkan)
         .toList();
@@ -240,7 +292,7 @@ class _AssigneeWorkOrderDetailPageState
             ],
           ),
         ],
-        if (hasSelesai && widget.status == WorkOrderStatusId.pengecekan) ...[
+        if (hasSelesai && widget.status == WorkOrderStatusId.selesai) ...[
           const SizedBox(height: 8),
           Row(
             children: [
@@ -317,6 +369,10 @@ class _AssigneeWorkOrderDetailPageState
                   lngLat: widget.lngLat,
                   locationName: widget.locationName,
                   radiusMeter: widget.radiusMeter,
+                  kategoriForm: widget.kategoriForm,
+                  initialKategoriData: _workOrder != null
+                      ? _buildKategoriFormData(_workOrder!)
+                      : null,
                 ),
               ),
             );
@@ -438,6 +494,10 @@ class _AssigneeWorkOrderDetailPageState
               lngLat: widget.lngLat,
               locationName: widget.locationName,
               radiusMeter: widget.radiusMeter,
+              kategoriForm: widget.kategoriForm,
+              initialKategoriData: _workOrder != null
+                  ? _buildKategoriFormData(_workOrder!)
+                  : null,
             ),
           ),
         );

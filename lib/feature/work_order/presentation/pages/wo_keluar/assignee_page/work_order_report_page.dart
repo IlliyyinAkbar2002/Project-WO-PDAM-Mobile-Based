@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
@@ -34,6 +35,8 @@ class WorkOrderReportPage extends StatefulWidget {
   final LatLng? lngLat;
   final String? locationName; // Nama lokasi dari MasterLocation
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
+  final String? kategoriForm;
+  final Map<String, dynamic>? initialKategoriData;
 
   const WorkOrderReportPage({
     super.key,
@@ -46,6 +49,8 @@ class WorkOrderReportPage extends StatefulWidget {
     this.lngLat,
     this.locationName,
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.kategoriForm,
+    this.initialKategoriData,
   });
 
   @override
@@ -114,6 +119,34 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _descriptionController.text = draft.description;
       _images = List.from(draft.images);
       _formData = Map.from(draft.formData);
+    } else if (widget.initialKategoriData != null) {
+      _formData = {
+        if (widget.initialKategoriData!.containsKey('kondisiAwal'))
+          'kondisi_awal': widget.initialKategoriData!['kondisiAwal'],
+        if (widget.initialKategoriData!.containsKey('kondisi_awal'))
+          'kondisi_awal': widget.initialKategoriData!['kondisi_awal'],
+        if (widget.initialKategoriData!.containsKey('tindakan_perbaikan'))
+          'tindakan_perbaikan':
+              widget.initialKategoriData!['tindakan_perbaikan'],
+        if (widget.initialKategoriData!.containsKey('hasil_inspeksi'))
+          'hasil_inspeksi': widget.initialKategoriData!['hasil_inspeksi'],
+        if (widget.initialKategoriData!.containsKey('kondisi_akhir'))
+          'kondisi_akhir': widget.initialKategoriData!['kondisi_akhir'],
+        if (widget.initialKategoriData!.containsKey('jadwal_pemeliharaan'))
+          'jadwal_pemeliharaan':
+              widget.initialKategoriData!['jadwal_pemeliharaan'] is String
+              ? DateTime.tryParse(
+                  widget.initialKategoriData!['jadwal_pemeliharaan'],
+                )
+              : widget.initialKategoriData!['jadwal_pemeliharaan'],
+        if (widget.initialKategoriData!.containsKey('tindakan'))
+          'tindakan': widget.initialKategoriData!['tindakan'],
+        if (widget.initialKategoriData!.containsKey('kondisi_meter_akhir'))
+          'kondisi_meter_akhir':
+              widget.initialKategoriData!['kondisi_meter_akhir'],
+        if (widget.initialKategoriData!.containsKey('hasil_kalibrasi'))
+          'hasil_kalibrasi': widget.initialKategoriData!['hasil_kalibrasi'],
+      };
     }
 
     if (widget.progressId == null) {
@@ -368,9 +401,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (widget.mode == 'Selesai' &&
-                              _progressDetails.isNotEmpty)
-                            _buildDynamicForm(),
+                          if (widget.mode == 'Selesai') _buildDynamicForm(),
                           const SizedBox(height: 24),
                           widget.isAssignee && !isDetailMode
                               ? (_isAlreadyRecorded
@@ -523,13 +554,20 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   Widget _buildDynamicForm() {
-    // Simulasi JSON form dinamis (sementara hardcoded)
-    final dynamicFields = (isDetailMode || !widget.isAssignee)
-        ? DynamicFormConfig.getDetailDynamicFormFields(
-            details: _progressDetails,
-            isDetailMode: isDetailMode,
-          )
-        : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
+    final List<Map<String, dynamic>> dynamicFields;
+    if (widget.kategoriForm != null) {
+      dynamicFields = FormFieldsConfig.getSubmissionFields(
+        kategoriForm: widget.kategoriForm,
+        isReadOnly: isDetailMode || _isAlreadyRecorded,
+      );
+    } else {
+      dynamicFields = (isDetailMode || !widget.isAssignee)
+          ? DynamicFormConfig.getDetailDynamicFormFields(
+              details: _progressDetails,
+              isDetailMode: isDetailMode,
+            )
+          : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
+    }
     debugPrint("🔍 detail mode: $isDetailMode");
     return DynamicFormBuilder(
       fields: dynamicFields,
@@ -652,6 +690,48 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       if (_images.isEmpty && widget.mode != 'Mulai') {
         AppSnackbar.showError("Minimal satu foto diperlukan.");
         return;
+      }
+
+      if (widget.mode == 'Selesai') {
+        final category = widget.kategoriForm;
+        if (category == 'jaringan') {
+          if ((_formData['tindakan_perbaikan'] ?? '')
+              .toString()
+              .trim()
+              .isEmpty) {
+            AppSnackbar.showError("Tindakan Perbaikan tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['hasil_inspeksi'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Hasil Inspeksi tidak boleh kosong.");
+            return;
+          }
+        } else if (category == 'infrastruktur') {
+          if ((_formData['kondisi_akhir'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Kondisi Akhir tidak boleh kosong.");
+            return;
+          }
+          if (_formData['jadwal_pemeliharaan'] == null) {
+            AppSnackbar.showError("Jadwal Pemeliharaan tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['tindakan'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Tindakan tidak boleh kosong.");
+            return;
+          }
+        } else if (category == 'meter') {
+          if ((_formData['kondisi_meter_akhir'] ?? '')
+              .toString()
+              .trim()
+              .isEmpty) {
+            AppSnackbar.showError("Kondisi Meter Akhir tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['hasil_kalibrasi'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Hasil Kalibrasi tidak boleh kosong.");
+            return;
+          }
+        }
       }
 
       // Kunci tombol secepat mungkin untuk mencegah double-tap mengirim
@@ -812,6 +892,32 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
         accuracy: _currentPosition?.accuracy,
+        kategoriData: widget.mode == 'Selesai'
+            ? {
+                if (widget.kategoriForm == 'jaringan') ...{
+                  'tindakan_perbaikan': _formData['tindakan_perbaikan']
+                      ?.toString()
+                      .trim(),
+                  'hasil_inspeksi': _formData['hasil_inspeksi']
+                      ?.toString()
+                      .trim(),
+                } else if (widget.kategoriForm == 'infrastruktur') ...{
+                  'kondisi_awal': _formData['kondisi_awal']?.toString().trim(),
+                  'kondisi_akhir': _formData['kondisi_akhir']
+                      ?.toString()
+                      .trim(),
+                  'jadwal_pemeliharaan': _formData['jadwal_pemeliharaan'],
+                  'tindakan': _formData['tindakan']?.toString().trim(),
+                } else if (widget.kategoriForm == 'meter') ...{
+                  'kondisi_meter_akhir': _formData['kondisi_meter_akhir']
+                      ?.toString()
+                      .trim(),
+                  'hasil_kalibrasi': _formData['hasil_kalibrasi']
+                      ?.toString()
+                      .trim(),
+                },
+              }
+            : null,
       );
 
       debugPrint(

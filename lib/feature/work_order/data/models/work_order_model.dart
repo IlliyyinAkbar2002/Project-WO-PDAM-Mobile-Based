@@ -527,6 +527,14 @@ class WorkOrderModel extends WorkOrderEntity {
     if (map['wo_infrastruktur'] != null) return 'infrastruktur';
     if (map['wo_meter'] != null) return 'meter';
 
+    if (map['kategori_form'] is String) {
+      return map['kategori_form'] as String;
+    }
+    if (rawJenisWorkorder is Map &&
+        rawJenisWorkorder['kategori_form'] is String) {
+      return rawJenisWorkorder['kategori_form'] as String;
+    }
+
     final namaWo = (map['nama_workorder'] ?? map['judul_pekerjaan'] ?? '')
         .toString()
         .toLowerCase();
@@ -535,14 +543,6 @@ class WorkOrderModel extends WorkOrderEntity {
 
     if (_isJaringanName(combinedText)) return 'jaringan';
     if (_isInfrastrukturName(combinedText)) return 'infrastruktur';
-
-    if (map['kategori_form'] is String) {
-      return map['kategori_form'] as String;
-    }
-    if (rawJenisWorkorder is Map &&
-        rawJenisWorkorder['kategori_form'] is String) {
-      return rawJenisWorkorder['kategori_form'] as String;
-    }
 
     // 5. Fallback: coba tebak dari nama jenis workorder
     if (rawJenisWorkorder is Map) {

@@ -195,6 +195,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           "diameterPipa": detail["diameter_pipa"]?.toString(),
           "panjangPipa": detail["panjang_pipa"]?.toString(),
           "tingkatKerusakan": detail["tingkat_kerusakan"],
+          "tindakan_perbaikan": detail["tindakan_perbaikan"]?.toString(),
+          "hasil_inspeksi": detail["hasil_inspeksi"]?.toString(),
         };
       case WoKategoriForm.infrastruktur:
         return {
@@ -202,11 +204,17 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
           "jenisAset": detail["jenis_aset"],
           "kapasitas": detail["kapasitas"]?.toString(),
           "kondisiAwal": detail["kondisi_awal"]?.toString(),
+          "kondisi_awal": detail["kondisi_awal"]?.toString(),
+          "kondisi_akhir": detail["kondisi_akhir"]?.toString(),
+          "jadwal_pemeliharaan": detail["jadwal_pemeliharaan"]?.toString(),
+          "tindakan": detail["tindakan"]?.toString(),
         };
       case WoKategoriForm.meter:
         return {
           "nomorMeter": detail["nomor_meter"],
           "kondisiMeterAwal": detail["kondisi_meter_awal"],
+          "kondisi_meter_akhir": detail["kondisi_meter_akhir"]?.toString(),
+          "hasil_kalibrasi": detail["hasil_kalibrasi"]?.toString(),
         };
       default:
         return const {};
@@ -459,6 +467,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                                   status: widget.status,
                                   progressId: progressIndex.id,
                                   workOrderId: widget.workOrderId,
+                                  kategoriForm:
+                                      formData["kategoriForm"] as String?,
+                                  initialKategoriData: formData,
                                   lngLat:
                                       (formData["latitude"] != null &&
                                           formData["longitude"] != null)
@@ -751,7 +762,8 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     // Location is considered unset if locationId is null, locationName is empty,
     // coordinates are null/zero, or coordinates match the default fallback (-7.2704960, 112.5672211).
-    final bool isDefaultLocation = assignLatitude != null &&
+    final bool isDefaultLocation =
+        assignLatitude != null &&
         assignLongitude != null &&
         (assignLatitude - -7.2704960).abs() < 0.000001 &&
         (assignLongitude - 112.5672211).abs() < 0.000001;

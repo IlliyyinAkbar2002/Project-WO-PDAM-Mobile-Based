@@ -458,6 +458,9 @@ class _DetailWorkOrderPageMasukState
                                   status: widget.status,
                                   progressId: progressIndex.id,
                                   workOrderId: widget.workOrderId,
+                                  kategoriForm:
+                                      formData["kategoriForm"] as String?,
+                                  initialKategoriData: formData,
                                   lngLat:
                                       (formData["latitude"] != null &&
                                           formData["longitude"] != null)

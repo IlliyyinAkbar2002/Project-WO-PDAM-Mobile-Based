@@ -43,14 +43,16 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
     for (var field in widget.fields) {
       if (field['type'] == 'text' ||
           field['type'] == 'textarea' ||
-          field['type'] == 'tanggal') {
+          field['type'] == 'tanggal' ||
+          field['type'] == 'date') {
         String initialText = '';
-        if (field['type'] == 'tanggal' &&
+        final isDateType = field['type'] == 'tanggal' || field['type'] == 'date';
+        if (isDateType &&
             widget.formData[field['key']] is DateTime) {
           initialText = DateFormat(
             'dd/MM/yyyy',
           ).format(widget.formData[field['key']]);
-        } else if (field['type'] == 'tanggal' &&
+        } else if (isDateType &&
             widget.formData[field['key']] is String) {
           // Tangani jika backend mengembalikan string tanggal
           try {
