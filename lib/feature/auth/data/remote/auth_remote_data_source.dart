@@ -73,6 +73,68 @@ class AuthRemoteDataSource extends RemoteDatasource {
     }
   }
 
+  /// Forgot password — screen 1.
+  /// Cek apakah email terdaftar. Endpoint publik (tanpa auth).
+  /// 200 → kembalikan email ternormalisasi dari server (fallback ke input).
+  /// 404 → DataFailed (ApiException "Email tidak terdaftar").
+  Future<DataState<String>> forgotPassword({required String email}) async {
+    try {
+      final response = await post(
+        path: '/v1/auth/forgot-password',
+        data: {'email': email},
+      );
+
+      final data = response.data;
+      final resolvedEmail = (data is Map && data['email'] is String)
+          ? data['email'] as String
+          : email;
+      return DataSuccess(resolvedEmail);
+    } on DioException catch (e) {
+      debugPrint('❌ DioException during forgotPassword: ${e.message}');
+      return DataFailed(e);
+    } catch (e) {
+      debugPrint('❌ Unexpected Error during forgotPassword: $e');
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(path: '/v1/auth/forgot-password'),
+        ),
+      );
+    }
+  }
+
+  /// Forgot password — screen 2.
+  /// Set password baru untuk email yang sudah diverifikasi di screen 1.
+  /// 200 → kembalikan pesan sukses dari server.
+  Future<DataState<String>> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await post(
+        path: '/v1/auth/reset-password',
+        data: {'email': email, 'new_password': newPassword},
+      );
+
+      final data = response.data;
+      final message = (data is Map && data['message'] is String)
+          ? data['message'] as String
+          : 'Password berhasil diatur ulang.';
+      return DataSuccess(message);
+    } on DioException catch (e) {
+      debugPrint('❌ DioException during resetPassword: ${e.message}');
+      return DataFailed(e);
+    } catch (e) {
+      debugPrint('❌ Unexpected Error during resetPassword: $e');
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(path: '/v1/auth/reset-password'),
+        ),
+      );
+    }
+  }
+
   /// Fetch current user profile from /me endpoint
   /// Returns user data transformed to standard format
   Future<DataState<Map<String, dynamic>>> fetchMe() async {

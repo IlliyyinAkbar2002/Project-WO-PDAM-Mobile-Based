@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_so
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/register.dart';
+import 'package:project_mobile_pdam/feature/auth/presentation/forgot_password.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 
@@ -199,8 +200,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 12),
                 _buildLoginButton(),
                 const SizedBox(height: 20),
-                // _buildForgotPasswordLink(),
-                // const SizedBox(height: 16),
+                _buildForgotPasswordLink(),
+                const SizedBox(height: 16),
                 _buildRegisterLink(),
                 const SizedBox(height: 4),
               ],
@@ -374,26 +375,26 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget _buildForgotPasswordLink() {
-  //   return Center(
-  //     child: GestureDetector(
-  //       behavior: HitTestBehavior.opaque,
-  //       onTap: _handleForgotPassword,
-  //       child: const Padding(
-  //         padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-  //         child: Text(
-  //           'Lupa Password?',
-  //           style: TextStyle(
-  //             color: _LoginTokens.accentGreen,
-  //             fontSize: 13,
-  //             fontWeight: FontWeight.bold,
-  //             height: 1.5,
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+  Widget _buildForgotPasswordLink() {
+    return Center(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _handleForgotPassword,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Text(
+            'Lupa Password?',
+            style: TextStyle(
+              color: _LoginTokens.accentGreen,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildRegisterLink() {
     return Center(
@@ -655,15 +656,12 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // void _handleForgotPassword() {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(
-  //       content: Text('Fitur lupa password akan segera tersedia'),
-  //       backgroundColor: Color(0xFF2196F3),
-  //       behavior: SnackBarBehavior.floating,
-  //     ),
-  //   );
-  // }
+  void _handleForgotPassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+    );
+  }
 
   void _testConnection() async {
     ScaffoldMessenger.of(context).showSnackBar(
