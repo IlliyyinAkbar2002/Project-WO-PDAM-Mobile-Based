@@ -53,8 +53,8 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
       return AssignerWorkOrderListPage(
         picId: widget.picId,
         excludeStatus: const [
-          WorkOrderStatusId.menungguApprovalManager,
           WorkOrderStatusId.ditugaskanKeSpv,
+          WorkOrderStatusId.selesai,
         ],
       );
     } else {

@@ -26,6 +26,8 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/progress_individu.dart';
 
 class DetailWorkOrderPage extends StatefulWidget {
   final int? picId;
@@ -59,6 +61,7 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
   List<WorkOrderTypeEntity> workOrderTypes = [];
   List<UserEntity> assignees = [];
   List<WorkOrderProgressEntity> progresses = [];
+  ProgressByMemberEntity? progressByMember;
   int? status;
   int? splId;
 
@@ -110,6 +113,10 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
     bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
+    // Fetch progress by member untuk SPV view
+    if (!widget.isAssignee) {
+      bloc.add(GetProgressByMemberEvent(widget.workOrderId!));
+    }
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -306,6 +313,15 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
+          debugPrint(
+            "📢 DetailWorkOrderPage: state.workOrder.assignment = ${state.workOrder.assignment}",
+          );
+          debugPrint(
+            "📢 DetailWorkOrderPage: state.workOrder.assignment?.assignee = ${state.workOrder.assignment?.assignee}",
+          );
+          debugPrint(
+            "📢 DetailWorkOrderPage: state.workOrder.assignment?.assignee?.employee?.name = ${state.workOrder.assignment?.assignee?.employee?.name}",
+          );
           setState(() {
             _detailErrorMessage = null;
             formData = {
@@ -337,6 +353,11 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
               "endDateTime": state.workOrder.endDateTime,
               "deskripsiPekerjaan":
                   state.workOrder.assignment?.description ?? "",
+              "picId": state.workOrder.assignment?.assigneeId,
+              "picName":
+                  state.workOrder.assignment?.assignee?.employee?.name ??
+                  state.workOrder.assignment?.assignee?.email ??
+                  "",
               ..._buildKategoriFormData(state.workOrder),
               _assigneeKey:
                   state.workOrder.assignment?.assignees ??
@@ -359,6 +380,9 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
         builder: (context, state) {
           if (state is ProgressesLoaded) {
             progresses = state.progresses;
+          }
+          if (state is ProgressByMemberLoaded) {
+            progressByMember = state.progressByMember;
           }
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
@@ -492,6 +516,24 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
                       ),
                   const SizedBox(height: 16),
                 ],
+              )
+            : const SizedBox(),
+        // Progress Individual Anggota (untuk SPV)
+        !widget.isAssignee && progressByMember != null
+            ? IndividualProgressSection(
+                progressByMember: progressByMember!,
+                status: widget.status,
+                kategoriForm: formData["kategoriForm"] as String?,
+                lngLat:
+                    (formData["latitude"] != null &&
+                        formData["longitude"] != null)
+                    ? LatLng(
+                        (formData["latitude"] as num).toDouble(),
+                        (formData["longitude"] as num).toDouble(),
+                      )
+                    : null,
+                locationName: formData["locationName"] as String?,
+                radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
               )
             : const SizedBox(),
         widget.isAssignee
@@ -843,9 +885,16 @@ class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
 
     if (result is DataSuccess<WorkOrderModel?>) {
       AppSnackbar.showSuccess("Assign staff berhasil.");
-      context.read<WorkOrderBloc>().add(
-        GetWorkOrderDetailEvent(widget.workOrderId!),
-      );
+      final WorkOrderModel? updatedWorkOrder = result.data;
+      if (updatedWorkOrder != null) {
+        context.read<WorkOrderBloc>().add(
+          SetWorkOrderDetailEvent(updatedWorkOrder),
+        );
+      } else {
+        context.read<WorkOrderBloc>().add(
+          GetWorkOrderDetailEvent(widget.workOrderId!),
+        );
+      }
       context.read<WorkOrderBloc>().add(
         GetProgressByWorkOrderIdEvent(widget.workOrderId!),
       );

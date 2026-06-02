@@ -146,6 +146,17 @@ class FormFieldsConfig {
         "isReadOnly": !isAssignMode,
         "showIf": isAssignMode,
       },
+      {
+        "type": "text",
+        "key": "picName",
+        "label": "Koordinator (PIC)",
+        "hint": "Nama koordinator",
+        "isReadOnly": true,
+        "showIf": (formData) =>
+            !isAssignMode &&
+            formData["picName"] != null &&
+            formData["picName"].toString().isNotEmpty,
+      },
       // ─── Deskripsi Pekerjaan ────────────────────────────────────────
       {
         "type": "textarea",

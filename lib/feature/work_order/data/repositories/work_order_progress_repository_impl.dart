@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/progress_quota_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/progress_by_member_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_progress_repository.dart';
 import '/core/resource/data_state.dart';
 
@@ -83,6 +87,40 @@ class WorkOrderProgressRepositoryImpl implements WorkOrderProgressRepository {
       );
       debugPrint("📥 Resubmit response: $response");
       if (response is DataSuccess<WorkOrderProgressModel>) {
+        return DataSuccess(response.data!.toEntity());
+      } else {
+        return DataFailed(response.error!);
+      }
+    } catch (e) {
+      return DataFailed("Terjadi kesalahan: $e");
+    }
+  }
+
+  @override
+  Future<DataState<ProgressQuotaEntity>> getProgressQuota(
+    int workOrderId,
+  ) async {
+    try {
+      final response = await remoteDataSource.getProgressQuota(workOrderId);
+      debugPrint("📊 Quota response: $response");
+      if (response is DataSuccess<ProgressQuotaModel>) {
+        return DataSuccess(response.data!.toEntity());
+      } else {
+        return DataFailed(response.error!);
+      }
+    } catch (e) {
+      return DataFailed("Terjadi kesalahan: $e");
+    }
+  }
+
+  @override
+  Future<DataState<ProgressByMemberEntity>> getProgressByMember(
+    int workOrderId,
+  ) async {
+    try {
+      final response = await remoteDataSource.getProgressByMember(workOrderId);
+      debugPrint("👥 Progress by member response: $response");
+      if (response is DataSuccess<ProgressByMemberModel>) {
         return DataSuccess(response.data!.toEntity());
       } else {
         return DataFailed(response.error!);

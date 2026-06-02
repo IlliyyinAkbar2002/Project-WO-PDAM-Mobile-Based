@@ -60,6 +60,32 @@ class CustomForm<T> extends StatefulWidget {
 class _CustomFormState<T> extends AppStatePage<CustomForm<T>> {
   bool _isPasswordVisible = true;
 
+  /// Filters dropdown items to ensure unique values
+  /// Keeps the first occurrence of each value
+  List<DropdownMenuItem<T>> _getUniqueDropdownItems(
+    List<DropdownMenuItem<T>>? items,
+    TextStyle? style,
+  ) {
+    if (items == null || items.isEmpty) return [];
+
+    final seenValues = <T>{};
+    final uniqueItems = <DropdownMenuItem<T>>[];
+
+    for (final item in items) {
+      if (!seenValues.contains(item.value)) {
+        seenValues.add(item.value as T);
+        uniqueItems.add(
+          DropdownMenuItem<T>(
+            value: item.value,
+            child: DefaultTextStyle.merge(style: style, child: item.child),
+          ),
+        );
+      }
+    }
+
+    return uniqueItems;
+  }
+
   @override
   Widget buildPage(BuildContext context) {
     final inputStyle = textTheme.titleLarge;
@@ -67,6 +93,20 @@ class _CustomFormState<T> extends AppStatePage<CustomForm<T>> {
       vertical: 12,
       horizontal: 16,
     );
+
+    // Safety check: ensure dropdownValue exists in uniqueItems
+    T? dropdownValue = widget.dropdownValue;
+    List<DropdownMenuItem<T>> uniqueItems = [];
+    if (widget.inputType == InputType.dropdown) {
+      uniqueItems = _getUniqueDropdownItems(widget.dropdownItems, inputStyle);
+      final hasValue = uniqueItems.any(
+        (item) => item.value == widget.dropdownValue,
+      );
+      if (!hasValue) {
+        dropdownValue = null;
+      }
+    }
+
     return Align(
       alignment: AlignmentDirectional.topStart,
       child: Column(
@@ -166,21 +206,10 @@ class _CustomFormState<T> extends AppStatePage<CustomForm<T>> {
                         ),
                       )
                     : DropdownButtonFormField<T>(
+                        key: ValueKey(dropdownValue),
                         style: inputStyle,
-                        initialValue: widget.dropdownValue,
-                        items:
-                            widget.dropdownItems
-                                ?.map(
-                                  (item) => DropdownMenuItem<T>(
-                                    value: item.value,
-                                    child: DefaultTextStyle.merge(
-                                      style: inputStyle,
-                                      child: item.child,
-                                    ),
-                                  ),
-                                )
-                                .toList() ??
-                            [],
+                        initialValue: dropdownValue,
+                        items: uniqueItems,
                         onChanged: widget.enabled
                             ? widget.onDropdownChanged
                             : null,
@@ -192,15 +221,21 @@ class _CustomFormState<T> extends AppStatePage<CustomForm<T>> {
                           fillColor: const Color(0xFFE9EFF6),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
                           ),
                         ),
                       ),

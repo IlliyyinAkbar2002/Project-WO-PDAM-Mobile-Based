@@ -44,6 +44,8 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/resubmit_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_quota_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_by_member_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
@@ -283,6 +285,12 @@ Future<void> init() async {
     sl.registerLazySingleton(
       () => ResubmitProgressUseCase(sl<WorkOrderProgressRepository>()),
     );
+    sl.registerLazySingleton(
+      () => GetProgressQuotaUseCase(sl<WorkOrderProgressRepository>()),
+    );
+    sl.registerLazySingleton(
+      () => GetProgressByMemberUseCase(sl<WorkOrderProgressRepository>()),
+    );
 
     //progress detail
     sl.registerLazySingleton(
@@ -355,6 +363,8 @@ Future<void> init() async {
         sl<GetWorkOrderProgressDetailUsecase>(),
         sl<UpdateWorkOrderProgressUseCase>(),
         sl<ResubmitProgressUseCase>(),
+        sl<GetProgressQuotaUseCase>(),
+        sl<GetProgressByMemberUseCase>(),
 
         //progress detail
         sl<GetProgressDetailsUsecase>(),

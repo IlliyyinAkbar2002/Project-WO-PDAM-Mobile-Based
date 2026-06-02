@@ -9,6 +9,7 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
@@ -17,6 +18,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 
 final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},
@@ -76,6 +78,7 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
 class _AssigneeWorkOrderDetailPageState
     extends AppStatePage<AssigneeWorkOrderDetailPage> {
   List<WorkOrderProgressEntity> progresses = [];
+  ProgressQuotaEntity? progressQuota;
   bool _progressesLoaded = false;
   bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
@@ -132,12 +135,23 @@ class _AssigneeWorkOrderDetailPageState
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _fetchProgresses();
+    _fetchQuota();
 
     // Check if WorkOrderBloc already has the work order detail loaded
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
+  }
+
+  /// Fetch quota individual user dari API baru
+  Future<void> _fetchQuota() async {
+    if (widget.workOrderId == null) return;
+    debugPrint("📊 Fetching individual quota for WO ${widget.workOrderId}");
+
+    context.read<WorkOrderBloc>().add(
+      GetProgressQuotaEvent(widget.workOrderId!),
+    );
   }
 
   /// Fetch progresses directly from remote data source — bypass BLoC
@@ -190,6 +204,12 @@ class _AssigneeWorkOrderDetailPageState
             _workOrder = state.workOrder;
           });
         }
+        if (state is ProgressQuotaLoaded) {
+          setState(() {
+            progressQuota = state.quota;
+          });
+          debugPrint("✅ Quota loaded: ${state.quota.sisaKuotaHariIni}/${state.quota.totalKuotaHariIni}");
+        }
       },
       child: Scaffold(
         appBar: CustomAppBar(title: _resolveAppBarTitle()),
@@ -225,11 +245,11 @@ class _AssigneeWorkOrderDetailPageState
 
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
     final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
-    final int submittedToday = _countSubmittedToday();
-    final int sisaKuota = (_kDailyReportLimit - submittedToday).clamp(
-      0,
-      _kDailyReportLimit,
-    );
+
+    // Gunakan quota dari API jika tersedia, fallback ke perhitungan manual
+    final int sisaKuota = progressQuota?.sisaKuotaHariIni ??
+        (_kDailyReportLimit - _countSubmittedToday()).clamp(0, _kDailyReportLimit);
+    final int totalKuotaHariIni = progressQuota?.totalKuotaHariIni ?? _kDailyReportLimit;
     final bool isKuotaHabis = sisaKuota == 0;
 
     return ListView(
@@ -251,7 +271,7 @@ class _AssigneeWorkOrderDetailPageState
                 style: textTheme.displayMedium,
               ),
             ),
-            if (hasMulai && !hasSelesai) _buildKuotaChip(sisaKuota),
+            if (hasMulai && !hasSelesai) _buildKuotaChip(sisaKuota, totalKuotaHariIni),
           ],
         ),
         const SizedBox(height: 8),
@@ -292,7 +312,9 @@ class _AssigneeWorkOrderDetailPageState
             ],
           ),
         ],
-        if (hasSelesai && widget.status == WorkOrderStatusId.selesai) ...[
+        if (hasSelesai &&
+            (widget.status == WorkOrderStatusId.pengecekan ||
+                widget.status == WorkOrderStatusId.selesai)) ...[
           const SizedBox(height: 8),
           Row(
             children: [
@@ -318,11 +340,11 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
-  Widget _buildKuotaChip(int sisaKuota) {
+  Widget _buildKuotaChip(int sisaKuota, int totalKuota) {
     final bool isHabis = sisaKuota == 0;
     return Chip(
       label: Text(
-        isHabis ? 'Kuota Habis' : 'Sisa: $sisaKuota/$_kDailyReportLimit',
+        isHabis ? 'Kuota Anda Habis' : 'Kuota Anda: $sisaKuota/$totalKuota',
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,

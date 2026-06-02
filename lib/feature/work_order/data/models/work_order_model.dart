@@ -161,6 +161,7 @@ class WorkOrderModel extends WorkOrderEntity {
         parseMap(map['workorderAssignment']) ??
         parseMap(map['assignment']);
 
+    UserModel? coordinator;
     List<UserModel>? assignees;
     final dynamic rawAssignmentMembers =
         assignmentMap?['members'] ??
@@ -171,10 +172,20 @@ class WorkOrderModel extends WorkOrderEntity {
           .whereType<Map>()
           .map((member) {
             final userMap = member['user'];
+            UserModel? parsedUser;
             if (userMap is Map) {
-              return UserModel.fromMap(Map<String, dynamic>.from(userMap));
+              parsedUser = UserModel.fromMap(Map<String, dynamic>.from(userMap));
             }
-            return null;
+            if (parsedUser != null) {
+              final String? peranDirect = member['peran']?.toString() ?? member['role']?.toString();
+              final Map? pivotMap = member['pivot'] is Map ? member['pivot'] as Map : null;
+              final String? peranPivot = pivotMap?['peran']?.toString() ?? pivotMap?['role']?.toString();
+              final String? peran = peranDirect ?? peranPivot;
+              if (peran == 'koordinator') {
+                coordinator = parsedUser;
+              }
+            }
+            return parsedUser;
           })
           .whereType<UserModel>()
           .toList();
@@ -294,14 +305,15 @@ class WorkOrderModel extends WorkOrderEntity {
         parseIdFromAny(map['petugas_id']) ??
         assigneeCandidate?.id;
 
-    final UserModel? assignee = (assignees != null && assignees.isNotEmpty)
-        ? (parsedAssigneeId != null
-              ? assignees.firstWhere(
-                  (user) => user.id == parsedAssigneeId,
-                  orElse: () => assignees!.first,
-                )
-              : assignees.first)
-        : assigneeCandidate;
+    final UserModel? assignee = coordinator ??
+        ((assignees != null && assignees.isNotEmpty)
+            ? (parsedAssigneeId != null
+                  ? assignees.firstWhere(
+                      (user) => user.id == parsedAssigneeId,
+                      orElse: () => assignees!.first,
+                    )
+                  : assignees.first)
+            : assigneeCandidate);
 
     final Map<String, dynamic>? assignmentLocationMap =
         parseMap(assignmentMap?['location']) ?? parseMap(map['location']);

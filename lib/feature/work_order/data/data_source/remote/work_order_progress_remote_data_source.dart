@@ -7,6 +7,8 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/progress_quota_model.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/progress_by_member_model.dart';
 
 class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
   WorkOrderProgressRemoteDataSource() : super();
@@ -517,6 +519,78 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         '/v1/progress-workorder/${workOrderProgress.id}',
       );
       _logDioError('updateWorkOrderProgressDetail', dioError);
+      return DataFailed(dioError);
+    }
+  }
+
+  /// Mendapatkan kuota progress individual untuk user yang sedang login.
+  ///
+  /// Endpoint: GET /v1/progress-workorder/quota/{workorderId}
+  /// Response sekarang include `user_id` untuk tracking individual.
+  Future<DataState<ProgressQuotaModel>> getProgressQuota(
+    int workOrderId,
+  ) async {
+    try {
+      final response = await get(
+        path: '/v1/progress-workorder/quota/$workOrderId',
+      );
+      final dynamic raw = response.data;
+      debugPrint("📊 getProgressQuota($workOrderId) raw: $raw");
+
+      final Map<String, dynamic> payload;
+      if (raw is Map<String, dynamic>) {
+        payload = raw['data'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(raw['data'])
+            : Map<String, dynamic>.from(raw);
+      } else {
+        throw const FormatException('Format quota tidak dikenali.');
+      }
+
+      final data = ProgressQuotaModel.fromMap(payload);
+      return DataSuccess(data);
+    } catch (e, st) {
+      final dioError = _toDioException(
+        e,
+        '/v1/progress-workorder/quota/$workOrderId',
+      );
+      _logDioError('getProgressQuota', dioError);
+      debugPrint("❌ getProgressQuota stack: $st");
+      return DataFailed(dioError);
+    }
+  }
+
+  /// Mendapatkan progress individual setiap anggota tim (untuk SPV).
+  ///
+  /// Endpoint: GET /v1/progress-workorder/by-member/{workorderId}
+  /// Response berisi list semua anggota dengan progress masing-masing.
+  Future<DataState<ProgressByMemberModel>> getProgressByMember(
+    int workOrderId,
+  ) async {
+    try {
+      final response = await get(
+        path: '/v1/progress-workorder/by-member/$workOrderId',
+      );
+      final dynamic raw = response.data;
+      debugPrint("👥 getProgressByMember($workOrderId) raw: $raw");
+
+      final Map<String, dynamic> payload;
+      if (raw is Map<String, dynamic>) {
+        payload = raw['data'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(raw['data'])
+            : Map<String, dynamic>.from(raw);
+      } else {
+        throw const FormatException('Format progress by member tidak dikenali.');
+      }
+
+      final data = ProgressByMemberModel.fromMap(payload);
+      return DataSuccess(data);
+    } catch (e, st) {
+      final dioError = _toDioException(
+        e,
+        '/v1/progress-workorder/by-member/$workOrderId',
+      );
+      _logDioError('getProgressByMember', dioError);
+      debugPrint("❌ getProgressByMember stack: $st");
       return DataFailed(dioError);
     }
   }

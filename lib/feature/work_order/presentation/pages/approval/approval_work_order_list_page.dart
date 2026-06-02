@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
@@ -20,7 +22,9 @@ class ApprovalWorkOrderListPage extends StatefulWidget {
 
 class _ApprovalWorkOrderListPageState
     extends AppStatePage<ApprovalWorkOrderListPage> {
+  final _searchController = TextEditingController();
   late WorkOrderBloc _workOrderBloc;
+  Timer? _debounce;
 
   // Filter state
   FilterResult? _currentFilter;
@@ -31,10 +35,17 @@ class _ApprovalWorkOrderListPageState
     _workOrderBloc = context.read<WorkOrderBloc>();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _fetchWorkOrders() {
     _workOrderBloc.add(
       GetWorkOrdersEvent(
-        status: const [5],
+        status: _currentFilter?.statusIds ?? const [WorkOrderStatusId.selesai],
         picId: widget.picId,
         userId: _currentFilter?.assigneeId ?? widget.userId,
         type: _currentFilter?.workOrderTypeId,
@@ -111,7 +122,9 @@ class _ApprovalWorkOrderListPageState
           ),
           Expanded(
             child: WorkOrderList(
-              status: const [5],
+              status:
+                  _currentFilter?.statusIds ??
+                  const [WorkOrderStatusId.selesai],
               picId: widget.picId,
               userId: widget.userId,
             ),
@@ -128,19 +141,28 @@ class _ApprovalWorkOrderListPageState
         labelText: 'Cari Work Order',
         hintText: 'Masukkan kata kunci',
         inputType: InputType.text,
-        // controller: _workOrderBloc.searchController,
-        // onChanged: (value) {
-        //   _workOrderBloc.add(SearchWorkOrdersEvent(value));
-        // },
-        // onSubmitted: (value) {
-        //   _workOrderBloc.add(SearchWorkOrdersEvent(value));
-        // },
+        controller: _searchController,
+        onChanged: (value) {
+          if (_debounce?.isActive ?? false) _debounce!.cancel();
+          _debounce = Timer(const Duration(milliseconds: 500), () {
+            _workOrderBloc.add(
+              SearchWorkOrdersEvent(
+                value,
+                picId: widget.picId,
+                userId: _currentFilter?.assigneeId ?? widget.userId,
+                status:
+                    _currentFilter?.statusIds ??
+                    const [WorkOrderStatusId.selesai],
+              ),
+            );
+          });
+        },
         prefixIcon: const Icon(Icons.search),
         suffixIcon: IconButton(
           icon: const Icon(Icons.clear),
           onPressed: () {
-            // _workOrderBloc.searchController.clear();
-            // _workOrderBloc.add(GetWorkOrdersEvent());
+            _searchController.clear();
+            _fetchWorkOrders();
           },
         ),
       ),

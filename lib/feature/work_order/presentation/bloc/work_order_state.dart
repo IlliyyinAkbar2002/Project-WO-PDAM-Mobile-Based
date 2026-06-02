@@ -6,6 +6,8 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/spl_entit
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 
 import '/feature/work_order/domain/entities/work_order_entity.dart';
 
@@ -116,6 +118,19 @@ class WorkOrderProgressUpdated extends WorkOrderState {
   final WorkOrderProgressEntity progress;
 
   WorkOrderProgressUpdated(this.progress);
+}
+
+// Individual progress tracking states
+class ProgressQuotaLoaded extends WorkOrderState {
+  final ProgressQuotaEntity quota;
+
+  ProgressQuotaLoaded(this.quota);
+}
+
+class ProgressByMemberLoaded extends WorkOrderState {
+  final ProgressByMemberEntity progressByMember;
+
+  ProgressByMemberLoaded(this.progressByMember);
 }
 
 //progress detail

@@ -102,8 +102,8 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                 return Column(
                   children: [
                     CustomForm(
-                      hintText: field["hint"],
-                      labelText: field["label"],
+                      hintText: field["hint"] ?? "",
+                      labelText: field["label"] ?? "",
                       keyboardType: TextInputType.text,
                       controller: _controllers[field["key"]],
                       readOnly: isReadOnly || widget.readOnly,
@@ -121,8 +121,8 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                 return Column(
                   children: [
                     CustomForm(
-                      hintText: field["hint"],
-                      labelText: field["label"],
+                      hintText: field["hint"] ?? "",
+                      labelText: field["label"] ?? "",
                       keyboardType: TextInputType.multiline,
                       controller: _controllers[field["key"]],
                       readOnly: isReadOnly || widget.readOnly,
@@ -142,16 +142,21 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                 debugPrint("Dropdown parent: ${field["parent"]}");
                 debugPrint("Dropdown option: ${field["options"]}");
                 final options = _getFilteredOptions(field);
+                // Remove duplicate values to prevent dropdown assertion error
+                final uniqueOptions = _removeDuplicateOptions(options);
                 debugPrint(
                   "Dropdown ${field["key"]} - isDisabled: $isDisabled",
+                );
+                debugPrint(
+                  "Dropdown ${field["key"]} - Original options: ${options.length}, Unique: ${uniqueOptions.length}",
                 );
                 return Column(
                   children: [
                     CustomForm(
-                      hintText: field["hint"],
-                      labelText: field["label"],
+                      hintText: field["hint"] ?? "",
+                      labelText: field["label"] ?? "",
                       inputType: InputType.dropdown,
-                      dropdownItems: options.map((option) {
+                      dropdownItems: uniqueOptions.map((option) {
                         return DropdownMenuItem<dynamic>(
                           value: option["value"],
                           child: Text(
@@ -179,8 +184,8 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                   children: [
                     CustomForm(
                       controller: _controllers[field["key"]],
-                      hintText: field["hint"],
-                      labelText: field["label"],
+                      hintText: field["hint"] ?? "",
+                      labelText: field["label"] ?? "",
                       readOnly: true,
                       enabled: !isDisabled && !widget.readOnly,
                       onTap: (isReadOnly)
@@ -325,5 +330,24 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
     return options
         .where((opt) => opt["optionParent"] == selectedParentValue)
         .toList();
+  }
+
+  /// Removes duplicate options based on their "value" field
+  /// Keeps the first occurrence of each unique value
+  List<Map<String, dynamic>> _removeDuplicateOptions(
+    List<Map<String, dynamic>> options,
+  ) {
+    final seenValues = <dynamic>{};
+    final uniqueOptions = <Map<String, dynamic>>[];
+
+    for (final option in options) {
+      final value = option["value"];
+      if (!seenValues.contains(value)) {
+        seenValues.add(value);
+        uniqueOptions.add(option);
+      }
+    }
+
+    return uniqueOptions;
   }
 }

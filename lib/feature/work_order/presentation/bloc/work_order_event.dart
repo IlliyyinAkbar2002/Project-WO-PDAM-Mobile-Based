@@ -197,6 +197,19 @@ class ResubmitProgressEvent extends WorkOrderEvent {
   ResubmitProgressEvent(this.progressWorkorderId);
 }
 
+// Individual progress tracking events
+class GetProgressQuotaEvent extends WorkOrderEvent {
+  final int workOrderId;
+
+  GetProgressQuotaEvent(this.workOrderId);
+}
+
+class GetProgressByMemberEvent extends WorkOrderEvent {
+  final int workOrderId;
+
+  GetProgressByMemberEvent(this.workOrderId);
+}
+
 //progress detail
 class GetProgressDetailsEvent extends WorkOrderEvent {
   final int workOrderProgressId;

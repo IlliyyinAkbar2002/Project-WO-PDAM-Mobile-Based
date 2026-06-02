@@ -20,12 +20,14 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_enti
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/member_progress_card.dart';
 
 class DetailWorkOrderPageMasuk extends StatefulWidget {
   final int? picId;
@@ -61,6 +63,7 @@ class _DetailWorkOrderPageMasukState
   List<WorkOrderTypeEntity> workOrderTypes = [];
   List<UserEntity> assignees = [];
   List<WorkOrderProgressEntity> progresses = [];
+  ProgressByMemberEntity? progressByMember;
   int? status;
   int? splId;
 
@@ -112,6 +115,10 @@ class _DetailWorkOrderPageMasukState
     final bloc = context.read<WorkOrderBloc>();
     bloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
     bloc.add(GetProgressByWorkOrderIdEvent(widget.workOrderId!));
+    // Fetch progress by member untuk SPV view
+    if (!widget.isAssignee) {
+      bloc.add(GetProgressByMemberEvent(widget.workOrderId!));
+    }
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -297,6 +304,15 @@ class _DetailWorkOrderPageMasukState
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
+          debugPrint(
+            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment = ${state.workOrder.assignment}",
+          );
+          debugPrint(
+            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment?.assignee = ${state.workOrder.assignment?.assignee}",
+          );
+          debugPrint(
+            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment?.assignee?.employee?.name = ${state.workOrder.assignment?.assignee?.employee?.name}",
+          );
           setState(() {
             _detailErrorMessage = null;
             formData = {
@@ -328,6 +344,11 @@ class _DetailWorkOrderPageMasukState
               "endDateTime": state.workOrder.endDateTime,
               "deskripsiPekerjaan":
                   state.workOrder.assignment?.description ?? "",
+              "picId": state.workOrder.assignment?.assigneeId,
+              "picName":
+                  state.workOrder.assignment?.assignee?.employee?.name ??
+                  state.workOrder.assignment?.assignee?.email ??
+                  "",
               ..._buildKategoriFormData(state.workOrder),
               _assigneeKey:
                   state.workOrder.assignment?.assignees ??
@@ -350,6 +371,11 @@ class _DetailWorkOrderPageMasukState
         builder: (context, state) {
           if (state is ProgressesLoaded) {
             progresses = state.progresses;
+          }
+          if (state is ProgressByMemberLoaded) {
+            setState(() {
+              progressByMember = state.progressByMember;
+            });
           }
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
@@ -485,9 +511,127 @@ class _DetailWorkOrderPageMasukState
                 ],
               )
             : const SizedBox(),
+        // Progress Individual Anggota (untuk SPV)
+        !widget.isAssignee && progressByMember != null
+            ? _buildMemberProgressSection()
+            : const SizedBox(),
         widget.isAssignee
             ? const SizedBox()
             : _buildActionButtons(canAssignStaff: canAssignStaff),
+      ],
+    );
+  }
+
+  Widget _buildMemberProgressSection() {
+    if (progressByMember == null || progressByMember!.members.isEmpty) {
+      return const SizedBox();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Progress Anggota Tim",
+                style: textTheme.displayMedium,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${progressByMember!.members.length} Anggota',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Team Statistics
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTeamStat(
+                  'Rata-rata Progress',
+                  '${progressByMember!.averageProgress.toStringAsFixed(1)}%',
+                  Icons.trending_up,
+                  Colors.blue,
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey[300],
+                ),
+                _buildTeamStat(
+                  'Total Submissions',
+                  '${progressByMember!.totalSubmissionsAll}',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Member List
+        ...progressByMember!.members.map((member) {
+          return MemberProgressCard(
+            member: member,
+            isExpanded: false,
+          );
+        }),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildTeamStat(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
