@@ -10,17 +10,30 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/Report/laporan_workorder.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class ListLaporanWorkorderPage extends StatefulWidget {
+class ListLaporanWorkorderPage extends StatelessWidget {
   const ListLaporanWorkorderPage({super.key});
 
   @override
-  State<ListLaporanWorkorderPage> createState() =>
+  Widget build(BuildContext context) {
+    return BlocProvider<WorkOrderBloc>(
+      create: (_) => sl<WorkOrderBloc>(),
+      child: const _ListLaporanWorkorderPage(),
+    );
+  }
+}
+
+class _ListLaporanWorkorderPage extends StatefulWidget {
+  const _ListLaporanWorkorderPage();
+
+  @override
+  State<_ListLaporanWorkorderPage> createState() =>
       _ListLaporanWorkorderPageState();
 }
 
 class _ListLaporanWorkorderPageState
-    extends AppStatePage<ListLaporanWorkorderPage> {
+    extends AppStatePage<_ListLaporanWorkorderPage> {
   final _searchController = TextEditingController();
   late WorkOrderBloc _workOrderBloc;
   Timer? _debounce;

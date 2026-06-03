@@ -43,7 +43,7 @@ class ProfileViewDataResolver {
     firstName: '-',
     lastName: '-',
     birthDate: '-',
-    position: 'User',
+    position: 'Staff',
     country: '-',
     state: '-',
     city: '-',
@@ -54,7 +54,7 @@ class ProfileViewDataResolver {
     fullName: '-',
     email: '-',
     address: '-',
-    roleName: 'User',
+    roleName: 'Staff',
     personalData: defaultPersonalData,
   );
 
@@ -106,17 +106,36 @@ class ProfileViewDataResolver {
   }
 
   static String resolvePositionLabel(Map<String, dynamic> user) {
-    final roleId = _toInt(user['role_id']);
+    final employee = user['employee'] as Map<String, dynamic>?;
+    final fromEmployee = employee?['jabatan_kode'] as String?;
 
-    if (roleId == 1) return 'Superadmin';
-    if (roleId == 2) return 'Manager';
-    if (roleId == 3) {
-      // Stable jabatan.kode resolved via AuthStorage helper. Senior Staff and
-      // Staff are both surfaced as 'Staff' to match the role matrix in
-      // FE_adjustment_BE.md.
-      return AuthStorage.getJabatanKodeSync() == 'SPV' ? 'SPV' : 'Staff';
+    final pegawai = user['pegawai'] as Map<String, dynamic>?;
+    final jabatan = pegawai?['jabatan'] as Map<String, dynamic>?;
+    final fromPegawai = jabatan?['kode'] as String?;
+
+    final positionId = _toInt(employee?['position_id']);
+    String? legacyJabatan;
+    switch (positionId) {
+      case 2:
+        legacyJabatan = 'SPV';
+        break;
+      case 3:
+        legacyJabatan = 'SENIOR_STAFF';
+        break;
+      case 4:
+        legacyJabatan = 'STAFF';
+        break;
     }
-    return 'User';
+
+    final kode =
+        fromEmployee ??
+        fromPegawai ??
+        legacyJabatan ??
+        AuthStorage.getJabatanKodeSync();
+
+    if (kode == 'SPV') return 'Supervisor';
+    if (kode == 'SENIOR_STAFF') return 'Senior Staff';
+    return 'Staff';
   }
 
   static int? _toInt(dynamic value) {

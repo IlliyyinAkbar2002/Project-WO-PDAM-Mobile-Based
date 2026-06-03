@@ -47,6 +47,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         'limit': limit,
         if (status != null) 'status': status.join(','),
         if (excludeStatus != null) 'exclude_status': excludeStatus.join(','),
+        if (picId != null) 'pic_id': picId,
         if (userId != null) 'user_id': userId,
         if (type != null) 'type': type,
         if (dateRange != null) 'date_range': dateRange,

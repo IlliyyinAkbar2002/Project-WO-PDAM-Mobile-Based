@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
@@ -15,6 +16,10 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profil
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/Report/list_laporan_workorder.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 
 part '../widgets/_landing_page_header.dart';
 part '../widgets/_landing_page_body.dart';
@@ -175,6 +180,22 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends AppStatePage<LandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthStorage.getUserSync();
+    final userId = user?['id'] as int?;
+
+    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+
+    context.read<WorkOrderBloc>().add(
+      GetWorkOrdersEvent(
+        userId: isSpv ? null : userId,
+        picId: isSpv ? userId : null,
+      ),
+    );
+  }
+
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(

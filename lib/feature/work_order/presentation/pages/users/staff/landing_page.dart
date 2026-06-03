@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 
 class StaffLandingPage extends StatefulWidget {
   const StaffLandingPage({super.key});
@@ -12,6 +16,14 @@ class StaffLandingPage extends StatefulWidget {
 }
 
 class _StaffLandingPageState extends AppStatePage<StaffLandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthStorage.getUserSync();
+    final userId = user?['id'] as int?;
+    context.read<WorkOrderBloc>().add(GetWorkOrdersEvent(userId: userId));
+  }
+
   @override
   Widget buildPage(BuildContext context) {
     final colors = Theme.of(context).extension<AppColor>()!;

@@ -28,8 +28,9 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widget
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/progress_individu.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class DetailWorkOrderPage extends StatefulWidget {
+class DetailWorkOrderPage extends StatelessWidget {
   final int? picId;
   final int? userId;
   final int? workOrderId;
@@ -50,10 +51,46 @@ class DetailWorkOrderPage extends StatefulWidget {
   });
 
   @override
-  State<DetailWorkOrderPage> createState() => _DetailWorkOrderPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider<WorkOrderBloc>(
+      create: (_) => sl<WorkOrderBloc>(),
+      child: _DetailWorkOrderPage(
+        picId: picId,
+        userId: userId,
+        workOrderId: workOrderId,
+        status: status,
+        isOvertime: isOvertime,
+        isAssignee: isAssignee,
+        enableInnerScroll: enableInnerScroll,
+      ),
+    );
+  }
 }
 
-class _DetailWorkOrderPageState extends AppStatePage<DetailWorkOrderPage> {
+class _DetailWorkOrderPage extends StatefulWidget {
+  final int? picId;
+  final int? userId;
+  final int? workOrderId;
+  final int? status;
+  final bool isOvertime;
+  final bool isAssignee;
+  final bool enableInnerScroll;
+
+  const _DetailWorkOrderPage({
+    this.picId,
+    this.userId,
+    this.workOrderId,
+    this.status,
+    required this.isOvertime,
+    this.isAssignee = false,
+    this.enableInnerScroll = true,
+  });
+
+  @override
+  State<_DetailWorkOrderPage> createState() => _DetailWorkOrderPageState();
+}
+
+class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   static const String _assigneeKey = "assignee";
   static const String _assigneesKey = "assignees";
 

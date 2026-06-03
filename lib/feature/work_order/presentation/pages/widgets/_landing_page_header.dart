@@ -56,7 +56,9 @@ class _LandingPageHeader extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await AuthStorage.clearAuth();
-                debugPrint('🚪 User logged out from landing page, session cleared');
+                debugPrint(
+                  '🚪 User logged out from landing page, session cleared',
+                );
                 if (!dialogContext.mounted) return;
                 Navigator.of(dialogContext).pop();
                 if (!context.mounted) return;
@@ -149,13 +151,25 @@ class _LandingPageHeader extends StatelessWidget {
                       _ProfileActionItem(
                         icon: Icons.notifications_none_outlined,
                         label: 'Notifications',
-                        onTap: () {
+                        onTap: () async {
                           Navigator.of(dialogContext).pop();
-                          Navigator.of(context).push(
+                          await Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const NotificationsPage(),
                             ),
                           );
+                          if (context.mounted) {
+                            final user = AuthStorage.getUserSync();
+                            final userId = user?['id'] as int?;
+                            final isSpv =
+                                AuthStorage.getJabatanKodeSync() == 'SPV';
+                            context.read<WorkOrderBloc>().add(
+                              GetWorkOrdersEvent(
+                                userId: isSpv ? null : userId,
+                                picId: isSpv ? userId : null,
+                              ),
+                            );
+                          }
                         },
                       ),
                       _ProfileActionItem(
@@ -336,12 +350,23 @@ class _LandingPageHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               _NotificationButton(
-                onTap: () {
-                  Navigator.of(context).push(
+                onTap: () async {
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const NotificationsPage(),
                     ),
                   );
+                  if (context.mounted) {
+                    final user = AuthStorage.getUserSync();
+                    final userId = user?['id'] as int?;
+                    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+                    context.read<WorkOrderBloc>().add(
+                      GetWorkOrdersEvent(
+                        userId: isSpv ? null : userId,
+                        picId: isSpv ? userId : null,
+                      ),
+                    );
+                  }
                 },
                 badgeColor: notifRed,
               ),
@@ -423,7 +448,8 @@ class _NotificationButton extends StatelessWidget {
               ),
               BlocBuilder<NotificationBloc, NotificationState>(
                 builder: (context, state) {
-                  final bool showBadge = state is NotificationLoaded && state.unreadCount > 0;
+                  final bool showBadge =
+                      state is NotificationLoaded && state.unreadCount > 0;
                   if (!showBadge) return const SizedBox();
                   return Positioned(
                     top: 8,

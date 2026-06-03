@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/personal_data.dart';
@@ -9,10 +10,7 @@ class ProfilePage extends StatelessWidget {
 
   const ProfilePage({super.key, required ProfileViewData data}) : _data = data;
 
-  factory ProfilePage.safe({
-    Key? key,
-    ProfileViewData? data,
-  }) {
+  factory ProfilePage.safe({Key? key, ProfileViewData? data}) {
     return ProfilePage(
       key: key,
       data: data ?? ProfileViewDataResolver.defaultProfileData,
@@ -29,127 +27,137 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgGray,
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _ProfileTopSection(
-                fullName: data.fullName,
-                roleName: data.roleName,
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _SectionCard(
-                      title: 'CONTACT',
-                      children: [
-                        _SectionRowItem(
-                          icon: Icons.email,
-                          text: data.email,
-                          iconColor: _purple,
-                          chevron: false,
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.location_on_rounded,
-                          text: data.address,
-                          iconColor: _purple,
-                          chevron: false,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _SectionCard(
-                      title: 'ACCOUNT',
-                      children: [
-                        _SectionRowItem(
-                          icon: Icons.person,
-                          text: 'Personal Data',
-                          iconColor: _purple,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PersonalDataPage.safe(data: data.personalData),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: _bgGray,
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _ProfileTopSection(
+                  fullName: data.fullName,
+                  roleName: data.roleName,
+                  onBackTap: () => Navigator.of(context).pop(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionCard(
+                        title: 'CONTACT',
+                        children: [
+                          _SectionRowItem(
+                            icon: Icons.email,
+                            text: data.email,
+                            iconColor: _purple,
+                            chevron: false,
+                          ),
+                          _SectionRowItem(
+                            icon: Icons.location_on_rounded,
+                            text: data.address,
+                            iconColor: _purple,
+                            chevron: false,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _SectionCard(
+                        title: 'ACCOUNT',
+                        children: [
+                          _SectionRowItem(
+                            icon: Icons.person,
+                            text: 'Personal Data',
+                            iconColor: _purple,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PersonalDataPage.safe(
+                                  data: data.personalData,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.folder,
-                          text: 'Office Assets',
-                          iconColor: _purple,
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Office Assets belum tersedia.',
+                          // _SectionRowItem(
+                          //   icon: Icons.folder,
+                          //   text: 'Office Assets',
+                          //   iconColor: _purple,
+                          //   onTap: () => _showComingSoon(
+                          //     context,
+                          //     'Office Assets belum tersedia.',
+                          //   ),
+                          // ),
+                          // _SectionRowItem(
+                          //   icon: Icons.account_balance_wallet,
+                          //   text: 'Payroll & Tax',
+                          //   iconColor: _purple,
+                          //   onTap: () => _showComingSoon(
+                          //     context,
+                          //     'Payroll & Tax belum tersedia.',
+                          //   ),
+                          // ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _SectionCard(
+                        title: 'SETTINGS',
+                        children: [
+                          // _SectionRowItem(
+                          //   icon: Icons.settings,
+                          //   text: 'Change Password',
+                          //   iconColor: _purple,
+                          //   onTap: () => _showComingSoon(
+                          //     context,
+                          //     'Change Password belum tersedia.',
+                          //   ),
+                          // ),
+                          // _SectionRowItem(
+                          //   icon: Icons.developer_mode,
+                          //   text: 'Versioning',
+                          //   iconColor: _purple,
+                          //   onTap: () => _showComingSoon(
+                          //     context,
+                          //     'Versioning belum tersedia.',
+                          //   ),
+                          // ),
+                          // _SectionRowItem(
+                          //   icon: Icons.message,
+                          //   text: 'FAQ and Help',
+                          //   iconColor: _purple,
+                          //   onTap: () => _showComingSoon(
+                          //     context,
+                          //     'FAQ and Help belum tersedia.',
+                          //   ),
+                          // ),
+                          _SectionRowItem(
+                            icon: Icons.logout,
+                            text: 'Logout',
+                            iconColor: _danger,
+                            onTap: () => _showLogoutDialog(context),
                           ),
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.account_balance_wallet,
-                          text: 'Payroll & Tax',
-                          iconColor: _purple,
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Payroll & Tax belum tersedia.',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _SectionCard(
-                      title: 'SETTINGS',
-                      children: [
-                        _SectionRowItem(
-                          icon: Icons.settings,
-                          text: 'Change Password',
-                          iconColor: _purple,
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Change Password belum tersedia.',
-                          ),
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.developer_mode,
-                          text: 'Versioning',
-                          iconColor: _purple,
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Versioning belum tersedia.',
-                          ),
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.message,
-                          text: 'FAQ and Help',
-                          iconColor: _purple,
-                          onTap: () => _showComingSoon(
-                            context,
-                            'FAQ and Help belum tersedia.',
-                          ),
-                        ),
-                        _SectionRowItem(
-                          icon: Icons.logout,
-                          text: 'Logout',
-                          iconColor: _danger,
-                          onTap: () => _showLogoutDialog(context),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showComingSoon(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
+  // void _showComingSoon(BuildContext context, String message) {
+  //   ScaffoldMessenger.of(
+  //     context,
+  //   ).showSnackBar(SnackBar(content: Text(message)));
+  // }
 
   Future<void> _handleLogout(BuildContext context) async {
     // Clear the session from local storage
@@ -181,10 +189,7 @@ class ProfilePage extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               _handleLogout(context);
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: _danger),
-            ),
+            child: const Text('Logout', style: TextStyle(color: _danger)),
           ),
         ],
       ),
@@ -311,10 +316,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {

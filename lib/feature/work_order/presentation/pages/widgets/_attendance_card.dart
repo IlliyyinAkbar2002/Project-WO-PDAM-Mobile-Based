@@ -1,19 +1,99 @@
 part of '../landing/landing_page.dart';
 
 /// Attendance card berbasis Figma:
-/// background kuning lembut + ikon putih, tombol "Clock In" pill biru,
+/// background kuning lembut + ikon putih, tombol action pill,
 /// progress bar gradient dengan thumb, dan label jam kerja.
 ///
-/// Nilai di kartu ini saat ini placeholder mengikuti mockup; di masa depan
-/// dapat dihubungkan ke sumber data attendance.
-class _AttendanceCard extends StatelessWidget {
+/// Nilai di kartu ini dirancang interaktif secara lokal untuk tujuan demo,
+/// menampilkan animasi pulsing ketika Clock In aktif dan simulasi waktu yang berjalan.
+class _AttendanceCard extends StatefulWidget {
   const _AttendanceCard();
 
-  static const String _checkIn = '07:30';
-  static const String _checkOut = '16:30';
-  static const String _workedLabel = '5h 34m worked';
-  static const String _remainingLabel = '3h 26m remaining';
-  static const double _progress = 0.62;
+  @override
+  State<_AttendanceCard> createState() => _AttendanceCardState();
+}
+
+class _AttendanceCardState extends State<_AttendanceCard>
+    with SingleTickerProviderStateMixin {
+  bool _isClockedIn = false;
+  bool _isClockedOut = false;
+  DateTime? _checkInTime;
+  DateTime? _checkOutTime;
+  Duration _workedDuration = Duration.zero;
+  Timer? _timer;
+  late AnimationController _pulseController;
+
+  static const Duration _totalShiftDuration = Duration(hours: 9);
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _pulseController.repeat();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        // Simulasi cepat untuk demo: 1 detik di dunia nyata = 5 menit durasi kerja
+        _workedDuration += const Duration(minutes: 5);
+
+        if (_workedDuration >= _totalShiftDuration) {
+          _workedDuration = _totalShiftDuration;
+          _clockOut();
+        }
+      });
+    });
+  }
+
+  void _clockIn() {
+    setState(() {
+      _isClockedIn = true;
+      _isClockedOut = false;
+      _checkInTime = DateTime.now();
+      _checkOutTime = null;
+      _workedDuration = Duration.zero;
+    });
+    _startTimer();
+  }
+
+  void _clockOut() {
+    _timer?.cancel();
+    _pulseController.stop();
+    _pulseController.reset();
+    setState(() {
+      _isClockedIn = false;
+      _isClockedOut = true;
+      if (_checkInTime != null) {
+        _checkOutTime = _checkInTime!.add(_workedDuration);
+      } else {
+        _checkOutTime = DateTime.now();
+      }
+    });
+  }
+
+  void _reset() {
+    _timer?.cancel();
+    _pulseController.stop();
+    _pulseController.reset();
+    setState(() {
+      _isClockedIn = false;
+      _isClockedOut = false;
+      _checkInTime = null;
+      _checkOutTime = null;
+      _workedDuration = Duration.zero;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +107,31 @@ class _AttendanceCard extends StatelessWidget {
     const trackColor = Color(0xB3FFFFFF); // white 0.7
     const fillStart = Color(0xFF2E7BFF);
     const fillEnd = Color(0xFF0B2A6B);
-    const buttonColor = Color(0xFF2E7BFF);
+    const buttonBlue = Color(0xFF2E7BFF);
+    const buttonRed = Color(0xFFE63946);
+    const buttonGrey = Color(0xFF64748B);
     const iconBg = Color(0xB3FFFFFF);
+
+    final remainingDuration = _totalShiftDuration - _workedDuration;
+    final progress = (_workedDuration.inMinutes / _totalShiftDuration.inMinutes)
+        .clamp(0.0, 1.0);
+
+    final checkInStr = _checkInTime != null
+        ? "${_checkInTime!.hour.toString().padLeft(2, '0')}:${_checkInTime!.minute.toString().padLeft(2, '0')}"
+        : '--:--';
+
+    final checkOutStr = _checkOutTime != null
+        ? "${_checkOutTime!.hour.toString().padLeft(2, '0')}:${_checkOutTime!.minute.toString().padLeft(2, '0')}"
+        : '--:--';
+
+    final workedLabel =
+        "${_workedDuration.inHours}h ${_workedDuration.inMinutes % 60}m worked";
+    final remainingLabel =
+        "${remainingDuration.inHours}h ${remainingDuration.inMinutes % 60}m remaining";
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
         border: Border.all(color: borderColor, width: 1.5),
@@ -86,7 +185,24 @@ class _AttendanceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _ClockInPillButton(color: buttonColor, onTap: () {}),
+              if (_isClockedIn)
+                _AttendanceActionButton(
+                  color: buttonRed,
+                  text: 'Clock Out',
+                  onTap: _clockOut,
+                )
+              else if (_isClockedOut)
+                _AttendanceActionButton(
+                  color: buttonGrey,
+                  text: 'Reset',
+                  onTap: _reset,
+                )
+              else
+                _AttendanceActionButton(
+                  color: buttonBlue,
+                  text: 'Clock In',
+                  onTap: _clockIn,
+                ),
             ],
           ),
           const SizedBox(height: 20),
@@ -94,7 +210,7 @@ class _AttendanceCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Check-in $_checkIn',
+                'Check-in $checkInStr',
                 style: textTheme.bodySmall?.copyWith(
                   color: subText,
                   fontSize: 12,
@@ -102,7 +218,7 @@ class _AttendanceCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Check-out $_checkOut',
+                'Check-out $checkOutStr',
                 style: textTheme.bodySmall?.copyWith(
                   color: subText,
                   fontSize: 12,
@@ -112,18 +228,19 @@ class _AttendanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const _AttendanceProgressBar(
-            progress: _progress,
+          _AttendanceProgressBar(
+            progress: progress,
             trackColor: trackColor,
-            fillGradient: LinearGradient(colors: [fillStart, fillEnd]),
-            thumbBorderColor: buttonColor,
+            fillGradient: const LinearGradient(colors: [fillStart, fillEnd]),
+            thumbBorderColor: fillStart,
+            pulseController: _isClockedIn ? _pulseController : null,
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _workedLabel,
+                workedLabel,
                 style: textTheme.labelSmall?.copyWith(
                   color: labelText,
                   fontSize: 11,
@@ -131,7 +248,7 @@ class _AttendanceCard extends StatelessWidget {
                 ),
               ),
               Text(
-                _remainingLabel,
+                remainingLabel,
                 style: textTheme.labelSmall?.copyWith(
                   color: labelText,
                   fontSize: 11,
@@ -146,11 +263,16 @@ class _AttendanceCard extends StatelessWidget {
   }
 }
 
-class _ClockInPillButton extends StatelessWidget {
+class _AttendanceActionButton extends StatelessWidget {
   final Color color;
+  final String text;
   final VoidCallback onTap;
 
-  const _ClockInPillButton({required this.color, required this.onTap});
+  const _AttendanceActionButton({
+    required this.color,
+    required this.text,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,9 +294,9 @@ class _ClockInPillButton extends StatelessWidget {
               ),
             ],
           ),
-          child: const Text(
-            'Clock In',
-            style: TextStyle(
+          child: Text(
+            text,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -192,12 +314,14 @@ class _AttendanceProgressBar extends StatelessWidget {
   final Color trackColor;
   final Gradient fillGradient;
   final Color thumbBorderColor;
+  final AnimationController? pulseController;
 
   const _AttendanceProgressBar({
     required this.progress,
     required this.trackColor,
     required this.fillGradient,
     required this.thumbBorderColor,
+    this.pulseController,
   });
 
   @override
@@ -216,6 +340,7 @@ class _AttendanceProgressBar extends StatelessWidget {
             clipBehavior: Clip.none,
             alignment: Alignment.centerLeft,
             children: [
+              // Track
               Container(
                 height: trackHeight,
                 decoration: BoxDecoration(
@@ -223,6 +348,7 @@ class _AttendanceProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
+              // Fill Progress
               Container(
                 width: fillWidth,
                 height: trackHeight,
@@ -231,6 +357,35 @@ class _AttendanceProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
+              // Pulse Glow Animation (Ripple Effect)
+              if (pulseController != null && progress > 0.0 && progress < 1.0)
+                AnimatedBuilder(
+                  animation: pulseController!,
+                  builder: (context, child) {
+                    final pulseVal = pulseController!.value;
+                    return Positioned(
+                      left: (fillWidth - thumbSize / 2).clamp(
+                        0.0,
+                        width - thumbSize,
+                      ),
+                      child: Transform.scale(
+                        scale: 1.0 + (pulseVal * 1.2), // Scale up to 2.2x size
+                        child: Opacity(
+                          opacity: (1.0 - pulseVal).clamp(0.0, 1.0), // Fade out
+                          child: Container(
+                            width: thumbSize,
+                            height: thumbSize,
+                            decoration: BoxDecoration(
+                              color: thumbBorderColor.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              // Slider Thumb
               Positioned(
                 left: (fillWidth - thumbSize / 2).clamp(0.0, width - thumbSize),
                 child: Container(

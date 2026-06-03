@@ -9,15 +9,28 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class PengajuanLemburPage extends StatefulWidget {
+class PengajuanLemburPage extends StatelessWidget {
   const PengajuanLemburPage({super.key});
 
   @override
-  State<PengajuanLemburPage> createState() => _PengajuanLemburPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider<WorkOrderBloc>(
+      create: (_) => sl<WorkOrderBloc>(),
+      child: const _PengajuanLemburPage(),
+    );
+  }
 }
 
-class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
+class _PengajuanLemburPage extends StatefulWidget {
+  const _PengajuanLemburPage();
+
+  @override
+  State<_PengajuanLemburPage> createState() => _PengajuanLemburPageState();
+}
+
+class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _durasiController = TextEditingController(
     text: '2',
@@ -107,10 +120,15 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
 
   Future<void> _pickTanggalLembur() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initialDate =
+        (_tanggalLembur != null && !_tanggalLembur!.isBefore(today))
+        ? _tanggalLembur!
+        : today;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _tanggalLembur ?? now,
-      firstDate: DateTime(now.year - 1),
+      initialDate: initialDate,
+      firstDate: today,
       lastDate: DateTime(now.year + 2),
     );
     if (picked != null) {
@@ -299,6 +317,11 @@ class _PengajuanLemburPageState extends State<PengajuanLemburPage> {
     }
     if (_tanggalLembur == null) {
       return 'Tanggal lembur wajib dipilih.';
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_tanggalLembur!.isBefore(today)) {
+      return 'Tanggal lembur tidak boleh kurang dari hari ini.';
     }
     if (_jamMulai == null) {
       return 'Jam mulai wajib dipilih.';

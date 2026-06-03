@@ -22,7 +22,7 @@ abstract class AppStatePage<T extends StatefulWidget> extends AppState<T> {
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
       key: scaffoldMessengerKey,
-      child: buildPage(context),
+      child: Builder(builder: (innerContext) => buildPage(innerContext)),
     );
   }
 
