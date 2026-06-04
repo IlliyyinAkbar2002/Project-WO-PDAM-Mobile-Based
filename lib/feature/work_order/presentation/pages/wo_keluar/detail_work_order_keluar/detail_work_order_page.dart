@@ -350,6 +350,11 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
+          final bool canAssignStaff =
+              isDetailMode &&
+              !_isManager &&
+              !widget.isAssignee &&
+              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
           debugPrint(
             "📢 DetailWorkOrderPage: state.workOrder.assignment = ${state.workOrder.assignment}",
           );
@@ -384,10 +389,10 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
               "locationId": state.workOrder.assignment?.locationId,
               "locationName": state.workOrder.assignment?.location?.nama,
               "radiusMeter": state.workOrder.assignment?.location?.radiusMeter,
-              "startDateTime": state.workOrder.startDateTime,
+              "startDateTime": canAssignStaff ? null : state.workOrder.startDateTime,
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
-              "endDateTime": state.workOrder.endDateTime,
+              "endDateTime": canAssignStaff ? null : state.workOrder.endDateTime,
               "deskripsiPekerjaan":
                   state.workOrder.assignment?.description ?? "",
               "picId": state.workOrder.assignment?.assigneeId,

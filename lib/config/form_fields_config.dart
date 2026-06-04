@@ -111,13 +111,11 @@ class FormFieldsConfig {
         "type": "custom",
         "showIf": (formData) => true,
         "isOvertime": isOvertime,
-        // BUG 2: Saat isAssignMode, field Mulai harus kosong (SPV yang menentukan).
-        "startDateTime": (formData) =>
-            isAssignMode ? null : formData["startDateTime"],
+        // BUG 2: Saat isAssignMode, field Mulai harus kosong (SPV yang menentukan) - handled on initial load instead.
+        "startDateTime": (formData) => formData["startDateTime"],
         "duration": (formData) => formData["duration"],
         "durationUnit": (formData) => formData["durationUnit"],
-        "endDateTime": (formData) =>
-            isAssignMode ? null : formData["endDateTime"],
+        "endDateTime": (formData) => formData["endDateTime"],
         "isReadOnly": readOnlyInDetail,
         "status": status,
         "hideStartDateTime": false,

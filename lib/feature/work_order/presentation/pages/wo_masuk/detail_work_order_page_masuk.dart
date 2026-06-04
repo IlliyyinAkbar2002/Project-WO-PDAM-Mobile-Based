@@ -304,6 +304,11 @@ class _DetailWorkOrderPageMasukState
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
+          final bool canAssignStaff =
+              isDetailMode &&
+              !_isManager &&
+              !widget.isAssignee &&
+              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
           debugPrint(
             "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment = ${state.workOrder.assignment}",
           );
@@ -338,10 +343,14 @@ class _DetailWorkOrderPageMasukState
               "locationId": state.workOrder.assignment?.locationId,
               "locationName": state.workOrder.assignment?.location?.nama,
               "radiusMeter": state.workOrder.assignment?.location?.radiusMeter,
-              "startDateTime": state.workOrder.startDateTime,
+              "startDateTime": canAssignStaff
+                  ? null
+                  : state.workOrder.startDateTime,
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
-              "endDateTime": state.workOrder.endDateTime,
+              "endDateTime": canAssignStaff
+                  ? null
+                  : state.workOrder.endDateTime,
               "deskripsiPekerjaan":
                   state.workOrder.assignment?.description ?? "",
               "picId": state.workOrder.assignment?.assigneeId,
@@ -536,12 +545,12 @@ class _DetailWorkOrderPageMasukState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Progress Anggota Tim",
-                style: textTheme.displayMedium,
-              ),
+              Text("Progress Anggota Tim", style: textTheme.displayMedium),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(20),
@@ -577,11 +586,7 @@ class _DetailWorkOrderPageMasukState
                   Icons.trending_up,
                   Colors.blue,
                 ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: Colors.grey[300],
-                ),
+                Container(width: 1, height: 40, color: Colors.grey[300]),
                 _buildTeamStat(
                   'Total Submissions',
                   '${progressByMember!.totalSubmissionsAll}',
@@ -595,10 +600,7 @@ class _DetailWorkOrderPageMasukState
         const SizedBox(height: 16),
         // Member List
         ...progressByMember!.members.map((member) {
-          return MemberProgressCard(
-            member: member,
-            isExpanded: false,
-          );
+          return MemberProgressCard(member: member, isExpanded: false);
         }),
         const SizedBox(height: 16),
       ],
@@ -626,10 +628,7 @@ class _DetailWorkOrderPageMasukState
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),
       ],

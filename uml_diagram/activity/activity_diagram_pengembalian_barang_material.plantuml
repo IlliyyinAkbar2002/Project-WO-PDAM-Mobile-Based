@@ -1,0 +1,151 @@
+@startuml Activity Diagram Pengembalian Barang Material
+title Activity Diagram - Pengajuan Pengembalian Barang Material oleh Koordinator/Staff (PDAM Surya Sembada Mobile)
+
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityDiamondBackgroundColor #FFF59D
+skinparam ActivityDiamondBorderColor #F9A825
+skinparam ArrowColor #455A64
+skinparam DefaultFontName Arial
+skinparam swimlaneWidth 260
+
+|Koordinator / Staff|
+start
+:Menyelesaikan progres
+pekerjaan Work Order
+(menekan tombol "Selesai");
+note right
+  Pengembalian material baru
+  dapat dilakukan setelah
+  progres pengerjaan Work Order
+  diselesaikan oleh Koordinator
+  (PIC) atau Staff.
+
+  Pada tahap ini status Work Order
+  sudah berpindah ke "Pengecekan"
+  (menunggu pemeriksaan Supervisor),
+  sehingga barang material yang
+  sebelumnya dipinjam dapat
+  dikembalikan ke gudang.
+
+  (Alur peminjaman material
+  dibahas pada diagram terpisah.)
+end note
+
+:Membuka halaman
+"Inventory Material"
+dan memilih tab
+"Peminjaman Saya";
+
+|Aplikasi Mobile|
+:Meminta daftar material
+yang sedang dipinjam
+untuk Work Order ini;
+
+|Backend|
+:Mengambil daftar peminjaman
+dengan status "Dipinjam";
+:Mengirim daftar peminjaman
+ke aplikasi;
+
+|Aplikasi Mobile|
+:Menampilkan daftar barang
+material yang masih dipinjam
+beserta tombol
+"Kembalikan Material";
+
+|Koordinator / Staff|
+:Memilih barang material
+yang akan dikembalikan;
+:Menekan tombol
+"Kembalikan Material";
+
+|Aplikasi Mobile|
+:Menampilkan formulir
+"Pengembalian Material"
+(jumlah kembali dan
+kondisi barang);
+
+|Koordinator / Staff|
+:Mengisi jumlah barang
+yang dikembalikan dan
+kondisi barang (opsional);
+note right
+  Contoh pengisian:
+  - Material       : Pipa PVC 4 inch
+  - Jumlah Pinjam  : 10 batang
+  - Jumlah Kembali : 7 batang
+  - Kondisi        : 3 batang terpakai
+    untuk perbaikan, sisanya baik
+
+  Kolom jumlah kembali sudah
+  terisi otomatis dengan sisa
+  barang yang masih dipinjam,
+  dan dapat diubah bila perlu.
+end note
+:Menekan tombol
+"Simpan Pengembalian";
+
+|Aplikasi Mobile|
+:Memeriksa kelengkapan
+jumlah pengembalian;
+if (Jumlah valid dan tidak melebihi jumlah yang dipinjam?) then (tidak)
+  :Menampilkan pesan kesalahan
+  (mis. "Jumlah harus diisi",
+   "Jumlah tidak valid",
+   "Maksimal sejumlah barang
+   yang masih dipinjam");
+  stop
+else (ya)
+  :Mengirim data pengembalian
+  (jumlah kembali dan kondisi)
+  ke server;
+endif
+
+|Backend|
+:Menyimpan data pengembalian
+dan mencatat waktu pengembalian;
+if (Pengembalian berhasil disimpan?) then (tidak)
+  :Mengirim pesan kesalahan;
+
+  |Aplikasi Mobile|
+  :Menampilkan pesan
+  "Gagal mengembalikan material";
+  stop
+else (ya)
+  :Mengubah status peminjaman
+  menjadi "Menunggu Persetujuan
+  Pengembalian";
+  :Mengirim notifikasi ke Supervisor
+  bahwa ada pengembalian
+  yang perlu diperiksa;
+  :Mengirim konfirmasi
+  pengembalian berhasil;
+endif
+note right
+  Pada tahap ini barang dianggap
+  "diajukan untuk dikembalikan",
+  namun stok gudang BELUM ditambah.
+  Stok baru bertambah setelah
+  Supervisor menyetujui pengembalian.
+end note
+
+|Aplikasi Mobile|
+:Menampilkan pesan
+"Berhasil mengembalikan material";
+
+|Koordinator / Staff|
+:Melihat status barang material
+berubah menjadi "Menunggu
+Persetujuan Pengembalian";
+note right
+  Pengembalian masih harus
+  diperiksa dan disetujui oleh
+  Supervisor. Proses persetujuan
+  tersebut dibahas pada alur
+  terpisah (Approval Pengembalian
+  Barang Material).
+end note
+stop
+
+@enduml

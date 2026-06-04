@@ -137,18 +137,6 @@ class _LandingPageHeader extends StatelessWidget {
                         },
                       ),
                       _ProfileActionItem(
-                        icon: Icons.settings_outlined,
-                        label: 'Settings',
-                        onTap: () {
-                          Navigator.of(dialogContext).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Settings page belum tersedia.'),
-                            ),
-                          );
-                        },
-                      ),
-                      _ProfileActionItem(
                         icon: Icons.notifications_none_outlined,
                         label: 'Notifications',
                         onTap: () async {
