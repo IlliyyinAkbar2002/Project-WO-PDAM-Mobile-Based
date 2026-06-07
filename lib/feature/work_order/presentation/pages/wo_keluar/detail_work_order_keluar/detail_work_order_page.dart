@@ -696,7 +696,6 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     // Buat model WorkOrder
     final workOrder = WorkOrderModel(
       title: title,
-      statusId: widget.isOvertime ? 2 : 1, // WO Lembur butuh approval
       startDateTime: startDateTime,
       duration: duration,
       durationUnit: durationUnit,
@@ -759,85 +758,15 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
-    // Build form_kategori berdasarkan kategoriForm
+    // Build form_kategori berdasarkan kategoriForm.
+    // Field kategori "awal" kini diisi oleh staff lapangan saat menekan
+    // "Mulai" (lihat WorkOrderReportPage). SPV cukup menentukan petugas, PIC,
+    // dan deskripsi, sehingga form_kategori dikirim kosong.
     final String kategoriForm = _readTrimmedString("kategoriForm");
     final String kategori = kategoriForm.isEmpty
         ? WoKategoriForm.meter
         : kategoriForm;
-    final Map<String, dynamic> formKategori;
-
-    switch (kategori) {
-      case 'jaringan':
-        final jenisPipa = _readTrimmedString("jenisPipa");
-        final diameterPipaText = _readTrimmedString("diameterPipa");
-        final panjangPipaText = _readTrimmedString("panjangPipa");
-        final double? diameterPipa = diameterPipaText.isEmpty
-            ? null
-            : double.tryParse(diameterPipaText);
-        final double? panjangPipa = panjangPipaText.isEmpty
-            ? null
-            : double.tryParse(panjangPipaText);
-
-        if (jenisPipa.isEmpty) {
-          AppSnackbar.showError("Jenis pipa wajib diisi.");
-          return;
-        }
-        if (diameterPipaText.isNotEmpty && diameterPipa == null) {
-          AppSnackbar.showError("Diameter pipa harus berupa angka.");
-          return;
-        }
-        if (panjangPipaText.isNotEmpty && panjangPipa == null) {
-          AppSnackbar.showError("Panjang pipa harus berupa angka.");
-          return;
-        }
-        formKategori = {
-          'jenis_pipa': jenisPipa,
-          if (diameterPipa != null) 'diameter_pipa': diameterPipa,
-          if (panjangPipa != null) 'panjang_pipa': panjangPipa,
-          if ((formData["tingkatKerusakan"] ?? "").toString().trim().isNotEmpty)
-            'tingkat_kerusakan': formData["tingkatKerusakan"],
-        };
-        break;
-      case 'infrastruktur':
-        final namaAset = (formData["namaAset"] ?? "").toString().trim();
-        final jenisAset = (formData["jenisAset"] ?? "").toString().trim();
-        if (namaAset.isEmpty) {
-          AppSnackbar.showError("Nama aset wajib diisi.");
-          return;
-        }
-        if (jenisAset.isEmpty) {
-          AppSnackbar.showError("Jenis aset wajib diisi.");
-          return;
-        }
-        formKategori = {
-          'nama_aset': namaAset,
-          'jenis_aset': jenisAset,
-          if ((formData["kapasitas"] ?? "").toString().trim().isNotEmpty)
-            'kapasitas': formData["kapasitas"],
-          if ((formData["kondisiAwal"] ?? "").toString().trim().isNotEmpty)
-            'kondisi_awal': formData["kondisiAwal"],
-        };
-        break;
-      case 'meter':
-      default:
-        final nomorMeter = (formData["nomorMeter"] ?? "").toString().trim();
-        final kondisiMeterAwal = (formData["kondisiMeterAwal"] ?? "")
-            .toString()
-            .trim();
-        if (nomorMeter.isEmpty) {
-          AppSnackbar.showError("Nomor meter wajib diisi.");
-          return;
-        }
-        if (kondisiMeterAwal.isEmpty) {
-          AppSnackbar.showError("Kondisi meter awal wajib diisi.");
-          return;
-        }
-        formKategori = {
-          'nomor_meter': nomorMeter,
-          'kondisi_meter_awal': kondisiMeterAwal,
-        };
-        break;
-    }
+    final Map<String, dynamic> formKategori = const {};
 
     final double? assignLatitude = _toDouble(formData["latitude"]);
     final double? assignLongitude = _toDouble(formData["longitude"]);

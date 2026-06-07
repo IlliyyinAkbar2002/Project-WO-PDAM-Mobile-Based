@@ -164,31 +164,28 @@ class FormFieldsConfig {
         "isReadOnly": !isAssignMode,
         "showIf": isDetailMode || isAssignMode,
       },
-      // ─── Form Kategori: Meter ───────────────────────────────────────
-      if (kategoriForm == 'meter' ||
-          (kategoriForm == null && isAssignMode)) ...[
-        {
-          "type": "text",
-          "key": "nomorMeter",
-          "label": "Nomor Meter",
-          "hint": "Contoh: MTR-001",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
-        },
-        {
-          "type": "text",
-          "key": "kondisiMeterAwal",
-          "label": "Kondisi Meter Awal",
-          "hint": "Contoh: Normal",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
-        },
-      ],
-      // ─── Form Kategori: Jaringan ────────────────────────────────────
-      if (kategoriForm == 'jaringan') ...[
+    ];
+  }
+
+  /// Field kategori "awal" yang diisi oleh staff lapangan saat menekan
+  /// tombol "Mulai" (tipe progress 1 / start).
+  ///
+  /// Sebelumnya field ini diisi oleh SPV pada saat assign-staff. Sekarang
+  /// dipindah ke staff lapangan, sehingga SPV cukup menentukan petugas, PIC,
+  /// dan deskripsi pekerjaan.
+  ///
+  /// Key memakai snake_case agar nilainya bisa dikirim apa adanya (pass-through)
+  /// sebagai payload ke endpoint `/v1/progress-workorder/start`, mengikuti
+  /// kontrak `form_kategori` yang lama.
+  static List<Map<String, dynamic>> getStartKategoriFields({
+    required String? kategoriForm,
+    bool isReadOnly = false,
+  }) {
+    if (kategoriForm == 'jaringan') {
+      return [
         {
           "type": "dropdown",
-          "key": "jenisPipa",
+          "key": "jenis_pipa",
           "label": "Jenis Pipa",
           "hint": "Pilih jenis pipa",
           "options": [
@@ -197,29 +194,26 @@ class FormFieldsConfig {
             {"value": "Galvanis", "label": "Galvanis"},
             {"value": "Besi Cor", "label": "Besi Cor"},
           ],
-          "isReadOnly": !isAssignMode,
-          "isDisabled": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
+          "isDisabled": isReadOnly,
         },
         {
           "type": "text",
-          "key": "diameterPipa",
+          "key": "diameter_pipa",
           "label": "Diameter Pipa (inch)",
           "hint": "Contoh: 4",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
         },
         {
           "type": "text",
-          "key": "panjangPipa",
+          "key": "panjang_pipa",
           "label": "Panjang Pipa (meter)",
           "hint": "Contoh: 50",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
         },
         {
           "type": "dropdown",
-          "key": "tingkatKerusakan",
+          "key": "tingkat_kerusakan",
           "label": "Tingkat Kerusakan",
           "hint": "Pilih tingkat kerusakan",
           "options": [
@@ -227,24 +221,22 @@ class FormFieldsConfig {
             {"value": "Sedang", "label": "Sedang"},
             {"value": "Berat", "label": "Berat"},
           ],
-          "isReadOnly": !isAssignMode,
-          "isDisabled": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
+          "isDisabled": isReadOnly,
         },
-      ],
-      // ─── Form Kategori: Infrastruktur ───────────────────────────────
-      if (kategoriForm == 'infrastruktur') ...[
+      ];
+    } else if (kategoriForm == 'infrastruktur') {
+      return [
         {
           "type": "text",
-          "key": "namaAset",
+          "key": "nama_aset",
           "label": "Nama Aset",
           "hint": "Contoh: Pompa Booster RT 05",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
         },
         {
           "type": "dropdown",
-          "key": "jenisAset",
+          "key": "jenis_aset",
           "label": "Jenis Aset",
           "hint": "Pilih jenis aset",
           "options": [
@@ -254,28 +246,43 @@ class FormFieldsConfig {
             {"value": "Genset", "label": "Genset"},
             {"value": "Panel", "label": "Panel"},
           ],
-          "isReadOnly": !isAssignMode,
-          "isDisabled": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
+          "isDisabled": isReadOnly,
         },
         {
           "type": "text",
           "key": "kapasitas",
           "label": "Kapasitas",
           "hint": "Contoh: 500 L/menit",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
         },
         {
           "type": "text",
-          "key": "kondisiAwal",
+          "key": "kondisi_awal",
           "label": "Kondisi Awal",
           "hint": "Deskripsi kondisi sebelum pemeliharaan",
-          "isReadOnly": !isAssignMode,
-          "showIf": true,
+          "isReadOnly": isReadOnly,
         },
-      ],
-    ];
+      ];
+    } else if (kategoriForm == 'meter') {
+      return [
+        {
+          "type": "text",
+          "key": "nomor_meter",
+          "label": "Nomor Meter",
+          "hint": "Contoh: MTR-001",
+          "isReadOnly": isReadOnly,
+        },
+        {
+          "type": "text",
+          "key": "kondisi_meter_awal",
+          "label": "Kondisi Meter Awal",
+          "hint": "Contoh: Normal",
+          "isReadOnly": isReadOnly,
+        },
+      ];
+    }
+    return [];
   }
 
   static List<Map<String, dynamic>> getSubmissionFields({

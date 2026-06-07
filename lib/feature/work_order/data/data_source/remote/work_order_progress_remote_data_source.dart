@@ -430,6 +430,23 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
                 DateTime.now().toUtc().toIso8601String(),
           ),
         ]);
+        // Data kategori "awal" yang diisi staff lapangan saat memulai
+        // (nomor_meter, jenis_pipa, nama_aset, dll). Dikirim sebagai field
+        // datar agar BE dapat membaca langsung (pass-through key snake_case).
+        if (workOrderProgress.kategoriData != null) {
+          workOrderProgress.kategoriData!.forEach((key, value) {
+            if (value != null) {
+              if (value is DateTime) {
+                final y = value.year.toString().padLeft(4, '0');
+                final m = value.month.toString().padLeft(2, '0');
+                final d = value.day.toString().padLeft(2, '0');
+                formData.fields.add(MapEntry(key, '$y-$m-$d'));
+              } else {
+                formData.fields.add(MapEntry(key, value.toString()));
+              }
+            }
+          });
+        }
         response = await post(
           path: '/v1/progress-workorder/start',
           data: formData,

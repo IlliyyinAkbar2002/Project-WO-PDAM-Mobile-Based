@@ -120,6 +120,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _images = List.from(draft.images);
       _formData = Map.from(draft.formData);
     } else if (widget.initialKategoriData != null) {
+      final init = widget.initialKategoriData!;
+      dynamic pick(List<String> keys) {
+        for (final k in keys) {
+          if (init.containsKey(k) && init[k] != null) return init[k];
+        }
+        return null;
+      }
+
       _formData = {
         if (widget.initialKategoriData!.containsKey('kondisiAwal'))
           'kondisi_awal': widget.initialKategoriData!['kondisiAwal'],
@@ -146,6 +154,27 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               widget.initialKategoriData!['kondisi_meter_akhir'],
         if (widget.initialKategoriData!.containsKey('hasil_kalibrasi'))
           'hasil_kalibrasi': widget.initialKategoriData!['hasil_kalibrasi'],
+        // Field kategori "awal" (diisi staff saat Mulai). Sumber bisa
+        // camelCase (dari detail work order) atau snake_case (dari draft).
+        // Normalisasi ke snake_case agar cocok dengan getStartKategoriFields.
+        if (pick(['jenis_pipa', 'jenisPipa']) != null)
+          'jenis_pipa': pick(['jenis_pipa', 'jenisPipa']),
+        if (pick(['diameter_pipa', 'diameterPipa']) != null)
+          'diameter_pipa': pick(['diameter_pipa', 'diameterPipa'])?.toString(),
+        if (pick(['panjang_pipa', 'panjangPipa']) != null)
+          'panjang_pipa': pick(['panjang_pipa', 'panjangPipa'])?.toString(),
+        if (pick(['tingkat_kerusakan', 'tingkatKerusakan']) != null)
+          'tingkat_kerusakan': pick(['tingkat_kerusakan', 'tingkatKerusakan']),
+        if (pick(['nama_aset', 'namaAset']) != null)
+          'nama_aset': pick(['nama_aset', 'namaAset']),
+        if (pick(['jenis_aset', 'jenisAset']) != null)
+          'jenis_aset': pick(['jenis_aset', 'jenisAset']),
+        if (pick(['kapasitas']) != null)
+          'kapasitas': pick(['kapasitas'])?.toString(),
+        if (pick(['nomor_meter', 'nomorMeter']) != null)
+          'nomor_meter': pick(['nomor_meter', 'nomorMeter']),
+        if (pick(['kondisi_meter_awal', 'kondisiMeterAwal']) != null)
+          'kondisi_meter_awal': pick(['kondisi_meter_awal', 'kondisiMeterAwal']),
       };
     }
 
@@ -401,7 +430,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (widget.mode == 'Selesai') _buildDynamicForm(),
+                          if (widget.mode == 'Selesai' ||
+                              widget.mode == 'Mulai')
+                            _buildDynamicForm(),
                           const SizedBox(height: 24),
                           widget.isAssignee && !isDetailMode
                               ? (_isAlreadyRecorded
@@ -556,10 +587,15 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   Widget _buildDynamicForm() {
     final List<Map<String, dynamic>> dynamicFields;
     if (widget.kategoriForm != null) {
-      dynamicFields = FormFieldsConfig.getSubmissionFields(
-        kategoriForm: widget.kategoriForm,
-        isReadOnly: isDetailMode || _isAlreadyRecorded,
-      );
+      dynamicFields = widget.mode == 'Mulai'
+          ? FormFieldsConfig.getStartKategoriFields(
+              kategoriForm: widget.kategoriForm,
+              isReadOnly: isDetailMode || _isAlreadyRecorded,
+            )
+          : FormFieldsConfig.getSubmissionFields(
+              kategoriForm: widget.kategoriForm,
+              isReadOnly: isDetailMode || _isAlreadyRecorded,
+            );
     } else {
       dynamicFields = (isDetailMode || !widget.isAssignee)
           ? DynamicFormConfig.getDetailDynamicFormFields(
@@ -690,6 +726,60 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       if (_images.isEmpty && widget.mode != 'Mulai') {
         AppSnackbar.showError("Minimal satu foto diperlukan.");
         return;
+      }
+
+      if (widget.mode == 'Mulai') {
+        final category = widget.kategoriForm;
+        if (category == 'jaringan') {
+          if ((_formData['jenis_pipa'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Jenis Pipa tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['diameter_pipa'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Diameter Pipa tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['panjang_pipa'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Panjang Pipa tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['tingkat_kerusakan'] ?? '')
+              .toString()
+              .trim()
+              .isEmpty) {
+            AppSnackbar.showError("Tingkat Kerusakan tidak boleh kosong.");
+            return;
+          }
+        } else if (category == 'infrastruktur') {
+          if ((_formData['nama_aset'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Nama Aset tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['jenis_aset'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Jenis Aset tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['kapasitas'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Kapasitas tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['kondisi_awal'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Kondisi Awal tidak boleh kosong.");
+            return;
+          }
+        } else if (category == 'meter') {
+          if ((_formData['nomor_meter'] ?? '').toString().trim().isEmpty) {
+            AppSnackbar.showError("Nomor Meter tidak boleh kosong.");
+            return;
+          }
+          if ((_formData['kondisi_meter_awal'] ?? '')
+              .toString()
+              .trim()
+              .isEmpty) {
+            AppSnackbar.showError("Kondisi Meter Awal tidak boleh kosong.");
+            return;
+          }
+        }
       }
 
       if (widget.mode == 'Selesai') {
@@ -892,7 +982,28 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
         accuracy: _currentPosition?.accuracy,
-        kategoriData: widget.mode == 'Selesai'
+        kategoriData: widget.mode == 'Mulai'
+            ? {
+                if (widget.kategoriForm == 'jaringan') ...{
+                  'jenis_pipa': _formData['jenis_pipa']?.toString().trim(),
+                  'diameter_pipa': _formData['diameter_pipa']?.toString().trim(),
+                  'panjang_pipa': _formData['panjang_pipa']?.toString().trim(),
+                  'tingkat_kerusakan': _formData['tingkat_kerusakan']
+                      ?.toString()
+                      .trim(),
+                } else if (widget.kategoriForm == 'infrastruktur') ...{
+                  'nama_aset': _formData['nama_aset']?.toString().trim(),
+                  'jenis_aset': _formData['jenis_aset']?.toString().trim(),
+                  'kapasitas': _formData['kapasitas']?.toString().trim(),
+                  'kondisi_awal': _formData['kondisi_awal']?.toString().trim(),
+                } else if (widget.kategoriForm == 'meter') ...{
+                  'nomor_meter': _formData['nomor_meter']?.toString().trim(),
+                  'kondisi_meter_awal': _formData['kondisi_meter_awal']
+                      ?.toString()
+                      .trim(),
+                },
+              }
+            : widget.mode == 'Selesai'
             ? {
                 if (widget.kategoriForm == 'jaringan') ...{
                   'tindakan_perbaikan': _formData['tindakan_perbaikan']

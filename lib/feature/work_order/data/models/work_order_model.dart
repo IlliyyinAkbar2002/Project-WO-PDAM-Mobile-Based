@@ -71,6 +71,19 @@ class WorkOrderModel extends WorkOrderEntity {
       return null;
     }
 
+    DateTime? parseUtcDateTime(dynamic value) {
+      if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+      if (value is String) {
+        String raw = value.trim();
+        if (raw.isEmpty) return null;
+        if (!raw.endsWith('Z') && !raw.contains('+')) {
+          raw = '${raw.replaceAll(' ', 'T')}Z';
+        }
+        return DateTime.tryParse(raw)?.toLocal();
+      }
+      return null;
+    }
+
     DateTime? parseDateTimeFromKeysIn(
       Map<String, dynamic>? source,
       List<String> keys,
@@ -394,33 +407,11 @@ class WorkOrderModel extends WorkOrderEntity {
       prioritas: (map['prioritas'] as String?)?.trim().isNotEmpty == true
           ? (map['prioritas'] as String).trim().toLowerCase()
           : null,
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'])
-          : null,
+      createdAt: parseUtcDateTime(map['created_at']),
       assignment: assignment,
     );
   }
 
-  /// Payload create-WO mengikuti kontrak BE §3.3 (FE_adjustment_BE.md):
-  ///
-  /// Fields yang BE terima saat `POST /v1/workorder`:
-  ///   - nama_workorder (required, string)
-  ///   - deskripsi (string)
-  ///   - tanggal_mulai (date YYYY-MM-DD)
-  ///   - jenis_workorder_id (id of m_jenis_workorder)
-  ///   - lokasi (string, nama lokasi)
-  ///   - prioritas (enum: rendah|sedang|tinggi|darurat)
-  ///   - assigned_to (user_id SPV)
-  ///
-  /// Fields yang BE EKSPLISIT TIDAK menerima:
-  ///   - status_id (auto-set ke DITUGASKAN_KE_SPV)
-  ///   - wo_meter / wo_jaringan / wo_infrastruktur (diisi SPV saat assign-staff)
-  ///   - petugas_id, latitude, longitude, location_id (juga di-handle saat assign-staff)
-  ///   - estimasi_durasi, unit_waktu, estimasi_selesai (auto-computed)
-  ///
-  /// Fallback legacy `judul_pekerjaan` & `waktu_penugasan` di-keep untuk
-  /// backward compat dengan endpoint mobile lama, tapi ke depan BE akan
-  /// drop-nya.
   Map<String, dynamic> toMap() {
     final List<int> ids = assignment?.assigneeIds ?? const <int>[];
     final int? assignedTo =
@@ -429,8 +420,6 @@ class WorkOrderModel extends WorkOrderEntity {
 
     String? formatDateOnly(DateTime? dt) {
       if (dt == null) return null;
-      // BE menerima `YYYY-MM-DD` (Laravel `date` rule). Kirim format yang
-      // explicit supaya tidak salah parse di timezone server.
       final y = dt.year.toString().padLeft(4, '0');
       final m = dt.month.toString().padLeft(2, '0');
       final d = dt.day.toString().padLeft(2, '0');

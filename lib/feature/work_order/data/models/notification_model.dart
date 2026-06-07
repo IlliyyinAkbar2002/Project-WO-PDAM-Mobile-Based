@@ -10,12 +10,25 @@ class NotificationModel extends NotificationEntity {
   });
 
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
+    DateTime? parseUtcDateTime(dynamic value) {
+      if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+      if (value is String) {
+        String raw = value.trim();
+        if (raw.isEmpty) return null;
+        if (!raw.endsWith('Z') && !raw.contains('+')) {
+          raw = '${raw.replaceAll(' ', 'T')}Z';
+        }
+        return DateTime.tryParse(raw)?.toLocal();
+      }
+      return null;
+    }
+
     return NotificationModel(
       id: map['id'] as String,
       type: map['type'] as String,
       data: NotificationDataModel.fromMap(map['data'] as Map<String, dynamic>),
-      readAt: map['read_at'] != null ? DateTime.parse(map['read_at'] as String).toLocal() : null,
-      createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+      readAt: parseUtcDateTime(map['read_at']),
+      createdAt: parseUtcDateTime(map['created_at']) ?? DateTime.now(),
     );
   }
 

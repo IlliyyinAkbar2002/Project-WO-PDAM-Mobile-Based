@@ -377,7 +377,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
               Expanded(child: _signBox('Petugas Pelaksana', namaPetugas)),
               const SizedBox(width: 12),
               Expanded(
-                child: _signBox('Mengetahui / Atasan', '( ________________ )'),
+                child: _signBox('Manager EPB', '( ________________ )'),
               ),
             ],
           ),

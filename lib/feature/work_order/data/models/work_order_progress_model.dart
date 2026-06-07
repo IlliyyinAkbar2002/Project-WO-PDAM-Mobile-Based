@@ -44,6 +44,19 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
   factory WorkOrderProgressModel.fromMap(Map<String, dynamic> map) {
     debugPrint("📢 Parsing Progress: $map");
 
+    DateTime? parseUtcDateTime(dynamic value) {
+      if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+      if (value is String) {
+        String raw = value.trim();
+        if (raw.isEmpty) return null;
+        if (!raw.endsWith('Z') && !raw.contains('+')) {
+          raw = '${raw.replaceAll(' ', 'T')}Z';
+        }
+        return DateTime.tryParse(raw)?.toLocal();
+      }
+      return null;
+    }
+
     // TKT-05: backend sekarang mengirim `tipe_progress_id` (int) sebagai
     // sumber kebenaran. Kolom legacy `tipe_progress` (string) sudah tidak
     // ada lagi di response. Kalau suatu saat backend menambahkan eager
@@ -100,15 +113,9 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
               ),
             )
           : null,
-      submitTime: map['waktu_submit'] != null
-          ? DateTime.tryParse(map['waktu_submit'].toString())
-          : null,
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'].toString())
-          : null,
-      updatedAt: map['updated_at'] != null
-          ? DateTime.tryParse(map['updated_at'].toString())
-          : null,
+      submitTime: parseUtcDateTime(map['waktu_submit']),
+      createdAt: parseUtcDateTime(map['created_at']),
+      updatedAt: parseUtcDateTime(map['updated_at']),
       progressDetails: map['detail_progress'] != null
           ? List<ProgressDetailModel>.from(
               map['detail_progress'].map(
