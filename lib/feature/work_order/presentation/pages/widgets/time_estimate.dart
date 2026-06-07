@@ -33,46 +33,18 @@ class TimeEstimate extends StatefulWidget {
 class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController();
-  final TextEditingController _durationTypeController = TextEditingController();
+  final TextEditingController _endDateController = TextEditingController();
+  final TextEditingController _endTimeController = TextEditingController();
 
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  DateTime? selectedEndDate;
+  TimeOfDay? selectedEndTime;
   DateTime? endDateTime;
-  int _duration = 0;
-  String _selectedDurationType = '';
-  final List<String> normalDurationOptions = ['Jam', 'Hari', 'Bulan'];
-
-  String _normalizeDurationUnit(String? value) {
-    // Alternatif selain trim(): Menghapus semua karakter spasi putih (spasi, enter, tab)
-    final String normalized = (value ?? '').replaceAll(RegExp(r'\s+'), '').toLowerCase();
-    if (normalized == 'jam' ||
-        normalized == 'j' ||
-        normalized == 'h' ||
-        normalized == 'hour' ||
-        normalized == 'hours') {
-      return 'Jam';
-    }
-    if (normalized == 'hari' ||
-        normalized == 'd' ||
-        normalized == 'day' ||
-        normalized == 'days') {
-      return 'Hari';
-    }
-    if (normalized == 'bulan' ||
-        normalized == 'b' ||
-        normalized == 'bln' ||
-        normalized == 'month' ||
-        normalized == 'months') {
-      return 'Bulan';
-    }
-    return '';
-  }
 
   @override
   void initState() {
     super.initState();
-    _updateDurationType();
     _initialValue();
   }
 
@@ -80,16 +52,14 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   void didUpdateWidget(TimeEstimate oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.startDateTime != oldWidget.startDateTime ||
-        widget.duration != oldWidget.duration ||
-        widget.durationUnit != oldWidget.durationUnit ||
         widget.endDateTime != oldWidget.endDateTime) {
       _initialValue();
       if (selectedTime != null) {
         _timeController.text = selectedTime!.format(context);
       }
-    }
-    if (widget.isOvertime != oldWidget.isOvertime) {
-      _updateDurationType();
+      if (selectedEndTime != null) {
+        _endTimeController.text = selectedEndTime!.format(context);
+      }
     }
   }
 
@@ -102,6 +72,11 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
         context,
       ); // ✅ Pindahkan ke sini
     }
+    if (selectedEndTime != null) {
+      _endTimeController.text = selectedEndTime!.format(
+        context,
+      );
+    }
   }
 
   void _initialValue() {
@@ -110,11 +85,11 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
         ? TimeOfDay.fromDateTime(widget.startDateTime!)
         : null;
 
-    _duration = widget.duration ?? 0;
-    _selectedDurationType = widget.isOvertime
-        ? 'Jam'
-        : _normalizeDurationUnit(widget.durationUnit);
     endDateTime = widget.endDateTime;
+    selectedEndDate = widget.endDateTime;
+    selectedEndTime = widget.endDateTime != null
+        ? TimeOfDay.fromDateTime(widget.endDateTime!)
+        : null;
 
     _dateController.text = selectedDate != null
         ? DateFormat('yyyy-MM-dd').format(selectedDate!)
@@ -122,17 +97,13 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
     _timeController.text = selectedTime != null
         ? "${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}"
         : '';
-    _durationController.text = _duration > 0 ? _duration.toString() : '';
-    _durationTypeController.text = _selectedDurationType;
-  }
 
-  void _updateDurationType() {
-    setState(() {
-      _selectedDurationType = widget.isOvertime
-          ? 'Jam'
-          : _normalizeDurationUnit(widget.durationUnit);
-      _durationTypeController.text = _selectedDurationType; // Update text field
-    });
+    _endDateController.text = selectedEndDate != null
+        ? DateFormat('yyyy-MM-dd').format(selectedEndDate!)
+        : '';
+    _endTimeController.text = selectedEndTime != null
+        ? "${selectedEndTime!.hour.toString().padLeft(2, '0')}:${selectedEndTime!.minute.toString().padLeft(2, '0')}"
+        : '';
   }
 
   @override
@@ -209,13 +180,13 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
                 const SizedBox(height: 15),
               ],
 
-              // Durasi row
+              // Selesai row
               Row(
                 children: [
                   SizedBox(
                     width: 50,
                     child: Text(
-                      "Durasi",
+                      "Selesai",
                       style: const TextStyle(
                         fontFamily: 'Roboto',
                         fontSize: 14,
@@ -229,15 +200,11 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
                   const SizedBox(width: 8),
 
                   Expanded(
+                    flex: 3,
                     child: _buildSmallInput(
-                      controller: _durationController,
-                      hintText: '',
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        _duration = int.tryParse(value) ?? 0;
-                        _calculateEndDateTime();
-                      },
-                      readOnly: widget.isReadOnly,
+                      controller: _endDateController,
+                      hintText: 'Pilih Tanggal',
+                      onTap: (widget.isReadOnly) ? null : _selectEndDate,
                     ),
                   ),
 
@@ -245,44 +212,10 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
 
                   Expanded(
                     flex: 2,
-                    child: widget.isOvertime
-                        ? _buildDisabledUnitSelector()
-                        : _buildUnitDropdown(),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 15),
-
-              // Selesai row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Selesai",
-                    style: const TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2D3643),
-                      letterSpacing: -0.2,
-                      height: 1.71,
-                    ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      (endDateTime != null)
-                          ? _formatEndDateTime(endDateTime!)
-                          : "-",
-                      style: const TextStyle(
-                        fontFamily: 'Roboto',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF3D4A5C),
-                        letterSpacing: -0.2,
-                        height: 1.71,
-                      ),
-                      textAlign: TextAlign.right,
+                    child: _buildSmallInput(
+                      controller: _endTimeController,
+                      hintText: 'Jam',
+                      onTap: (widget.isReadOnly) ? null : _selectEndTime,
                     ),
                   ),
                 ],
@@ -343,85 +276,6 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
     );
   }
 
-  Widget _buildUnitDropdown() {
-    final String? selectedValue =
-        normalDurationOptions.contains(_selectedDurationType)
-        ? _selectedDurationType
-        : null;
-
-    return Container(
-      height: 32,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFDCE0E5)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedValue,
-          hint: const Text(
-            'H/J/B',
-            style: TextStyle(
-              fontFamily: 'Roboto',
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF14181F),
-              letterSpacing: -0.2,
-            ),
-          ),
-          isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down, size: 20),
-          style: const TextStyle(
-            fontFamily: 'Roboto',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF14181F),
-            letterSpacing: -0.2,
-          ),
-          items: normalDurationOptions
-              .map(
-                (duration) =>
-                    DropdownMenuItem(value: duration, child: Text(duration)),
-              )
-              .toList(),
-          onChanged: widget.isReadOnly
-              ? null
-              : (value) {
-                  setState(() {
-                    _selectedDurationType = value!;
-                    _durationTypeController.text = value;
-                    _calculateEndDateTime();
-                  });
-                },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDisabledUnitSelector() {
-    return Container(
-      height: 32,
-      decoration: BoxDecoration(
-        color: const Color(0xFFD7DFE9),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFDCE0E5)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.center,
-      child: const Text(
-        'Jam',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: 'Roboto',
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF14181F),
-          letterSpacing: -0.2,
-        ),
-      ),
-    );
-  }
 
   Future<void> _selectDate() async {
     final DateTime today = DateTime.now();
@@ -467,55 +321,79 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
     }
   }
 
+  Future<void> _selectEndDate() async {
+    final DateTime today = DateTime.now();
+    final DateTime minDate = selectedDate ?? DateTime(today.year, today.month, today.day);
+    final DateTime initial =
+        (selectedEndDate != null && !selectedEndDate!.isBefore(minDate))
+        ? selectedEndDate!
+        : minDate;
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: minDate,
+      lastDate: DateTime(today.year + 10),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedEndDate = pickedDate;
+        _endDateController.text = "${pickedDate.toLocal()}".split(' ')[0];
+        _calculateEndDateTime();
+      });
+    }
+  }
+
+  Future<void> _selectEndTime() async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: selectedEndTime ?? TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.input,
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+    if (pickedTime != null) {
+      setState(() {
+        selectedEndTime = pickedTime;
+        _endTimeController.text = pickedTime.format(context);
+        _calculateEndDateTime();
+      });
+    }
+  }
+
   void _calculateEndDateTime() {
+    DateTime? startDateTime;
     if (selectedDate != null && selectedTime != null) {
-      DateTime startDateTime = DateTime(
+      startDateTime = DateTime(
         selectedDate!.year,
         selectedDate!.month,
         selectedDate!.day,
         selectedTime!.hour,
         selectedTime!.minute,
       );
-
-      DateTime calculatedEndDateTime;
-      int durationValue = int.tryParse(_durationController.text) ?? 0;
-
-      if (_selectedDurationType == 'Jam') {
-        calculatedEndDateTime = startDateTime.add(
-          Duration(hours: durationValue),
-        );
-      } else if (_selectedDurationType == 'Hari') {
-        calculatedEndDateTime = startDateTime.add(
-          Duration(days: durationValue),
-        );
-      } else if (_selectedDurationType == 'Bulan') {
-        calculatedEndDateTime = DateTime(
-          startDateTime.year,
-          startDateTime.month + durationValue, // ✅ Tambahkan bulan langsung
-          startDateTime.day,
-          startDateTime.hour,
-          startDateTime.minute,
-        );
-      } else {
-        calculatedEndDateTime =
-            startDateTime; // Jika unit tidak dikenal, biarkan tetap sama
-      }
-
-      setState(() {
-        endDateTime = calculatedEndDateTime;
-      });
-
-      widget.onChanged(
-        startDateTime,
-        durationValue,
-        _selectedDurationType,
-        endDateTime,
-      );
     }
-  }
 
-  String _formatEndDateTime(DateTime dateTime) {
-    final DateFormat formatter = DateFormat('EEEE, dd MMMM yyyy HH:mm \'WIB\'');
-    return formatter.format(dateTime);
+    if (selectedEndDate != null && selectedEndTime != null) {
+      setState(() {
+        endDateTime = DateTime(
+          selectedEndDate!.year,
+          selectedEndDate!.month,
+          selectedEndDate!.day,
+          selectedEndTime!.hour,
+          selectedEndTime!.minute,
+        );
+      });
+    }
+
+    widget.onChanged(
+      startDateTime,
+      null,
+      null,
+      endDateTime,
+    );
   }
 }

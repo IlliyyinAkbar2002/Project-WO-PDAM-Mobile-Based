@@ -219,15 +219,16 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         };
       }).toList();
 
-      // BE menerima `date` rule (YYYY-MM-DD). ISO datetime juga lolos validasi
-      // tapi jadi ambigu karena timezone. Pakai date-only untuk konsistensi
-      // dengan kontrak FE_adjustment_BE.md §4.
-      String? formatDateOnly(DateTime? dt) {
+      // BE will be adjusted to receive full datetime (YYYY-MM-DD HH:mm:ss) to keep the time picker component.
+      String? formatDateTime(DateTime? dt) {
         if (dt == null) return null;
         final y = dt.year.toString().padLeft(4, '0');
         final m = dt.month.toString().padLeft(2, '0');
         final d = dt.day.toString().padLeft(2, '0');
-        return '$y-$m-$d';
+        final hh = dt.hour.toString().padLeft(2, '0');
+        final mm = dt.minute.toString().padLeft(2, '0');
+        final ss = dt.second.toString().padLeft(2, '0');
+        return '$y-$m-$d $hh:$mm:$ss';
       }
 
       final requestBody = {
@@ -241,11 +242,11 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (accuracy != null) 'accuracy': accuracy,
-        if (tanggalMulai != null) 'tanggal_mulai': formatDateOnly(tanggalMulai),
+        if (tanggalMulai != null) 'tanggal_mulai': formatDateTime(tanggalMulai),
         if (tanggalSelesai != null)
-          'tanggal_selesai': formatDateOnly(tanggalSelesai),
+          'tanggal_selesai': formatDateTime(tanggalSelesai),
         if (estimasiSelesai != null)
-          'estimasi_selesai': formatDateOnly(estimasiSelesai),
+          'estimasi_selesai': formatDateTime(estimasiSelesai),
       };
 
       debugPrint("📤 assignStaff REQUEST body: $requestBody");

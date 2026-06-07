@@ -418,19 +418,22 @@ class WorkOrderModel extends WorkOrderEntity {
         assignment?.assigneeId ??
         (ids.isNotEmpty ? ids.first : assignment?.assignee?.id);
 
-    String? formatDateOnly(DateTime? dt) {
+    String? formatDateTime(DateTime? dt) {
       if (dt == null) return null;
       final y = dt.year.toString().padLeft(4, '0');
       final m = dt.month.toString().padLeft(2, '0');
       final d = dt.day.toString().padLeft(2, '0');
-      return '$y-$m-$d';
+      final hh = dt.hour.toString().padLeft(2, '0');
+      final mm = dt.minute.toString().padLeft(2, '0');
+      final ss = dt.second.toString().padLeft(2, '0');
+      return '$y-$m-$d $hh:$mm:$ss';
     }
 
     final payload = <String, dynamic>{
       'nama_workorder': title,
       // legacy fallback (akan diabaikan oleh validator BE baru):
       'judul_pekerjaan': title,
-      'tanggal_mulai': formatDateOnly(startDateTime),
+      'tanggal_mulai': formatDateTime(startDateTime),
       'jenis_workorder_id': workOrderTypeId,
       'lokasi': (lokasiText != null && lokasiText!.trim().isNotEmpty)
           ? lokasiText

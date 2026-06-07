@@ -113,8 +113,6 @@ class FormFieldsConfig {
         "isOvertime": isOvertime,
         // BUG 2: Saat isAssignMode, field Mulai harus kosong (SPV yang menentukan) - handled on initial load instead.
         "startDateTime": (formData) => formData["startDateTime"],
-        "duration": (formData) => formData["duration"],
-        "durationUnit": (formData) => formData["durationUnit"],
         "endDateTime": (formData) => formData["endDateTime"],
         "isReadOnly": readOnlyInDetail,
         "status": status,
@@ -184,18 +182,11 @@ class FormFieldsConfig {
     if (kategoriForm == 'jaringan') {
       return [
         {
-          "type": "dropdown",
+          "type": "text",
           "key": "jenis_pipa",
           "label": "Jenis Pipa",
-          "hint": "Pilih jenis pipa",
-          "options": [
-            {"value": "PVC", "label": "PVC"},
-            {"value": "HDPE", "label": "HDPE"},
-            {"value": "Galvanis", "label": "Galvanis"},
-            {"value": "Besi Cor", "label": "Besi Cor"},
-          ],
+          "hint": "Contoh: PVC",
           "isReadOnly": isReadOnly,
-          "isDisabled": isReadOnly,
         },
         {
           "type": "text",
@@ -235,19 +226,11 @@ class FormFieldsConfig {
           "isReadOnly": isReadOnly,
         },
         {
-          "type": "dropdown",
+          "type": "text",
           "key": "jenis_aset",
           "label": "Jenis Aset",
-          "hint": "Pilih jenis aset",
-          "options": [
-            {"value": "Pompa", "label": "Pompa"},
-            {"value": "Reservoir", "label": "Reservoir"},
-            {"value": "IPA", "label": "IPA"},
-            {"value": "Genset", "label": "Genset"},
-            {"value": "Panel", "label": "Panel"},
-          ],
+          "hint": "Contoh: Pompa",
           "isReadOnly": isReadOnly,
-          "isDisabled": isReadOnly,
         },
         {
           "type": "text",

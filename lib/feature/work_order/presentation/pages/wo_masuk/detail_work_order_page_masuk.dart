@@ -725,21 +725,16 @@ class _DetailWorkOrderPageMasukState
       AppSnackbar.showError("Waktu mulai harus diisi.");
       return;
     }
-    if (duration == null || duration <= 0) {
-      AppSnackbar.showError("Durasi harus lebih dari 0.");
+    if (endDateTime == null) {
+      AppSnackbar.showError("Waktu selesai harus diisi.");
       return;
     }
-    if (durationUnit.isEmpty) {
-      AppSnackbar.showError("Satuan durasi harus dipilih.");
+    if (endDateTime.isBefore(startDateTime)) {
+      AppSnackbar.showError("Waktu selesai tidak boleh mendahului waktu mulai.");
       return;
     }
     if (assigneeIds.isEmpty) {
       AppSnackbar.showError("Minimal 1 petugas harus dipilih.");
-      return;
-    }
-
-    if (endDateTime == null) {
-      AppSnackbar.showError("Waktu selesai tidak valid.");
       return;
     }
 
@@ -879,6 +874,10 @@ class _DetailWorkOrderPageMasukState
     }
     if (estimasiSelesai == null) {
       AppSnackbar.showError("Estimasi selesai harus diisi.");
+      return;
+    }
+    if (estimasiSelesai.isBefore(tanggalMulai)) {
+      AppSnackbar.showError("Estimasi selesai tidak boleh mendahului waktu mulai.");
       return;
     }
 
