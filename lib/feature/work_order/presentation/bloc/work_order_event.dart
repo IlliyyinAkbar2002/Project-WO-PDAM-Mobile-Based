@@ -192,9 +192,9 @@ class UpdateWorkOrderProgressEvent extends WorkOrderEvent {
 }
 
 class ResubmitProgressEvent extends WorkOrderEvent {
-  final int progressWorkorderId;
+  final WorkOrderProgressModel progress;
 
-  ResubmitProgressEvent(this.progressWorkorderId);
+  ResubmitProgressEvent(this.progress);
 }
 
 // Individual progress tracking events

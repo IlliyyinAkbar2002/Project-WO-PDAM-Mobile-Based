@@ -79,12 +79,10 @@ class WorkOrderProgressRepositoryImpl implements WorkOrderProgressRepository {
 
   @override
   Future<DataState<WorkOrderProgressEntity>> resubmitProgress(
-    int progressWorkorderId,
+    WorkOrderProgressModel progress,
   ) async {
     try {
-      final response = await remoteDataSource.resubmitProgress(
-        progressWorkorderId,
-      );
+      final response = await remoteDataSource.resubmitProgress(progress);
       debugPrint("📥 Resubmit response: $response");
       if (response is DataSuccess<WorkOrderProgressModel>) {
         return DataSuccess(response.data!.toEntity());

@@ -57,7 +57,10 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
 
   void _pickImagesFromGallery() async {
     if (widget.singleImage) {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
       if (pickedFile != null) {
         setState(() {
           _singleImage = pickedFile;
@@ -65,7 +68,7 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
         widget.onChanged(pickedFile);
       }
     } else {
-      final pickedFiles = await _picker.pickMultiImage();
+      final pickedFiles = await _picker.pickMultiImage(imageQuality: 80);
       if (pickedFiles.isNotEmpty) {
         setState(() {
           _imageFiles.addAll(pickedFiles);
@@ -76,7 +79,10 @@ class _ImagePickerFieldState extends AppStatePage<ImagePickerField> {
   }
 
   void _pickImageFromCamera() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+    );
     if (pickedFile != null) {
       if (widget.singleImage) {
         setState(() {

@@ -13,7 +13,7 @@ abstract class WorkOrderProgressRepository {
     WorkOrderProgressModel workOrderProgress,
   );
   Future<DataState<WorkOrderProgressEntity>> resubmitProgress(
-    int progressWorkorderId,
+    WorkOrderProgressModel progress,
   );
 
   /// Mendapatkan kuota progress individual user yang sedang login

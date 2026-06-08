@@ -626,7 +626,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     emit(WorkOrderLoading());
     try {
       final dataState = await resubmitProgressUseCase(
-        event.progressWorkorderId,
+        event.progress,
       );
       if (dataState is DataSuccess) {
         emit(WorkOrderProgressUpdated(dataState.data!));

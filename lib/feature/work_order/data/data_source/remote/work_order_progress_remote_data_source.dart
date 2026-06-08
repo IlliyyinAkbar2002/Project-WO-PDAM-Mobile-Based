@@ -173,12 +173,73 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
   }
 
   Future<DataState<WorkOrderProgressModel>> resubmitProgress(
-    int progressWorkorderId,
+    WorkOrderProgressModel workOrderProgress,
   ) async {
     try {
+      final formData = FormData();
+      formData.fields.add(
+        MapEntry('progress_id', workOrderProgress.id.toString()),
+      );
+      formData.fields.add(
+        MapEntry('hasil_pengerjaan', workOrderProgress.description ?? ''),
+      );
+      if (workOrderProgress.latitude != null) {
+        formData.fields.add(
+          MapEntry('latitude', workOrderProgress.latitude.toString()),
+        );
+      }
+      if (workOrderProgress.longitude != null) {
+        formData.fields.add(
+          MapEntry('longitude', workOrderProgress.longitude.toString()),
+        );
+      }
+      if (workOrderProgress.accuracy != null) {
+        formData.fields.add(
+          MapEntry('accuracy', workOrderProgress.accuracy.toString()),
+        );
+      }
+
+      if (workOrderProgress.photos != null &&
+          workOrderProgress.photos!.isNotEmpty) {
+        for (var photo in workOrderProgress.photos!) {
+          try {
+            final file = File(photo.path);
+            if (await file.exists()) {
+              formData.files.add(
+                MapEntry(
+                  'foto[]',
+                  await MultipartFile.fromFile(
+                    photo.path,
+                    filename: basename(photo.path),
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint("❌ Error adding file ${photo.path}: $e");
+          }
+        }
+      }
+
+      if (workOrderProgress.kategoriData != null) {
+        workOrderProgress.kategoriData!.forEach((key, value) {
+          if (value != null) {
+            if (value is DateTime) {
+              final y = value.year.toString().padLeft(4, '0');
+              final m = value.month.toString().padLeft(2, '0');
+              final d = value.day.toString().padLeft(2, '0');
+              formData.fields.add(MapEntry(key, '$y-$m-$d'));
+            } else {
+              formData.fields.add(MapEntry(key, value.toString()));
+            }
+          }
+        });
+      }
+
       final response = await post(
-        path: '/v1/progress-detail/resubmit',
-        data: {'progress_workorder_id': progressWorkorderId},
+        path: '/v1/progress-workorder/resubmit',
+        data: formData,
+        contentType: ContentType.multipart,
       );
       final dynamic rawData = response.data is Map<String, dynamic>
           ? (response.data['data'] ?? response.data)
@@ -194,8 +255,32 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
           : throw const FormatException('Invalid resubmit response format');
       return DataSuccess(data);
     } catch (e) {
-      final dioError = _toDioException(e, '/v1/progress-detail/resubmit');
+      final dioError = _toDioException(e, '/v1/progress-workorder/resubmit');
       _logDioError('resubmitProgress', dioError);
+      return DataFailed(dioError);
+    }
+  }
+
+  Future<DataState<List<dynamic>>> getProgressDetailsHistory(
+    int progressWorkorderId,
+  ) async {
+    try {
+      final response = await get(
+        path: '/v1/progress-detail',
+        queryParameters: {'progress_workorder_id': progressWorkorderId},
+      );
+      final dynamic raw = response.data;
+      debugPrint("📥 getProgressDetailsHistory($progressWorkorderId) raw: $raw");
+
+      final dynamic payload =
+          raw is Map<String, dynamic> ? (raw['data'] ?? raw) : raw;
+      if (payload is List) {
+        return DataSuccess(payload);
+      }
+      return const DataSuccess([]);
+    } catch (e) {
+      final dioError = _toDioException(e, '/v1/progress-detail');
+      _logDioError('getProgressDetailsHistory', dioError);
       return DataFailed(dioError);
     }
   }

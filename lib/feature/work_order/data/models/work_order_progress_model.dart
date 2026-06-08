@@ -180,4 +180,49 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       accuracy: null,
     );
   }
+
+  @override
+  WorkOrderProgressModel copyWith({
+    int? id,
+    int? order,
+    int? workOrderId,
+    int? tipeProgressId,
+    int? statusId,
+    int? submittedByUserId,
+    String? description,
+    List<dynamic>? documentation,
+    DateTime? submitTime,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<dynamic>? progressDetail,
+    List<XFile>? photos,
+    String? reviewAction,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+    Map<String, dynamic>? kategoriData,
+  }) {
+    return WorkOrderProgressModel(
+      id: id ?? this.id,
+      order: order ?? this.order,
+      workOrderId: workOrderId ?? this.workOrderId,
+      tipeProgressId: tipeProgressId ?? this.tipeProgressId,
+      statusId: statusId ?? this.statusId,
+      submittedByUserId: submittedByUserId ?? this.submittedByUserId,
+      description: description ?? this.description,
+      documentation: (documentation ?? this.documentation)
+          ?.cast<DocumentationModel>(),
+      submitTime: submitTime ?? this.submitTime,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      progressDetails: (progressDetail ?? progressDetails)
+          ?.cast<ProgressDetailModel>(),
+      photos: photos ?? this.photos,
+      reviewAction: reviewAction ?? this.reviewAction,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      accuracy: accuracy ?? this.accuracy,
+      kategoriData: kategoriData ?? this.kategoriData,
+    );
+  }
 }

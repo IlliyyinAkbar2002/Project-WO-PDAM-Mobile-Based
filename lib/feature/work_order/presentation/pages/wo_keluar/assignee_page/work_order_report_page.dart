@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -9,13 +10,16 @@ import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
@@ -24,6 +28,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
 class WorkOrderReportPage extends StatefulWidget {
   final String mode;
@@ -86,6 +91,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   List<ProgressDetailEntity> _progressDetails = [];
   List<dynamic> _images = [];
   int? _progressStatusId;
+  String? _revisionNote;
   bool _isCheckingDistance = true;
   bool isDataLoaded = false;
   bool _isSubmitting = false;
@@ -193,6 +199,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         _isCheckingDistance = false;
       });
       return;
+    }
+
+    if (widget.progressId != null && widget.isAssignee) {
+      _fetchRevisionNote();
     }
 
     // Dispatch BLoC event untuk mengambil data
@@ -369,6 +379,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         },
         child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
           builder: (context, state) {
+            final bool isSelesaiResubmit = isRejected && widget.mode == 'Selesai';
+            final bool isSeniorStaff = AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
+            final bool canShowResubmitButton = !isSelesaiResubmit || isSeniorStaff;
+
             return !isDataLoaded || _isCheckingDistance
                 ? Center(
                     child: Column(
@@ -394,9 +408,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                           // Text(widget.mode, style: textTheme.displaySmall),
                           // const SizedBox(height: 16),
                           // Map dan info lokasi
-                          if (widget.lngLat != null) _buildLocationMap(),
-                          const SizedBox(height: 16),
-                          Container(
+                           if (widget.lngLat != null) _buildLocationMap(),
+                           const SizedBox(height: 16),
+                           if (isRejected && _revisionNote != null) ...[
+                             _buildRevisionNotePanel(),
+                             const SizedBox(height: 16),
+                           ],
+                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
@@ -437,114 +455,43 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                           widget.isAssignee && !isDetailMode
                               ? (_isAlreadyRecorded
                                     ? _buildAlreadyRecordedBanner()
-                                    : ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: _getColor(),
-                                        ),
-                                        onPressed: _isSubmitting
-                                            ? null
-                                            : _onSubmit,
-                                        child: _isSubmitting
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(Colors.white),
-                                                ),
-                                              )
-                                            : Text(
-                                                widget.mode,
-                                                style: textTheme.labelLarge?.copyWith(
-                                                  color:
-                                                      widget.mode == 'Selesai'
-                                                      ? (widget.status == 7
-                                                            ? color
-                                                                  .foreground[100]
-                                                            : color
-                                                                  .primary[500])
-                                                      : color.primary[500],
-                                                ),
-                                              ),
-                                      ))
-                              : widget.isAssignee && isRejected
-                              ? Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: color.danger.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: color.danger,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.info_outline,
-                                                color: color.danger,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Progress Ditolak',
-                                                style: textTheme.titleMedium
-                                                    ?.copyWith(
-                                                      color: color.danger,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                    : (!canShowResubmitButton
+                                        ? _buildOnlySeniorStaffBanner()
+                                        : ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _getColor(),
+                                            ),
+                                            onPressed: _isSubmitting
+                                                ? null
+                                                : _onSubmit,
+                                            child: _isSubmitting
+                                                ? const SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.white),
                                                     ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Silakan perbaiki progress sesuai catatan supervisor dan kirim ulang.',
-                                            style: textTheme.bodyMedium
-                                                ?.copyWith(
-                                                  color: color.foreground[700],
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: color.primary[500],
-                                      ),
-                                      onPressed: _isSubmitting
-                                          ? null
-                                          : _onResubmit,
-                                      child: _isSubmitting
-                                          ? const SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(Colors.white),
-                                              ),
-                                            )
-                                          : const Text('Kirim Ulang Progress'),
-                                    ),
-                                  ],
-                                )
+                                                  )
+                                                : Text(
+                                                    isRejected ? 'Kerjakan Revisi' : widget.mode,
+                                                    style: textTheme.labelLarge?.copyWith(
+                                                      color:
+                                                          widget.mode == 'Selesai'
+                                                          ? (widget.status == 7
+                                                                ? color
+                                                                      .foreground[100]
+                                                                : color
+                                                                      .primary[500])
+                                                          : color.primary[500],
+                                                    ),
+                                                  ),
+                                          )))
+                              : widget.isAssignee && isRejected
+                              ? const SizedBox()
                               : widget.mode == 'Selesai' &&
                                     !widget.isAssignee &&
                                     ProgressStatusId.isSubmitted(
@@ -559,6 +506,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         ),
                                         onPressed: () => _onReview('tolak'),
                                         child: const Text('Tolak'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: color.warning,
+                                        ),
+                                        onPressed: _showRevisionDialog,
+                                        child: const Text('Revisi'),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -726,6 +683,17 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       if (_images.isEmpty && widget.mode != 'Mulai') {
         AppSnackbar.showError("Minimal satu foto diperlukan.");
         return;
+      }
+
+      // Validate photo size (<= 2048 KB)
+      for (final photo in _images) {
+        if (photo is XFile) {
+          final size = await File(photo.path).length();
+          if (size > 2048 * 1024) {
+            AppSnackbar.showError("Ukuran foto '${photo.name}' melebihi 2MB.");
+            return;
+          }
+        }
       }
 
       if (widget.mode == 'Mulai') {
@@ -1034,7 +1002,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       debugPrint(
         "📩 Submitting Progress: photos=${workOrderProgress.photos?.map((p) => p.path).toList()}, details=${progressDetails.map((d) => d.detailFormId).toList()}",
       );
-      _workOrderBloc.add(UpdateWorkOrderProgressEvent(workOrderProgress));
+      if (isRejected) {
+        final resubmitProgress = workOrderProgress.copyWith(id: widget.progressId);
+        _workOrderBloc.add(ResubmitProgressEvent(resubmitProgress));
+      } else {
+        _workOrderBloc.add(UpdateWorkOrderProgressEvent(workOrderProgress));
+      }
     }
   }
 
@@ -1049,23 +1022,265 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
   }
 
-  void _onResubmit() {
-    if (_isSubmitting) {
-      AppSnackbar.showWarning(
-        'Tombol Kirim Ulang sudah pernah ditekan, mohon tunggu.',
-      );
-      return;
-    }
-    if (widget.progressId == null) {
-      AppSnackbar.showError("Progress ID tidak ditemukan.");
-      return;
-    }
-    setState(() {
-      _isSubmitting = true;
-      _hasClosedAfterSubmit = false;
-    });
-    _workOrderBloc.add(ResubmitProgressEvent(widget.progressId!));
+  void _onReviewWithNote(String action, String note) {
+    final reviewModel = WorkOrderProgressModel(
+      id: widget.progressId,
+      description: note,
+      reviewAction: action,
+    );
+    _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
   }
+
+  void _fetchRevisionNote() async {
+    try {
+      final remoteDataSource = sl<WorkOrderProgressRemoteDataSource>();
+      final response = await remoteDataSource.getProgressDetailsHistory(widget.progressId!);
+      if (response is DataSuccess<List<dynamic>>) {
+        final list = response.data!;
+        String? latestNote;
+        for (final item in list.reversed) {
+          final note = item['catatan']?.toString() ??
+              item['keterangan']?.toString() ??
+              item['alasan_penolakan']?.toString() ??
+              item['approval_notes']?.toString();
+          if (note != null && note.trim().isNotEmpty) {
+            latestNote = note.trim();
+            break;
+          }
+        }
+        if (latestNote != null && mounted) {
+          setState(() {
+            _revisionNote = latestNote;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ Failed to fetch revision history: $e");
+    }
+  }
+
+  void _showRevisionDialog() {
+    final noteController = TextEditingController();
+    XFile? selectedFile;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Revisi',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(dialogContext),
+                    child: Icon(Icons.close, color: color.foreground[500]),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: noteController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Isi revisi...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: color.foreground[400]!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // File Picker
+                    InkWell(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final file = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          imageQuality: 80,
+                        );
+                        if (file != null) {
+                          setStateDialog(() {
+                            selectedFile = file;
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: color.foreground[400]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.upload, color: color.foreground[600]),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                selectedFile != null
+                                    ? selectedFile!.name
+                                    : 'Pilih File',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: color.foreground[700]),
+                              ),
+                            ),
+                            if (selectedFile != null)
+                              GestureDetector(
+                                onTap: () {
+                                  setStateDialog(() {
+                                    selectedFile = null;
+                                  });
+                                },
+                                child: Icon(
+                                  Icons.clear,
+                                  color: color.foreground[500],
+                                  size: 18,
+                                ),
+                              )
+                            else
+                              Text('...', style: TextStyle(color: color.foreground[500])),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: color.danger,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: color.success,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              final note = noteController.text.trim();
+                              if (note.isEmpty) {
+                                AppSnackbar.showError("Catatan revisi tidak boleh kosong.");
+                                return;
+                              }
+                              Navigator.pop(dialogContext);
+                              _onReviewWithNote('revisi', note);
+                            },
+                            child: const Text('Kirim'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRevisionNotePanel() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.danger.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.danger,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: color.danger,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Revisi',
+                style: textTheme.titleMedium?.copyWith(
+                  color: color.danger,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _revisionNote ?? '',
+            style: textTheme.bodyMedium?.copyWith(
+              color: color.foreground[800],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnlySeniorStaffBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.danger.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.danger, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, color: color.danger, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Hanya PIC dengan jabatan Senior Staff yang dapat submit SELESAI',
+              style: textTheme.bodyMedium?.copyWith(
+                color: color.foreground[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  
 
   dynamic _getOptionIdFromValue(ProgressDetailEntity detail) {
     if (detail.form != null &&
