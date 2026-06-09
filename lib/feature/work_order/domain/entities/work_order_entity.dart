@@ -63,6 +63,8 @@ class WorkOrderEntity extends Equatable {
     this.assignments,
   });
 
+  bool get isLembur => workOrderTypeId == 2 || workOrderType?.id == 2;
+
   @override
   List<Object?> get props => [
     id,

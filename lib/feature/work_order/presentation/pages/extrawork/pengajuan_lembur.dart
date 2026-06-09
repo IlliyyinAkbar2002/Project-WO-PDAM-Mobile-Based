@@ -5,6 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_work_orders_usecase.dart';
+import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
@@ -31,7 +35,6 @@ class _PengajuanLemburPage extends StatefulWidget {
 }
 
 class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
-  final TextEditingController _judulController = TextEditingController();
   final TextEditingController _durasiController = TextEditingController(
     text: '2',
   );
@@ -40,12 +43,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   List<UserEntity> _availableUsers = const [];
   // Internal selection state
   String? _selectedWorkType;
-  final List<String> _workTypes = const [
-    'Network Repair',
-    'Asset Maintenance',
-    'Emergency Response',
-    'Quality Inspection',
-  ];
   final List<UserEntity> _selectedMembers = [];
 
   DateTime? _tanggalLembur;
@@ -53,6 +50,10 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
 
   bool _isSubmitting = false;
   bool _usersRequested = false;
+
+  List<WorkOrderEntity> _availableWorkOrders = const [];
+  WorkOrderEntity? _selectedWorkOrder;
+  bool _loadingWorkOrders = false;
 
   ({String name, String npp, String jabatan}) _getEmployeeInfo() {
     final user = AuthStorage.getUserSync() ?? <String, dynamic>{};
@@ -95,9 +96,42 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     );
   }
 
+  Future<void> _loadWorkOrders() async {
+    setState(() => _loadingWorkOrders = true);
+    try {
+      final user = AuthStorage.getUserSync();
+
+      final usecase = sl<GetWorkOrdersUseCase>();
+      final result = await usecase(
+        WorkOrderParams(
+          page: 1,
+          limit: 100,
+          status: const [WorkOrderStatusId.ditugaskanKeSpv],
+        ),
+      );
+
+      if (result is DataSuccess<List<WorkOrderEntity>>) {
+        setState(() {
+          _availableWorkOrders = result.data ?? [];
+        });
+      } else if (result is PaginatedDataSuccess<List<WorkOrderEntity>>) {
+        setState(() {
+          _availableWorkOrders = result.data ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading work orders: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _loadingWorkOrders = false);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadWorkOrders();
     // Defer first event dispatch to after the first frame so the bloc that's
     // provided up the tree (in main.dart) is reliably reachable via context.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -112,7 +146,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
 
   @override
   void dispose() {
-    _judulController.dispose();
     _durasiController.dispose();
     _alasanController.dispose();
     super.dispose();
@@ -142,7 +175,113 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
       initialTime: _jamMulai ?? const TimeOfDay(hour: 16, minute: 0),
     );
     if (time != null) {
+      if (time.hour < 16) {
+        AppSnackbar.showError(
+          'Jam mulai lembur harus di atas pukul 15:00 (mulai pukul 16:00).',
+        );
+        return;
+      }
       setState(() => _jamMulai = time);
+    }
+  }
+
+  Future<void> _pickWorkOrder() async {
+    if (_availableWorkOrders.isEmpty && !_loadingWorkOrders) {
+      AppSnackbar.showInfo('Tidak ada daftar pekerjaan aktif.');
+      return;
+    }
+
+    final result = await showModalBottomSheet<WorkOrderEntity>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Pilih Pekerjaan',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: _loadingWorkOrders
+                        ? const Center(child: CircularProgressIndicator())
+                        : _availableWorkOrders.isEmpty
+                        ? const Center(child: Text('Tidak ada pekerjaan aktif'))
+                        : ListView.separated(
+                            controller: scrollController,
+                            itemCount: _availableWorkOrders.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (_, index) {
+                              final wo = _availableWorkOrders[index];
+                              final isSelected =
+                                  _selectedWorkOrder?.id == wo.id;
+                              return ListTile(
+                                title: Text(
+                                  wo.title,
+                                  style: TextStyle(
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Jenis: ${wo.workOrderType?.name ?? "Tidak ada tipe"}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Color(0xFF2563EB),
+                                      )
+                                    : null,
+                                onTap: () {
+                                  Navigator.pop(sheetCtx, wo);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedWorkOrder = result;
+        _selectedWorkType = result.workOrderType?.name;
+      });
     }
   }
 
@@ -304,13 +443,21 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     final selesai = mulai.add(Duration(hours: durasi));
     final jam = selesai.hour.toString().padLeft(2, '0');
     final menit = selesai.minute.toString().padLeft(2, '0');
+
+    // Check if end time crosses midnight (00:00 next day)
+    final startMins = _jamMulai!.hour * 60 + _jamMulai!.minute;
+    final totalMins = startMins + (durasi * 60);
+    if (totalMins > 1440) {
+      return 'Selesai: ${_formatDate(selesai)} $jam:$menit WIB (Melebihi batas pukul 00:00)';
+    }
+
     return 'Selesai: ${_formatDate(selesai)} $jam:$menit WIB';
   }
 
   /// Validate form and return null if OK, otherwise an error message.
   String? _validate() {
-    if (_judulController.text.trim().isEmpty) {
-      return 'Judul pekerjaan wajib diisi.';
+    if (_selectedWorkOrder == null) {
+      return 'Pekerjaan wajib dipilih.';
     }
     if (_selectedWorkType == null) {
       return 'Jenis pekerjaan wajib dipilih.';
@@ -326,10 +473,21 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (_jamMulai == null) {
       return 'Jam mulai wajib dipilih.';
     }
+    if (_jamMulai!.hour < 16) {
+      return 'Jam mulai lembur harus di atas pukul 15:00 (mulai pukul 16:00).';
+    }
     final estimasi = int.tryParse(_durasiController.text.trim());
     if (estimasi == null || estimasi <= 0) {
       return 'Estimasi waktu lembur tidak valid.';
     }
+
+    // Check if end time crosses midnight (00:00 next day)
+    final startMins = _jamMulai!.hour * 60 + _jamMulai!.minute;
+    final totalMins = startMins + (estimasi * 60);
+    if (totalMins > 1440) {
+      return 'Waktu lembur tidak boleh melebihi pukul 00:00 (tengah malam).';
+    }
+
     if (_alasanController.text.trim().isEmpty) {
       return 'Alasan lembur wajib diisi.';
     }
@@ -347,13 +505,15 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         .toSet()
         .toList();
     return {
-      'judul_pekerjaan': _judulController.text.trim(),
+      'judul_pekerjaan': _selectedWorkOrder?.title ?? '',
       'jenis_pekerjaan': _selectedWorkType,
       'tanggal_lembur': tanggal,
       'jam_mulai': jamMulai,
       'estimasi_jam': int.parse(_durasiController.text.trim()),
       'alasan_lembur': _alasanController.text.trim(),
       'members': memberIds,
+      'work_order_id': _selectedWorkOrder?.id,
+      'workorder_id': _selectedWorkOrder?.id,
     };
   }
 
@@ -565,33 +725,53 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                             children: [
                               const _FieldLabel('Judul Pekerjaan'),
                               const SizedBox(height: 6),
-                              TextField(
-                                controller: _judulController,
-                                decoration: _inputDecoration(
-                                  hint: 'Masukan judul pekerjaan...',
+                              InkWell(
+                                onTap: _pickWorkOrder,
+                                borderRadius: BorderRadius.circular(12),
+                                child: InputDecorator(
+                                  decoration: _inputDecoration(
+                                    hint: 'Pilih pekerjaan...',
+                                    suffixIcon: _loadingWorkOrders
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.arrow_drop_down),
+                                  ),
+                                  child: Text(
+                                    _selectedWorkOrder == null
+                                        ? 'Pilih pekerjaan...'
+                                        : _selectedWorkOrder!.title,
+                                    style: TextStyle(
+                                      color: _selectedWorkOrder == null
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
                               const _FieldLabel('Jenis Pekerjaan'),
                               const SizedBox(height: 6),
-                              DropdownButtonFormField<String>(
-                                initialValue: _selectedWorkType,
+                              InputDecorator(
                                 decoration: _inputDecoration(
                                   hint: 'Pilih jenis pekerjaan...',
+                                  fillColor: const Color(0xFFF1F5F9),
                                 ),
-                                items: _workTypes
-                                    .map(
-                                      (t) => DropdownMenuItem<String>(
-                                        value: t,
-                                        child: Text(t),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedWorkType = value;
-                                  });
-                                },
+                                child: Text(
+                                  _selectedWorkType ??
+                                      'Pilih jenis pekerjaan...',
+                                  style: TextStyle(
+                                    color: _selectedWorkType == null
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF475569),
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 12),
                               const _FieldLabel('Tanggal Lembur'),
@@ -790,6 +970,7 @@ InputDecoration _inputDecoration({
   required String hint,
   Widget? suffixIcon,
   String? suffixText,
+  Color? fillColor,
 }) {
   return InputDecoration(
     hintText: hint,
@@ -798,7 +979,7 @@ InputDecoration _inputDecoration({
     suffixText: suffixText,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     filled: true,
-    fillColor: Colors.white,
+    fillColor: fillColor ?? Colors.white,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),

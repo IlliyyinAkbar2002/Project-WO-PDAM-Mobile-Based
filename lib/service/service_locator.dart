@@ -12,6 +12,16 @@ import 'package:project_mobile_pdam/feature/work_order/domain/repositories/lapor
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/create_laporan_workorder_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_lembur_remote_data.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_lembur_repository.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/repositories/work_order_lembur_repository_impl.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_work_order_lembur_progress_detail_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_work_order_lembur_progresses_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/update_work_order_lembur_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/resubmit_lembur_progress_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_quota_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_by_member_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/lembur_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_type_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/form_repository_impl.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/location_type_repository_impl.dart';
@@ -139,6 +149,11 @@ Future<void> init() async {
     );
     debugPrint("✅ LaporanWorkorderRemoteDataSource terdaftar");
 
+    sl.registerLazySingleton<WorkOrderLemburRemoteDataSource>(
+      () => WorkOrderLemburRemoteDataSource(),
+    );
+    debugPrint("✅ WorkOrderLemburRemoteDataSource terdaftar");
+
     // **2️⃣ Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
       () => WorkOrderRepositoryImpl(sl<WorkOrderRemoteDataSource>()),
@@ -218,6 +233,13 @@ Future<void> init() async {
     );
     debugPrint("✅ LaporanWorkorderRepository terdaftar");
 
+    sl.registerLazySingleton<WorkOrderLemburRepository>(
+      () => WorkOrderLemburRepositoryImpl(
+        sl<WorkOrderLemburRemoteDataSource>(),
+      ),
+    );
+    debugPrint("✅ WorkOrderLemburRepository terdaftar");
+
     // **4️⃣ Use Cases**
     sl.registerLazySingleton(
       () => GetWorkOrdersUseCase(sl<WorkOrderRepository>()),
@@ -275,6 +297,14 @@ Future<void> init() async {
     sl.registerLazySingleton(
       () => GetProgressByWorkOrderIdUsecase(sl<WorkOrderProgressRepository>()),
     );
+    
+    // lembur progress
+    sl.registerLazySingleton(() => GetLemburProgressByWorkOrderIdUsecase(sl<WorkOrderLemburRepository>()));
+    sl.registerLazySingleton(() => GetWorkOrderLemburProgressDetailUsecase(sl<WorkOrderLemburRepository>()));
+    sl.registerLazySingleton(() => UpdateWorkOrderLemburProgressUseCase(sl<WorkOrderLemburRepository>()));
+    sl.registerLazySingleton(() => ResubmitLemburProgressUseCase(sl<WorkOrderLemburRepository>()));
+    sl.registerLazySingleton(() => GetLemburProgressQuotaUseCase(sl<WorkOrderLemburRepository>()));
+    sl.registerLazySingleton(() => GetLemburProgressByMemberUseCase(sl<WorkOrderLemburRepository>()));
     sl.registerLazySingleton(
       () =>
           GetWorkOrderProgressDetailUsecase(sl<WorkOrderProgressRepository>()),
@@ -395,6 +425,19 @@ Future<void> init() async {
 
     sl.registerLazySingleton(() => JournalDraftCubit());
     debugPrint("✅ JournalDraftCubit terdaftar");
+
+    sl.registerFactory(
+      () => LemburBloc(
+        getLemburProgressByWorkOrderIdUsecase: sl<GetLemburProgressByWorkOrderIdUsecase>(),
+        getWorkOrderLemburProgressDetailUsecase: sl<GetWorkOrderLemburProgressDetailUsecase>(),
+        updateWorkOrderLemburProgressUseCase: sl<UpdateWorkOrderLemburProgressUseCase>(),
+        resubmitLemburProgressUseCase: sl<ResubmitLemburProgressUseCase>(),
+        getLemburProgressQuotaUseCase: sl<GetLemburProgressQuotaUseCase>(),
+        getLemburProgressByMemberUseCase: sl<GetLemburProgressByMemberUseCase>(),
+        workOrderLemburRepository: sl<WorkOrderLemburRepository>(),
+      ),
+    );
+    debugPrint("✅ LemburBloc terdaftar");
 
     debugPrint("🎉 Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {

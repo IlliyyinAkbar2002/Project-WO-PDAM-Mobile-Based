@@ -9,6 +9,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_lembur_page.dart';
 
 class WorkOrderList extends StatefulWidget {
   final List<int>? status;
@@ -181,26 +182,34 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => widget.isAssignee
-                  ? AssigneeWorkOrderDetailPage(
-                      isAssignee: widget.isAssignee,
-                      workOrderId: workOrder.id,
-                      workOrderTypeId:
-                          workOrder.workOrderTypeId ??
-                          workOrder.workOrderType?.id,
-                      status: workOrder.statusId,
-                      kategoriForm: workOrder.kategoriForm,
-                      lngLat: lnglat,
-                      locationName: locationName,
-                      radiusMeter: radiusMeter,
-                    )
-                  : DetailWorkOrderPage(
-                      picId: widget.picId,
-                      userId: widget.userId,
-                      workOrderId: workOrder.id,
-                      status: workOrder.statusId,
-                      isOvertime: workOrder.requiresApproval,
-                    ),
+              builder: (context) {
+                if (workOrder.isLembur) {
+                  return DetailWorkOrderLemburPage(
+                    workOrderId: workOrder.id!,
+                    isAssignee: widget.isAssignee,
+                  );
+                }
+                return widget.isAssignee
+                    ? AssigneeWorkOrderDetailPage(
+                        isAssignee: widget.isAssignee,
+                        workOrderId: workOrder.id,
+                        workOrderTypeId:
+                            workOrder.workOrderTypeId ??
+                            workOrder.workOrderType?.id,
+                        status: workOrder.statusId,
+                        kategoriForm: workOrder.kategoriForm,
+                        lngLat: lnglat,
+                        locationName: locationName,
+                        radiusMeter: radiusMeter,
+                      )
+                    : DetailWorkOrderPage(
+                        picId: widget.picId,
+                        userId: widget.userId,
+                        workOrderId: workOrder.id,
+                        status: workOrder.statusId,
+                        isOvertime: workOrder.requiresApproval,
+                      );
+              },
             ),
           );
           if (mounted) {
@@ -250,6 +259,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       mainAxisSize: MainAxisSize.min,
       spacing: 4,
       children: [
+        if (workOrder.isLembur)
+          _buildChip('Lembur', Colors.orange.shade700),
         _buildChip(typeLabel, typeColor),
         if (status != null && status.isNotEmpty)
           _buildChip(status, statusColor),
