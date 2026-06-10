@@ -26,12 +26,19 @@ class CustomFieldWidgets {
     return formData[key];
   }
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   static final Map<String, CustomFieldBuilder> fields = {
     "locationPicker": (field, formData, onFieldChanged) => LocationPicker(
       isStatic: true,
       isReadOnly: field["isReadOnly"] ?? false,
-      latitude: formData["latitude"],
-      longitude: formData["longitude"],
+      latitude: _parseDouble(formData["latitude"]),
+      longitude: _parseDouble(formData["longitude"]),
       locationId: formData["locationId"],
       locationName: formData["locationName"],
       onLocationSelected:

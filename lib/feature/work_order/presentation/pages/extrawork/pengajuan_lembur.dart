@@ -13,6 +13,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
+import 'package:project_mobile_pdam/core/widget/location_picker.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
 class PengajuanLemburPage extends StatelessWidget {
@@ -39,6 +40,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     text: '2',
   );
   final TextEditingController _alasanController = TextEditingController();
+  final TextEditingController _lokasiController = TextEditingController();
 
   List<UserEntity> _availableUsers = const [];
   // Internal selection state
@@ -47,6 +49,19 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
 
   DateTime? _tanggalLembur;
   TimeOfDay? _jamMulai;
+
+  // Opsional; nilai persis: rendah | sedang | tinggi | darurat.
+  String? _prioritas;
+  double? _latitude;
+  double? _longitude;
+  int? _koordinatorUserId;
+
+  static const List<({String value, String label})> _prioritasOptions = [
+    (value: 'rendah', label: 'Rendah'),
+    (value: 'sedang', label: 'Sedang'),
+    (value: 'tinggi', label: 'Tinggi'),
+    (value: 'darurat', label: 'Darurat'),
+  ];
 
   bool _isSubmitting = false;
   bool _usersRequested = false;
@@ -148,6 +163,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   void dispose() {
     _durasiController.dispose();
     _alasanController.dispose();
+    _lokasiController.dispose();
     super.dispose();
   }
 
@@ -414,6 +430,11 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         _selectedMembers
           ..clear()
           ..addAll(result);
+
+        if (_koordinatorUserId != null &&
+            !_selectedMembers.any((m) => m.id == _koordinatorUserId)) {
+          _koordinatorUserId = null;
+        }
       });
     }
   }
@@ -504,7 +525,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         .whereType<int>()
         .toSet()
         .toList();
-    return {
+    final payload = {
       'judul_pekerjaan': _selectedWorkOrder?.title ?? '',
       'jenis_pekerjaan': _selectedWorkType,
       'tanggal_lembur': tanggal,
@@ -515,6 +536,23 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
       'work_order_id': _selectedWorkOrder?.id,
       'workorder_id': _selectedWorkOrder?.id,
     };
+
+    if (_prioritas != null) {
+      payload['prioritas'] = _prioritas;
+    }
+    final lokasi = _lokasiController.text.trim();
+    if (lokasi.isNotEmpty) {
+      payload['lokasi'] = lokasi;
+    }
+    if (_latitude != null && _longitude != null) {
+      payload['latitude'] = double.parse(_latitude!.toStringAsFixed(7));
+      payload['longitude'] = double.parse(_longitude!.toStringAsFixed(7));
+    }
+    if (_koordinatorUserId != null) {
+      payload['koordinator_user_id'] = _koordinatorUserId;
+    }
+
+    return payload;
   }
 
   void _submit() {
@@ -864,6 +902,154 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                               const SizedBox(height: 12),
                               Row(
                                 children: [
+                                  const _FieldLabel('Prioritas'),
+                                  const Spacer(),
+                                  if (_prioritas != null)
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() => _prioritas = null);
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        foregroundColor: const Color(0xFFEF4444),
+                                      ),
+                                      child: const Text('Hapus'),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _prioritasOptions.map((opt) {
+                                  final selected = _prioritas == opt.value;
+                                  return ChoiceChip(
+                                    label: Text(opt.label),
+                                    selected: selected,
+                                    showCheckmark: false,
+                                    selectedColor: const Color(
+                                      0xFF2563EB,
+                                    ).withValues(alpha: 0.12),
+                                    backgroundColor: const Color(0xFFF1F5F9),
+                                    side: BorderSide(
+                                      color: selected
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFFE2E8F0),
+                                    ),
+                                    labelStyle: TextStyle(
+                                      color: selected
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF475569),
+                                      fontWeight: selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                                    onSelected: (val) {
+                                      setState(
+                                        () => _prioritas = val
+                                            ? opt.value
+                                            : null,
+                                      );
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _selectedWorkOrder?.prioritas != null &&
+                                        _selectedWorkOrder!.prioritas!.isNotEmpty
+                                    ? 'Opsional — jika dikosongkan, prioritas WO tidak berubah (saat ini: ${_selectedWorkOrder!.prioritas![0].toUpperCase()}${_selectedWorkOrder!.prioritas!.substring(1).toLowerCase()}).'
+                                    : 'Opsional — jika dikosongkan, prioritas WO tidak berubah.',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const _FieldLabel('Lokasi'),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _lokasiController,
+                                maxLength: 255,
+                                maxLines: 1,
+                                decoration: _inputDecoration(
+                                  hint: 'Opsional — isi untuk mengubah lokasi WO',
+                                ).copyWith(counterText: ''),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                () {
+                                  final woLokasi =
+                                      _selectedWorkOrder?.lokasiText
+                                              ?.isNotEmpty ==
+                                          true
+                                      ? _selectedWorkOrder!.lokasiText!
+                                      : _selectedWorkOrder
+                                            ?.assignment
+                                            ?.location
+                                            ?.nama;
+                                  return (woLokasi != null &&
+                                          woLokasi.isNotEmpty)
+                                      ? 'Opsional — jika dikosongkan, lokasi WO tidak berubah (saat ini: $woLokasi).'
+                                      : 'Opsional — jika dikosongkan, lokasi WO tidak berubah.';
+                                }(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const _FieldLabel('Titik Peta Work Order Lembur'),
+                                  const Spacer(),
+                                  if (_latitude != null && _longitude != null)
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _latitude = null;
+                                          _longitude = null;
+                                        });
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        foregroundColor: const Color(0xFFEF4444),
+                                      ),
+                                      child: const Text('Hapus Pin'),
+                                    ),
+                                ],
+                                ),
+                              const SizedBox(height: 6),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: LocationPicker(
+                                  isStatic: true,
+                                  isReadOnly: false,
+                                  latitude: _latitude,
+                                  longitude: _longitude,
+                                  onLocationSelected: (lat, long, {locationId, radiusMeter, locationName}) {
+                                    setState(() {
+                                      _latitude = lat;
+                                      _longitude = long;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
                                   const _FieldLabel('Anggota Tim'),
                                   const Spacer(),
                                   TextButton.icon(
@@ -873,7 +1059,17 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
+                              if (_selectedMembers.isNotEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    'Ketuk anggota untuk menjadikan koordinator. Jika tidak dipilih, anggota pertama otomatis menjadi koordinator.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ),
                               if (_selectedMembers.isEmpty)
                                 Text(
                                   _availableUsers.isEmpty
@@ -893,8 +1089,12 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         m.employee?.name ??
                                         m.email ??
                                         'User #${m.id}';
-                                    return Chip(
+                                    final isKoordinator = _koordinatorUserId == m.id;
+                                    return InputChip(
                                       label: Text(name),
+                                      avatar: isKoordinator
+                                          ? const Icon(Icons.star, color: Colors.orange, size: 16)
+                                          : null,
                                       deleteIcon: const Icon(
                                         Icons.close,
                                         size: 18,
@@ -902,9 +1102,27 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                       onDeleted: () {
                                         setState(() {
                                           _selectedMembers.remove(m);
+                                          if (_koordinatorUserId == m.id) {
+                                            _koordinatorUserId = null;
+                                          }
                                         });
                                       },
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          if (selected) {
+                                            _koordinatorUserId = m.id;
+                                          } else {
+                                            _koordinatorUserId = null;
+                                          }
+                                        });
+                                      },
+                                      selected: isKoordinator,
+                                      selectedColor: Colors.orange.withValues(alpha: 0.15),
                                       backgroundColor: const Color(0xFFE2E8F0),
+                                      showCheckmark: false,
+                                      side: BorderSide(
+                                        color: isKoordinator ? Colors.orange : Colors.transparent,
+                                      ),
                                     );
                                   }).toList(),
                                 ),

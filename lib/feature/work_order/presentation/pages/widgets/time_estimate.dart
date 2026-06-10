@@ -80,15 +80,15 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
   }
 
   void _initialValue() {
-    selectedDate = widget.startDateTime;
+    selectedDate = widget.startDateTime?.toLocal();
     selectedTime = widget.startDateTime != null
-        ? TimeOfDay.fromDateTime(widget.startDateTime!)
+        ? TimeOfDay.fromDateTime(widget.startDateTime!.toLocal())
         : null;
 
-    endDateTime = widget.endDateTime;
-    selectedEndDate = widget.endDateTime;
+    endDateTime = widget.endDateTime?.toLocal();
+    selectedEndDate = widget.endDateTime?.toLocal();
     selectedEndTime = widget.endDateTime != null
-        ? TimeOfDay.fromDateTime(widget.endDateTime!)
+        ? TimeOfDay.fromDateTime(widget.endDateTime!.toLocal())
         : null;
 
     _dateController.text = selectedDate != null

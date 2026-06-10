@@ -289,13 +289,18 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
 
       final data = error.response?.data;
       if (data is Map) {
+        final customError = data['error'];
+        if (customError != null && customError is String) {
+          return customError; // Prioritize custom 'error' key for custom 422s verbatim
+        }
+        
         final errors = data['errors'];
         if (errors is Map && errors.isNotEmpty) {
           final first = errors.values.first;
           if (first is List && first.isNotEmpty) return first.first.toString();
           return first.toString();
         }
-        final message = data['message'] ?? data['error'];
+        final message = data['message'];
         if (message != null) return message.toString();
       }
       if (data is String && data.isNotEmpty) return data;

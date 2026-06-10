@@ -99,19 +99,18 @@ class _AssigneeWorkOrderDetailPageState
     switch (workOrder.kategoriForm) {
       case 'jaringan':
         return {
-          "jenisPipa": detail["jenis_pipa"],
-          "diameterPipa": detail["diameter_pipa"]?.toString(),
-          "panjangPipa": detail["panjang_pipa"]?.toString(),
-          "tingkatKerusakan": detail["tingkat_kerusakan"],
+          "jenis_pipa": detail["jenis_pipa"],
+          "diameter_pipa": detail["diameter_pipa"]?.toString(),
+          "panjang_pipa": detail["panjang_pipa"]?.toString(),
+          "tingkat_kerusakan": detail["tingkat_kerusakan"],
           "tindakan_perbaikan": detail["tindakan_perbaikan"]?.toString(),
           "hasil_inspeksi": detail["hasil_inspeksi"]?.toString(),
         };
       case 'infrastruktur':
         return {
-          "namaAset": detail["nama_aset"],
-          "jenisAset": detail["jenis_aset"],
+          "nama_aset": detail["nama_aset"],
+          "jenis_aset": detail["jenis_aset"],
           "kapasitas": detail["kapasitas"]?.toString(),
-          "kondisiAwal": detail["kondisi_awal"]?.toString(),
           "kondisi_awal": detail["kondisi_awal"]?.toString(),
           "kondisi_akhir": detail["kondisi_akhir"]?.toString(),
           "jadwal_pemeliharaan": detail["jadwal_pemeliharaan"]?.toString(),
@@ -119,8 +118,8 @@ class _AssigneeWorkOrderDetailPageState
         };
       case 'meter':
         return {
-          "nomorMeter": detail["nomor_meter"],
-          "kondisiMeterAwal": detail["kondisi_meter_awal"],
+          "nomor_meter": detail["nomor_meter"],
+          "kondisi_meter_awal": detail["kondisi_meter_awal"],
           "kondisi_meter_akhir": detail["kondisi_meter_akhir"]?.toString(),
           "hasil_kalibrasi": detail["hasil_kalibrasi"]?.toString(),
         };
@@ -218,6 +217,14 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
+  Future<void> _handleRefresh() async {
+    _fetchProgresses();
+    _fetchQuota();
+    if (widget.workOrderId != null) {
+      context.read<WorkOrderBloc>().add(GetWorkOrderDetailEvent(widget.workOrderId!));
+    }
+  }
+
   /// Hitung jumlah laporan yang sudah disubmit hari ini (bukan draft).
   /// Mulai tidak dihitung karena tidak mengonsumsi kuota.
   int _countSubmittedToday() {
@@ -252,9 +259,11 @@ class _AssigneeWorkOrderDetailPageState
     final int totalKuotaHariIni = progressQuota?.totalKuotaHariIni ?? _kDailyReportLimit;
     final bool isKuotaHabis = sisaKuota == 0;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
         DetailWorkOrderPage(
           isOvertime: widget.isOvertime,
           workOrderId: widget.workOrderId,
@@ -283,8 +292,8 @@ class _AssigneeWorkOrderDetailPageState
               Expanded(
                 child: _buildSecondaryOutlinedButton(
                   label: 'Pinjam Material',
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final shouldRefresh = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (_) => PeminjamanItemListPage(
@@ -292,6 +301,9 @@ class _AssigneeWorkOrderDetailPageState
                         ),
                       ),
                     );
+                    if (shouldRefresh == true && mounted) {
+                      _handleRefresh();
+                    }
                   },
                 ),
               ),
@@ -321,8 +333,8 @@ class _AssigneeWorkOrderDetailPageState
               Expanded(
                 child: _buildSecondaryOutlinedButton(
                   label: 'Kembalikan Material',
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final shouldRefresh = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (_) => PeminjamanItemListPage(
@@ -330,13 +342,17 @@ class _AssigneeWorkOrderDetailPageState
                         ),
                       ),
                     );
+                    if (shouldRefresh == true && mounted) {
+                      _handleRefresh();
+                    }
                   },
                 ),
               ),
             ],
           ),
         ],
-      ],
+        ],
+      ),
     );
   }
 
@@ -377,8 +393,8 @@ class _AssigneeWorkOrderDetailPageState
           index: progress.order ?? 0,
           description: progress.description,
           dateTime: _resolveProgressDateTime(progress),
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final shouldRefresh = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
                 builder: (_) => WorkOrderReportPage(
@@ -398,6 +414,9 @@ class _AssigneeWorkOrderDetailPageState
                 ),
               ),
             );
+            if (shouldRefresh == true && mounted) {
+              _handleRefresh();
+            }
           },
         ),
         if (progress.canCancel)
@@ -478,7 +497,7 @@ class _AssigneeWorkOrderDetailPageState
           ? 'Laporan berhasil dibatalkan.'
           : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
       AppSnackbar.showSuccess(successMsg);
-      _fetchProgresses();
+      _handleRefresh();
     } else {
       final errorMsg = result.error?.response?.data is Map
           ? (result.error!.response!.data['message'] ??
@@ -523,8 +542,8 @@ class _AssigneeWorkOrderDetailPageState
             ),
           ),
         );
-        if (shouldRefresh == true && mounted && widget.workOrderId != null) {
-          _fetchProgresses();
+        if (shouldRefresh == true && mounted) {
+          _handleRefresh();
         }
       } finally {
         if (mounted) _isNavigatingToReport = false;

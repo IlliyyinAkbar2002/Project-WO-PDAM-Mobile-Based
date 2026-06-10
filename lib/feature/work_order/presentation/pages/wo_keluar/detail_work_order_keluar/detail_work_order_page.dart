@@ -235,19 +235,18 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     switch (workOrder.kategoriForm) {
       case WoKategoriForm.jaringan:
         return {
-          "jenisPipa": detail["jenis_pipa"],
-          "diameterPipa": detail["diameter_pipa"]?.toString(),
-          "panjangPipa": detail["panjang_pipa"]?.toString(),
-          "tingkatKerusakan": detail["tingkat_kerusakan"],
+          "jenis_pipa": detail["jenis_pipa"],
+          "diameter_pipa": detail["diameter_pipa"]?.toString(),
+          "panjang_pipa": detail["panjang_pipa"]?.toString(),
+          "tingkat_kerusakan": detail["tingkat_kerusakan"],
           "tindakan_perbaikan": detail["tindakan_perbaikan"]?.toString(),
           "hasil_inspeksi": detail["hasil_inspeksi"]?.toString(),
         };
       case WoKategoriForm.infrastruktur:
         return {
-          "namaAset": detail["nama_aset"],
-          "jenisAset": detail["jenis_aset"],
+          "nama_aset": detail["nama_aset"],
+          "jenis_aset": detail["jenis_aset"],
           "kapasitas": detail["kapasitas"]?.toString(),
-          "kondisiAwal": detail["kondisi_awal"]?.toString(),
           "kondisi_awal": detail["kondisi_awal"]?.toString(),
           "kondisi_akhir": detail["kondisi_akhir"]?.toString(),
           "jadwal_pemeliharaan": detail["jadwal_pemeliharaan"]?.toString(),
@@ -255,8 +254,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         };
       case WoKategoriForm.meter:
         return {
-          "nomorMeter": detail["nomor_meter"],
-          "kondisiMeterAwal": detail["kondisi_meter_awal"],
+          "nomor_meter": detail["nomor_meter"],
+          "kondisi_meter_awal": detail["kondisi_meter_awal"],
           "kondisi_meter_akhir": detail["kondisi_meter_akhir"]?.toString(),
           "hasil_kalibrasi": detail["hasil_kalibrasi"]?.toString(),
         };
