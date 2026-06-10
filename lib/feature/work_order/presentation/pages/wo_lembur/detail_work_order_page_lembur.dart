@@ -5,13 +5,15 @@ import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -20,19 +22,13 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 
-final List<Map<String, dynamic>> progressList = [
-  {"id": 1, "type": "start", "isFilled": false},
-  {"id": 4, "type": "finish", "isFilled": false},
-];
-
 const int _kDailyReportLimit = 8;
-
 const double _kActionButtonHeight = 48.0;
 const double _kActionButtonRadius = 8.0;
 
 const EdgeInsets _kActionButtonPadding = EdgeInsets.symmetric(
   horizontal: 16.0,
-  vertical: 0.0, // tinggi dikontrol via minimumSize
+  vertical: 0.0,
 );
 
 const TextStyle _kActionButtonTextStyle = TextStyle(
@@ -46,37 +42,35 @@ final RoundedRectangleBorder _kActionButtonShape = RoundedRectangleBorder(
 
 final Size _kActionButtonMinimumSize = Size.fromHeight(_kActionButtonHeight);
 
-class AssigneeWorkOrderDetailPage extends StatefulWidget {
+class DetailWorkOrderPageLembur extends StatefulWidget {
   final bool isAssignee;
   final int? workOrderId;
   final int? workOrderTypeId;
   final int? status;
-  final bool isOvertime;
-  final String? kategoriForm; // 'meter' | 'jaringan' | 'infrastruktur'
+  final String? kategoriForm;
   final LatLng? lngLat;
-  final String? locationName; // Nama lokasi dari MasterLocation
-  final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
+  final String? locationName;
+  final int radiusMeter;
 
-  const AssigneeWorkOrderDetailPage({
+  const DetailWorkOrderPageLembur({
     super.key,
     this.isAssignee = false,
     this.workOrderId,
     this.workOrderTypeId,
     this.status,
-    this.isOvertime = false,
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.radiusMeter = 100,
   });
 
   @override
-  State<AssigneeWorkOrderDetailPage> createState() =>
-      _AssigneeWorkOrderDetailPageState();
+  State<DetailWorkOrderPageLembur> createState() =>
+      _DetailWorkOrderPageLemburState();
 }
 
-class _AssigneeWorkOrderDetailPageState
-    extends AppStatePage<AssigneeWorkOrderDetailPage> {
+class _DetailWorkOrderPageLemburState
+    extends AppStatePage<DetailWorkOrderPageLembur> {
   List<WorkOrderProgressEntity> progresses = [];
   ProgressQuotaEntity? progressQuota;
   bool _progressesLoaded = false;
@@ -84,12 +78,14 @@ class _AssigneeWorkOrderDetailPageState
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
   WorkOrderEntity? _workOrder;
 
+  bool _isManager = false;
+  int? _userId;
+
   String _resolveAppBarTitle() {
     if (widget.kategoriForm != null) {
-      return WoKategoriForm.label(widget.kategoriForm);
+      return "${WoKategoriForm.label(widget.kategoriForm)} Lembur";
     }
-    // Fallback untuk backward compat
-    return widget.isOvertime ? "Work Order Lembur" : "Work Order";
+    return "Work Order Lembur";
   }
 
   Map<String, dynamic> _buildKategoriFormData(WorkOrderEntity workOrder) {
@@ -131,35 +127,37 @@ class _AssigneeWorkOrderDetailPageState
   @override
   void initState() {
     super.initState();
+    final user = AuthStorage.getUserSync();
+    _isManager = user?['role_id'] == 2;
+    _userId = user != null
+        ? (user['id'] is int
+              ? user['id']
+              : int.tryParse(user['id']?.toString() ?? ''))
+        : null;
+
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _fetchProgresses();
     _fetchQuota();
 
-    // Check if WorkOrderBloc already has the work order detail loaded
     final workOrderBloc = context.read<WorkOrderBloc>();
+    if (widget.workOrderId != null) {
+      workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+    }
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
   }
 
-  /// Fetch quota individual user dari API baru
   Future<void> _fetchQuota() async {
     if (widget.workOrderId == null) return;
-    debugPrint("📊 Fetching individual quota for WO ${widget.workOrderId}");
-
     context.read<WorkOrderBloc>().add(
       GetProgressQuotaEvent(widget.workOrderId!),
     );
   }
 
-  /// Fetch progresses directly from remote data source — bypass BLoC
-  /// to avoid race condition with shared WorkOrderBloc state.
   Future<void> _fetchProgresses() async {
     if (widget.workOrderId == null) return;
-    debugPrint(
-      "🔄 AssigneePage._fetchProgresses() for WO ${widget.workOrderId}",
-    );
     try {
       final result = await _progressRemoteDataSource.fetchProgressByWorkOrderId(
         widget.workOrderId!,
@@ -167,25 +165,17 @@ class _AssigneeWorkOrderDetailPageState
       if (!mounted) return;
       if (result is DataSuccess) {
         final entities = result.data!.map((m) => m.toEntity()).toList();
-        debugPrint(
-          "✅ AssigneePage: ${entities.length} progresses — "
-          "ids: ${entities.map((e) => e.id).toList()}, "
-          "tipeIds: ${entities.map((e) => e.tipeProgressId).toList()}",
-        );
         setState(() {
           progresses = entities;
           _progressesLoaded = true;
         });
       } else {
-        debugPrint(
-          "⚠️ AssigneePage: Failed to fetch progresses: ${result.error}",
-        );
         setState(() {
           _progressesLoaded = true;
         });
       }
     } catch (e, st) {
-      debugPrint("⚠️ AssigneePage: Error fetching progresses: $e\n$st");
+      debugPrint("⚠️ DetailLemburPage: Error fetching progresses: $e\n$st");
       if (mounted) {
         setState(() {
           _progressesLoaded = true;
@@ -194,24 +184,43 @@ class _AssigneeWorkOrderDetailPageState
     }
   }
 
+  void _handleApproval(int splId, bool isAccept) {
+    final approval = SplModel(
+      id: splId,
+      statusId: isAccept ? 2 : 4,
+      decision: isAccept ? "accept" : "reject",
+      verificatorId: _userId,
+    );
+    context.read<WorkOrderBloc>().add(UpdateSplEvent(approval));
+  }
+
   @override
   Widget buildPage(BuildContext context) {
-    return BlocListener<WorkOrderBloc, WorkOrderState>(
-      listener: (context, state) {
-        if (state is WorkOrderDetailLoaded) {
-          setState(() {
-            _workOrder = state.workOrder;
-          });
-        }
-        if (state is ProgressQuotaLoaded) {
-          setState(() {
-            progressQuota = state.quota;
-          });
-          debugPrint(
-            "✅ Quota loaded: ${state.quota.sisaKuotaHariIni}/${state.quota.totalKuotaHariIni}",
-          );
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<WorkOrderBloc, WorkOrderState>(
+          listener: (context, state) {
+            if (state is WorkOrderDetailLoaded) {
+              setState(() {
+                _workOrder = state.workOrder;
+              });
+            }
+            if (state is ProgressQuotaLoaded) {
+              setState(() {
+                progressQuota = state.quota;
+              });
+            }
+            if (state is SplUpdated) {
+              AppSnackbar.showSuccess("Approval SPL berhasil.");
+              if (widget.workOrderId != null) {
+                context.read<WorkOrderBloc>().add(
+                  GetWorkOrderDetailEvent(widget.workOrderId!),
+                );
+              }
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         appBar: CustomAppBar(title: _resolveAppBarTitle()),
         body: _buildBody(),
@@ -229,8 +238,6 @@ class _AssigneeWorkOrderDetailPageState
     }
   }
 
-  /// Hitung jumlah laporan yang sudah disubmit hari ini (bukan draft).
-  /// Mulai tidak dihitung karena tidak mengonsumsi kuota.
   int _countSubmittedToday() {
     final today = DateTime.now();
     return progresses.where((p) {
@@ -258,7 +265,6 @@ class _AssigneeWorkOrderDetailPageState
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
     final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
 
-    // Gunakan quota dari API jika tersedia, fallback ke perhitungan manual
     final int sisaKuota =
         progressQuota?.sisaKuotaHariIni ??
         (_kDailyReportLimit - _countSubmittedToday()).clamp(
@@ -269,24 +275,88 @@ class _AssigneeWorkOrderDetailPageState
         progressQuota?.totalKuotaHariIni ?? _kDailyReportLimit;
     final bool isKuotaHabis = sisaKuota == 0;
 
+    final isPendingApproval = _workOrder?.statusId == 1; // Pending SPL
+
     return RefreshIndicator(
       onRefresh: _handleRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           DetailWorkOrderPage(
-            isOvertime: widget.isOvertime,
+            isOvertime: true,
             workOrderId: widget.workOrderId,
             isAssignee: widget.isAssignee,
             status: widget.status,
             enableInnerScroll: false,
           ),
+
+          if (_isManager && isPendingApproval && _workOrder?.splId != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange.shade800,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Menunggu Persetujuan SPL",
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                          ),
+                          onPressed: () =>
+                              _handleApproval(_workOrder!.splId!, false),
+                          child: const Text("Tolak"),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                          onPressed: () =>
+                              _handleApproval(_workOrder!.splId!, true),
+                          child: const Text("Setujui"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  "Pelaporan Work Order",
+                  "Pelaporan WO Lembur",
                   style: textTheme.displayMedium,
                 ),
               ),
@@ -295,14 +365,15 @@ class _AssigneeWorkOrderDetailPageState
             ],
           ),
           const SizedBox(height: 8),
-          if (!hasInspeksi && !hasMulai)
+
+          if (widget.isAssignee && !hasInspeksi && !hasMulai)
             Center(
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.6,
                 child: _buildActionButton('Inspeksi'),
               ),
             ),
-          if (hasInspeksi && !hasMulai)
+          if (widget.isAssignee && hasInspeksi && !hasMulai)
             Row(
               children: [
                 Expanded(child: _buildActionButton('Mulai')),
@@ -327,10 +398,12 @@ class _AssigneeWorkOrderDetailPageState
                 ),
               ],
             ),
+
           ...visibleProgresses.map(
             (progressIndex) => _buildProgressEntry(progressIndex),
           ),
-          if (hasMulai && !hasSelesai) ...[
+
+          if (widget.isAssignee && hasMulai && !hasSelesai) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -342,7 +415,8 @@ class _AssigneeWorkOrderDetailPageState
               ],
             ),
           ],
-          if (hasSelesai &&
+          if (widget.isAssignee &&
+              hasSelesai &&
               (widget.status == WorkOrderStatusId.pengecekan ||
                   widget.status == WorkOrderStatusId.selesai)) ...[
             const SizedBox(height: 8),
@@ -415,7 +489,7 @@ class _AssigneeWorkOrderDetailPageState
             final shouldRefresh = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
-                builder: (_) => WorkOrderReportPage(
+                builder: (_) => WorkOrderReportPageLembur(
                   mode: progress.progressType ?? '-',
                   status: widget.status,
                   isAssignee: widget.isAssignee,
@@ -437,7 +511,7 @@ class _AssigneeWorkOrderDetailPageState
             }
           },
         ),
-        if (progress.canCancel)
+        if (progress.canCancel && widget.isAssignee)
           Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
       ],
     );
@@ -526,15 +600,11 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Widget _buildActionButton(String mode, {bool disabled = false}) {
-    // Map mode 'Laporan' ke tipeProgressId 2 (Progress) di WorkOrderReportPage
     final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
 
     Future<void> handleTap() async {
       if (disabled) return;
       if (_isNavigatingToReport) {
-        // Tap kedua saat navigasi push masih berjalan: tampilkan pesan sekali
-        // alih-alih diam-diam mengabaikan, supaya user tahu tombolnya memang
-        // sudah ter-respon dan tidak perlu menekan berulang.
         AppSnackbar.showWarning('Tombol $mode sudah ditekan, mohon tunggu.');
         return;
       }
@@ -543,7 +613,7 @@ class _AssigneeWorkOrderDetailPageState
         final bool? shouldRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
-            builder: (_) => WorkOrderReportPage(
+            builder: (_) => WorkOrderReportPageLembur(
               mode: reportMode,
               status: widget.status,
               isAssignee: widget.isAssignee,

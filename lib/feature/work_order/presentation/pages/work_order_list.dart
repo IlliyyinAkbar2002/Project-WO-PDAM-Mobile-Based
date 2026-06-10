@@ -9,7 +9,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_lembur_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
 
 class WorkOrderList extends StatefulWidget {
   final List<int>? status;
@@ -142,7 +142,12 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            _buildStatusChip(workOrder),
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _buildStatusChip(workOrder),
+              ),
+            ),
           ],
         ),
         subtitle: Row(
@@ -184,8 +189,16 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
             MaterialPageRoute(
               builder: (context) {
                 if (workOrder.isLembur) {
-                  return DetailWorkOrderLemburPage(
-                    workOrderId: workOrder.id!,
+                  return DetailWorkOrderPageLembur(
+                    workOrderId: workOrder.id,
+                    workOrderTypeId:
+                        workOrder.workOrderTypeId ??
+                        workOrder.workOrderType?.id,
+                    status: workOrder.statusId,
+                    kategoriForm: workOrder.kategoriForm,
+                    lngLat: lnglat,
+                    locationName: locationName,
+                    radiusMeter: radiusMeter,
                     isAssignee: widget.isAssignee,
                   );
                 }
@@ -259,8 +272,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       mainAxisSize: MainAxisSize.min,
       spacing: 4,
       children: [
-        if (workOrder.isLembur)
-          _buildChip('Lembur', Colors.orange.shade700),
+        if (workOrder.isLembur) _buildChip('Lembur', Colors.orange.shade700),
         _buildChip(typeLabel, typeColor),
         if (status != null && status.isNotEmpty)
           _buildChip(status, statusColor),

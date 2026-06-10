@@ -30,7 +30,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class WorkOrderReportPage extends StatefulWidget {
+class WorkOrderReportPageLembur extends StatefulWidget {
   final String mode;
   final int? status;
   final bool isAssignee;
@@ -43,7 +43,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final String? kategoriForm;
   final Map<String, dynamic>? initialKategoriData;
 
-  const WorkOrderReportPage({
+  const WorkOrderReportPageLembur({
     super.key,
     required this.mode,
     this.status,
@@ -59,10 +59,12 @@ class WorkOrderReportPage extends StatefulWidget {
   });
 
   @override
-  State<WorkOrderReportPage> createState() => _WorkOrderReportPageState();
+  State<WorkOrderReportPageLembur> createState() =>
+      _WorkOrderReportPageLemburState();
 }
 
-class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
+class _WorkOrderReportPageLemburState
+    extends AppStatePage<WorkOrderReportPageLembur> {
   late WorkOrderBloc _workOrderBloc;
   late JournalDraftCubit _journalDraftCubit;
   bool get isDetailMode =>
@@ -244,7 +246,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: "Form Jurnal"),
+      appBar: const CustomAppBar(title: "Form Jurnal Lembur"),
       body: BlocListener<WorkOrderBloc, WorkOrderState>(
         listener: (context, state) {
           if (state is WorkOrderProgressDetailLoaded) {

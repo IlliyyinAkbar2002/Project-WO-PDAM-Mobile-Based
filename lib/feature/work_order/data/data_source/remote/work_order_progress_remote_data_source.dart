@@ -270,10 +270,13 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         queryParameters: {'progress_workorder_id': progressWorkorderId},
       );
       final dynamic raw = response.data;
-      debugPrint("📥 getProgressDetailsHistory($progressWorkorderId) raw: $raw");
+      debugPrint(
+        "📥 getProgressDetailsHistory($progressWorkorderId) raw: $raw",
+      );
 
-      final dynamic payload =
-          raw is Map<String, dynamic> ? (raw['data'] ?? raw) : raw;
+      final dynamic payload = raw is Map<String, dynamic>
+          ? (raw['data'] ?? raw)
+          : raw;
       if (payload is List) {
         return DataSuccess(payload);
       }
@@ -435,7 +438,8 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
       final bool isSubmit =
           workOrderProgress.id == null &&
           (workOrderProgress.tipeProgressId == 2 ||
-              workOrderProgress.tipeProgressId == 3);
+              workOrderProgress.tipeProgressId == 3 ||
+              workOrderProgress.tipeProgressId == 6);
       final bool isReview = workOrderProgress.reviewAction != null;
 
       if (isReview) {
@@ -564,7 +568,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         final progressKode =
             workOrderProgress.tipeProgressId == TipeProgressId.selesai
             ? TipeProgressId.kodeSelesai
-            : TipeProgressId.kodeProgress;
+            : (workOrderProgress.tipeProgressId == TipeProgressId.inspeksi
+                  ? TipeProgressId.kodeInspeksi
+                  : TipeProgressId.kodeProgress);
         formData.fields.addAll([
           MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
           MapEntry('tipe_progress_kode', progressKode),
@@ -681,7 +687,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
             ? Map<String, dynamic>.from(raw['data'])
             : Map<String, dynamic>.from(raw);
       } else {
-        throw const FormatException('Format progress by member tidak dikenali.');
+        throw const FormatException(
+          'Format progress by member tidak dikenali.',
+        );
       }
 
       final data = ProgressByMemberModel.fromMap(payload);

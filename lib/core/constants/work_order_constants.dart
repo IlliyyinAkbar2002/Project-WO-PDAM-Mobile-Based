@@ -2,19 +2,24 @@ class TipeProgressId {
   static const int mulai = 1;
   static const int progress = 2;
   static const int selesai = 3;
+  static const int inspeksi = 6;
 
   static const String kodeMulai = 'MULAI';
   static const String kodeProgress = 'PROGRESS';
   static const String kodeSelesai = 'SELESAI';
+  static const String kodeInspeksi = 'INSPEKSI';
 
   static bool isMulai(int? id) => id == mulai;
   static bool isProgress(int? id) => id == progress;
   static bool isSelesai(int? id) => id == selesai;
+  static bool isInspeksi(int? id) => id == inspeksi;
 
   static String label(int? id, {int? order}) {
     switch (id) {
       case mulai:
         return 'Mulai';
+      case inspeksi:
+        return 'Inspeksi';
       case selesai:
         return 'Selesai';
       case progress:
@@ -29,6 +34,8 @@ class TipeProgressId {
     switch (kode?.toUpperCase()) {
       case kodeMulai:
         return mulai;
+      case kodeInspeksi:
+        return inspeksi;
       case kodeProgress:
         return progress;
       case kodeSelesai:
