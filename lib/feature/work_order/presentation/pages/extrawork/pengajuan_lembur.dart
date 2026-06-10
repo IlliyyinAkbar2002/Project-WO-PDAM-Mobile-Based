@@ -114,7 +114,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   Future<void> _loadWorkOrders() async {
     setState(() => _loadingWorkOrders = true);
     try {
-      final user = AuthStorage.getUserSync();
+      // final user = AuthStorage.getUserSync();
 
       final usecase = sl<GetWorkOrdersUseCase>();
       final result = await usecase(
@@ -296,9 +296,66 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (result != null) {
       setState(() {
         _selectedWorkOrder = result;
-        _selectedWorkType = result.workOrderType?.name;
+        _applyParityFromWorkOrder(result);
       });
     }
+  }
+
+  /// Auto-load (v2): saat sebuah WO dipilih, isi Prioritas, Lokasi, dan titik
+  /// peta dari data WO tersebut. Mengganti WO = muat ulang penuh ketiga field
+  /// ini (edit sebelumnya dibuang) karena nilainya terikat pada WO terpilih.
+  void _applyParityFromWorkOrder(WorkOrderEntity wo) {
+    _selectedWorkType = wo.workOrderType?.name;
+
+    // Prioritas: cocokkan ke kosakata kontrak (lowercase) secara
+    // case-insensitive; jika tak cocok salah satu dari empat nilai, kosongkan.
+    final rawPrioritas = wo.prioritas?.trim().toLowerCase();
+    _prioritas = _prioritasOptions.any((o) => o.value == rawPrioritas)
+        ? rawPrioritas
+        : null;
+
+    // Lokasi: teks lokasi WO (fallback ke nama master-location), hormati
+    // maxLength 255.
+    final woLokasi = (wo.lokasiText?.trim().isNotEmpty == true)
+        ? wo.lokasiText!.trim()
+        : (wo.assignment?.location?.nama.trim() ?? '');
+    _lokasiController.text = woLokasi.length > 255
+        ? woLokasi.substring(0, 255)
+        : woLokasi;
+
+    // Titik peta: hanya jika koordinat asli ditemukan. Jangan pernah 0,0.
+    final coords = _coordsFromWorkOrder(wo);
+    _latitude = coords?.$1;
+    _longitude = coords?.$2;
+  }
+
+  /// Koordinat WO, atau null jika tidak ada koordinat asli. Urutan sumber:
+  /// pin GPS pada assignment → master-location. (0,0) dianggap sentinel
+  /// "tidak ada" karena MasterLocationModel men-default null menjadi 0.
+  (double, double)? _coordsFromWorkOrder(WorkOrderEntity wo) {
+    final assignment = wo.assignment;
+    if (assignment == null) return null;
+
+    final lat = assignment.latitude;
+    final lng = assignment.longitude;
+    if (lat != null && lng != null && !(lat == 0 && lng == 0)) {
+      return (lat, lng);
+    }
+
+    final loc = assignment.location;
+    if (loc != null && !(loc.latitude == 0 && loc.longitude == 0)) {
+      return (loc.latitude, loc.longitude);
+    }
+    return null;
+  }
+
+  /// Label tampilan untuk prioritas WO terpilih (read-only), atau null jika
+  /// WO tidak punya prioritas yang dikenali.
+  String? get _prioritasLabel {
+    for (final opt in _prioritasOptions) {
+      if (opt.value == _prioritas) return opt.label;
+    }
+    return null;
   }
 
   Future<void> _pickMembers() async {
@@ -900,114 +957,49 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const _FieldLabel('Prioritas'),
-                                  const Spacer(),
-                                  if (_prioritas != null)
-                                    TextButton(
-                                      onPressed: () {
-                                        setState(() => _prioritas = null);
-                                      },
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 0,
-                                        ),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        foregroundColor: const Color(0xFFEF4444),
-                                      ),
-                                      child: const Text('Hapus'),
-                                    ),
-                                ],
-                              ),
+                              const _FieldLabel('Prioritas'),
                               const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: _prioritasOptions.map((opt) {
-                                  final selected = _prioritas == opt.value;
-                                  return ChoiceChip(
-                                    label: Text(opt.label),
-                                    selected: selected,
-                                    showCheckmark: false,
-                                    selectedColor: const Color(
-                                      0xFF2563EB,
-                                    ).withValues(alpha: 0.12),
-                                    backgroundColor: const Color(0xFFF1F5F9),
-                                    side: BorderSide(
-                                      color: selected
-                                          ? const Color(0xFF2563EB)
-                                          : const Color(0xFFE2E8F0),
-                                    ),
-                                    labelStyle: TextStyle(
-                                      color: selected
-                                          ? const Color(0xFF2563EB)
-                                          : const Color(0xFF475569),
-                                      fontWeight: selected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                    ),
-                                    onSelected: (val) {
-                                      setState(
-                                        () => _prioritas = val
-                                            ? opt.value
-                                            : null,
-                                      );
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _selectedWorkOrder?.prioritas != null &&
-                                        _selectedWorkOrder!.prioritas!.isNotEmpty
-                                    ? 'Opsional — jika dikosongkan, prioritas WO tidak berubah (saat ini: ${_selectedWorkOrder!.prioritas![0].toUpperCase()}${_selectedWorkOrder!.prioritas!.substring(1).toLowerCase()}).'
-                                    : 'Opsional — jika dikosongkan, prioritas WO tidak berubah.',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
+                              InputDecorator(
+                                decoration: _inputDecoration(
+                                  hint: 'Prioritas pekerjaan...',
+                                  fillColor: const Color(0xFFF1F5F9),
+                                ),
+                                child: Text(
+                                  _prioritasLabel ?? 'Mengikuti prioritas WO',
+                                  style: TextStyle(
+                                    color: _prioritasLabel == null
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF475569),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
                               const _FieldLabel('Lokasi'),
                               const SizedBox(height: 6),
-                              TextField(
-                                controller: _lokasiController,
-                                maxLength: 255,
-                                maxLines: 1,
+                              InputDecorator(
                                 decoration: _inputDecoration(
-                                  hint: 'Opsional — isi untuk mengubah lokasi WO',
-                                ).copyWith(counterText: ''),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                () {
-                                  final woLokasi =
-                                      _selectedWorkOrder?.lokasiText
-                                              ?.isNotEmpty ==
-                                          true
-                                      ? _selectedWorkOrder!.lokasiText!
-                                      : _selectedWorkOrder
-                                            ?.assignment
-                                            ?.location
-                                            ?.nama;
-                                  return (woLokasi != null &&
-                                          woLokasi.isNotEmpty)
-                                      ? 'Opsional — jika dikosongkan, lokasi WO tidak berubah (saat ini: $woLokasi).'
-                                      : 'Opsional — jika dikosongkan, lokasi WO tidak berubah.';
-                                }(),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
+                                  hint: 'Lokasi pekerjaan...',
+                                  fillColor: const Color(0xFFF1F5F9),
+                                ),
+                                child: Text(
+                                  _lokasiController.text.isEmpty
+                                      ? 'Mengikuti lokasi WO'
+                                      : _lokasiController.text,
+                                  style: TextStyle(
+                                    color: _lokasiController.text.isEmpty
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF475569),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  const _FieldLabel('Titik Peta Work Order Lembur'),
+                                  const _FieldLabel(
+                                    'Titik Peta Work Order Lembur',
+                                  ),
                                   const Spacer(),
                                   if (_latitude != null && _longitude != null)
                                     TextButton(
@@ -1018,20 +1010,28 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         });
                                       },
                                       style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
                                         minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        foregroundColor: const Color(0xFFEF4444),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        foregroundColor: const Color(
+                                          0xFFEF4444,
+                                        ),
                                       ),
                                       child: const Text('Hapus Pin'),
                                     ),
                                 ],
-                                ),
+                              ),
                               const SizedBox(height: 6),
                               Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: LocationPicker(
@@ -1039,12 +1039,29 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                   isReadOnly: false,
                                   latitude: _latitude,
                                   longitude: _longitude,
-                                  onLocationSelected: (lat, long, {locationId, radiusMeter, locationName}) {
-                                    setState(() {
-                                      _latitude = lat;
-                                      _longitude = long;
-                                    });
-                                  },
+                                  onLocationSelected:
+                                      (
+                                        lat,
+                                        long, {
+                                        locationId,
+                                        radiusMeter,
+                                        locationName,
+                                      }) {
+                                        setState(() {
+                                          _latitude = lat;
+                                          _longitude = long;
+                                        });
+                                      },
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _selectedWorkOrder == null
+                                    ? 'Pilih pekerjaan untuk menentukan titik peta.'
+                                    : 'Titik peta dapat disesuaikan jika lokasi kerja di lapangan berbeda dengan lokasi pada WO.',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -1089,11 +1106,16 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         m.employee?.name ??
                                         m.email ??
                                         'User #${m.id}';
-                                    final isKoordinator = _koordinatorUserId == m.id;
+                                    final isKoordinator =
+                                        _koordinatorUserId == m.id;
                                     return InputChip(
                                       label: Text(name),
                                       avatar: isKoordinator
-                                          ? const Icon(Icons.star, color: Colors.orange, size: 16)
+                                          ? const Icon(
+                                              Icons.star,
+                                              color: Colors.orange,
+                                              size: 16,
+                                            )
                                           : null,
                                       deleteIcon: const Icon(
                                         Icons.close,
@@ -1117,11 +1139,15 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         });
                                       },
                                       selected: isKoordinator,
-                                      selectedColor: Colors.orange.withValues(alpha: 0.15),
+                                      selectedColor: Colors.orange.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       backgroundColor: const Color(0xFFE2E8F0),
                                       showCheckmark: false,
                                       side: BorderSide(
-                                        color: isKoordinator ? Colors.orange : Colors.transparent,
+                                        color: isKoordinator
+                                            ? Colors.orange
+                                            : Colors.transparent,
                                       ),
                                     );
                                   }).toList(),
