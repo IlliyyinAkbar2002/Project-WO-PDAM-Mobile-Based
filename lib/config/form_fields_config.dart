@@ -51,6 +51,11 @@ class FormFieldsConfig {
         "value": isOvertime, // ✅ Simpan nilai isOvertime di form fields
       },
       {
+        "key": "kuotaUploadProgress",
+        "type": "custom",
+        "showIf": (formData) => true,
+      },
+      {
         "type": "custom",
         "key": "assignees",
         "options": assigneeOptions, // 🔹 Menggunakan daftar user dari backend
@@ -119,6 +124,12 @@ class FormFieldsConfig {
         "hideStartDateTime": false,
       },
       {"key": "isOvertime", "type": "hidden", "value": isOvertime},
+      {
+        "key": "kuotaUploadProgress",
+        "type": "custom",
+        "showIf": isAssignMode,
+        "isReadOnly": readOnlyInDetail,
+      },
       {
         "type": "custom",
         "key": "assignee",

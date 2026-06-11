@@ -227,6 +227,20 @@ class _NavigationGrid extends StatelessWidget {
         icon: Icons.description_outlined,
         label: 'Pengajuan Lembur',
         onTap: () {
+          final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+
+          if (!isSpv) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Pengajuan Lembur hanya tersedia untuk Supervisor',
+                ),
+                backgroundColor: colors.warning,
+              ),
+            );
+            return;
+          }
+
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => PengajuanLemburPage()),

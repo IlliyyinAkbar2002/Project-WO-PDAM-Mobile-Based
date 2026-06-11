@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_to_pdf/flutter_to_pdf.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/laporan_workorder_cubit.dart';
@@ -376,9 +377,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
             children: [
               Expanded(child: _signBox('Petugas Pelaksana', namaPetugas)),
               const SizedBox(width: 12),
-              Expanded(
-                child: _signBox('Manager EPB', '( ________________ )'),
-              ),
+              Expanded(child: _signBox('Manager EPB', '( ________________ )')),
             ],
           ),
 
@@ -412,113 +411,119 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
 
   @override
   Widget buildPage(BuildContext context) {
+    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+
     return BlocProvider(
       create: (_) => _cubit,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Laporan Work Order'),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf),
-              tooltip: 'Export PDF',
-              onPressed: () async {
-                try {
-                  AppSnackbar.showInfo('Sedang membuat PDF...');
+            if (isSpv)
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf),
+                tooltip: 'Export PDF',
+                onPressed: () async {
+                  try {
+                    AppSnackbar.showInfo('Sedang membuat PDF...');
 
-                  final pdfDocument = await exportDelegate.exportToPdfDocument(
-                    'laporan_workorder_frame',
-                    overrideOptions: ExportOptions(
-                      pageFormatOptions: PageFormatOptions.a4(clip: false),
-                    ),
-                  );
+                    final pdfDocument = await exportDelegate
+                        .exportToPdfDocument(
+                          'laporan_workorder_frame',
+                          overrideOptions: ExportOptions(
+                            pageFormatOptions: PageFormatOptions.a4(
+                              clip: false,
+                            ),
+                          ),
+                        );
 
-                  final outputDirectory =
-                      await getApplicationDocumentsDirectory();
-                  final file = File(
-                    '${outputDirectory.path}/Laporan_WO_${widget.payload['workorder_id'] ?? 'unknown'}.pdf',
-                  );
-                  await file.writeAsBytes(await pdfDocument.save());
-
-                  if (context.mounted) {
-                    // Tampilkan pilihan: Buka atau Bagikan
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                      ),
-                      builder: (_) => SafeArea(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(height: 8),
-                            Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'PDF Berhasil Dibuat',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Pilih tindakan:',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            ListTile(
-                              leading: const Icon(
-                                Icons.open_in_new,
-                                color: Colors.blueAccent,
-                              ),
-                              title: const Text('Buka PDF'),
-                              onTap: () async {
-                                Navigator.pop(context);
-                                await OpenFilex.open(file.path);
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(
-                                Icons.share,
-                                color: Colors.green,
-                              ),
-                              title: const Text('Bagikan PDF'),
-                              onTap: () async {
-                                Navigator.pop(context);
-                                await SharePlus.instance.share(
-                                  ShareParams(
-                                    files: [XFile(file.path)],
-                                    text:
-                                        'Laporan Work Order - PDAM Perumda Surya Sembada',
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                        ),
-                      ),
+                    final outputDirectory =
+                        await getApplicationDocumentsDirectory();
+                    final file = File(
+                      '${outputDirectory.path}/Laporan_WO_${widget.payload['workorder_id'] ?? 'unknown'}.pdf',
                     );
+                    await file.writeAsBytes(await pdfDocument.save());
+
+                    if (context.mounted) {
+                      // Tampilkan pilihan: Buka atau Bagikan
+                      showModalBottomSheet(
+                        context: context,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        builder: (_) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'PDF Berhasil Dibuat',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Pilih tindakan:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.open_in_new,
+                                  color: Colors.blueAccent,
+                                ),
+                                title: const Text('Buka PDF'),
+                                onTap: () async {
+                                  Navigator.pop(context);
+                                  await OpenFilex.open(file.path);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.share,
+                                  color: Colors.green,
+                                ),
+                                title: const Text('Bagikan PDF'),
+                                onTap: () async {
+                                  Navigator.pop(context);
+                                  await SharePlus.instance.share(
+                                    ShareParams(
+                                      files: [XFile(file.path)],
+                                      text:
+                                          'Laporan Work Order - PDAM Perumda Surya Sembada',
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      AppSnackbar.showError('Gagal membuat PDF: $e');
+                    }
                   }
-                } catch (e) {
-                  if (context.mounted) {
-                    AppSnackbar.showError('Gagal membuat PDF: $e');
-                  }
-                }
-              },
-            ),
+                },
+              ),
           ],
         ),
         body: BlocConsumer<LaporanWorkorderCubit, LaporanWorkorderState>(
