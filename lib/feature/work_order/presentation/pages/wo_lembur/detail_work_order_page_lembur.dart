@@ -11,7 +11,7 @@ import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
+
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
@@ -22,7 +22,6 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 
-const int _kDailyReportLimit = 8;
 const double _kActionButtonHeight = 48.0;
 const double _kActionButtonRadius = 8.0;
 
@@ -72,7 +71,7 @@ class DetailWorkOrderPageLembur extends StatefulWidget {
 class _DetailWorkOrderPageLemburState
     extends AppStatePage<DetailWorkOrderPageLembur> {
   List<WorkOrderProgressEntity> progresses = [];
-  ProgressQuotaEntity? progressQuota;
+
   bool _progressesLoaded = false;
   bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
@@ -138,8 +137,6 @@ class _DetailWorkOrderPageLemburState
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _fetchProgresses();
-    _fetchQuota();
-
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (widget.workOrderId != null) {
       workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
@@ -147,13 +144,6 @@ class _DetailWorkOrderPageLemburState
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
-  }
-
-  Future<void> _fetchQuota() async {
-    if (widget.workOrderId == null) return;
-    context.read<WorkOrderBloc>().add(
-      GetProgressQuotaEvent(widget.workOrderId!),
-    );
   }
 
   Future<void> _fetchProgresses() async {
@@ -205,11 +195,7 @@ class _DetailWorkOrderPageLemburState
                 _workOrder = state.workOrder;
               });
             }
-            if (state is ProgressQuotaLoaded) {
-              setState(() {
-                progressQuota = state.quota;
-              });
-            }
+
             if (state is SplUpdated) {
               AppSnackbar.showSuccess("Approval SPL berhasil.");
               if (widget.workOrderId != null) {
@@ -230,26 +216,11 @@ class _DetailWorkOrderPageLemburState
 
   Future<void> _handleRefresh() async {
     _fetchProgresses();
-    _fetchQuota();
     if (widget.workOrderId != null) {
       context.read<WorkOrderBloc>().add(
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
-  }
-
-  int _countSubmittedToday() {
-    final today = DateTime.now();
-    return progresses.where((p) {
-      if (p.isMulai) return false;
-      if (p.isDibatalkan) return false;
-      final t = p.submitTime;
-      if (t == null) return false;
-      final local = t.toLocal();
-      return local.year == today.year &&
-          local.month == today.month &&
-          local.day == today.day;
-    }).length;
   }
 
   Widget _buildBody() {
@@ -264,16 +235,6 @@ class _DetailWorkOrderPageLemburState
     final bool hasInspeksi = visibleProgresses.any((item) => item.isInspeksi);
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
     final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
-
-    final int sisaKuota =
-        progressQuota?.sisaKuotaHariIni ??
-        (_kDailyReportLimit - _countSubmittedToday()).clamp(
-          0,
-          _kDailyReportLimit,
-        );
-    final int totalKuotaHariIni =
-        progressQuota?.totalKuotaHariIni ?? _kDailyReportLimit;
-    final bool isKuotaHabis = sisaKuota == 0;
 
     final isPendingApproval = _workOrder?.statusId == 1; // Pending SPL
 
@@ -360,8 +321,6 @@ class _DetailWorkOrderPageLemburState
                   style: textTheme.displayMedium,
                 ),
               ),
-              if (hasMulai && !hasSelesai)
-                _buildKuotaChip(sisaKuota, totalKuotaHariIni),
             ],
           ),
           const SizedBox(height: 8),
@@ -409,9 +368,7 @@ class _DetailWorkOrderPageLemburState
               children: [
                 Expanded(child: _buildActionButton('Selesai')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildActionButton('Laporan', disabled: isKuotaHabis),
-                ),
+                Expanded(child: _buildActionButton('Laporan')),
               ],
             ),
           ],
@@ -445,23 +402,6 @@ class _DetailWorkOrderPageLemburState
           ],
         ],
       ),
-    );
-  }
-
-  Widget _buildKuotaChip(int sisaKuota, int totalKuota) {
-    final bool isHabis = sisaKuota == 0;
-    return Chip(
-      label: Text(
-        isHabis ? 'Kuota Anda Habis' : 'Kuota Anda: $sisaKuota/$totalKuota',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isHabis ? Colors.white : color.primary[700],
-        ),
-      ),
-      backgroundColor: isHabis ? color.danger : color.primary[100],
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -551,10 +491,8 @@ class _DetailWorkOrderPageLemburState
   }
 
   Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    final String message = progress.isMulai
-        ? 'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.'
-        : 'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
-              'Tindakan ini tidak dapat diurungkan.';
+    final String message =
+        'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -585,9 +523,7 @@ class _DetailWorkOrderPageLemburState
     final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
     if (!mounted) return;
     if (result is DataSuccess) {
-      final String successMsg = progress.isMulai
-          ? 'Laporan berhasil dibatalkan.'
-          : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
+      final String successMsg = 'Laporan berhasil dibatalkan.';
       AppSnackbar.showSuccess(successMsg);
       _handleRefresh();
     } else {

@@ -25,16 +25,6 @@ class ProgressByMemberEntity extends Equatable {
     required this.members,
   });
 
-  /// Hitung rata-rata progress seluruh anggota
-  double get averageProgress {
-    if (members.isEmpty) return 0.0;
-    final total = members.fold<double>(
-      0.0,
-      (sum, member) => sum + member.progressPercentage,
-    );
-    return total / members.length;
-  }
-
   /// Total submissions dari semua anggota
   int get totalSubmissionsAll {
     return members.fold<int>(

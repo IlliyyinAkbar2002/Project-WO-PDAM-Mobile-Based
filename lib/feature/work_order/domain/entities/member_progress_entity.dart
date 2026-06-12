@@ -26,14 +26,10 @@ class MemberProgressEntity extends Equatable {
   /// Submissions hari ini
   final int todaySubmissions;
 
-  /// Sisa kuota anggota ini
-  final int quotaRemaining;
-
-  /// Total kuota anggota ini
-  final int quotaTotal;
-
   /// List semua progress yang disubmit oleh anggota ini
   final List<WorkOrderProgressEntity> progressList;
+  final int? tahapanTertinggi;
+  final int? progressTahapan;
 
   const MemberProgressEntity({
     required this.userId,
@@ -43,30 +39,25 @@ class MemberProgressEntity extends Equatable {
     required this.isPic,
     required this.totalSubmissions,
     required this.todaySubmissions,
-    required this.quotaRemaining,
-    required this.quotaTotal,
     required this.progressList,
+    this.tahapanTertinggi,
+    this.progressTahapan,
   });
-
-  /// Hitung persentase progress anggota ini
-  double get progressPercentage {
-    if (quotaTotal == 0) return 0.0;
-    return (totalSubmissions / quotaTotal) * 100;
-  }
 
   @override
   List<Object?> get props => [
-        userId,
-        nama,
-        nip,
-        jabatan,
-        isPic,
-        totalSubmissions,
-        todaySubmissions,
-        quotaRemaining,
-        quotaTotal,
-        progressList,
-      ];
+    userId,
+    nama,
+    nip,
+    jabatan,
+    isPic,
+    totalSubmissions,
+    todaySubmissions,
+
+    progressList,
+    tahapanTertinggi,
+    progressTahapan,
+  ];
 
   MemberProgressEntity copyWith({
     int? userId,
@@ -76,9 +67,9 @@ class MemberProgressEntity extends Equatable {
     bool? isPic,
     int? totalSubmissions,
     int? todaySubmissions,
-    int? quotaRemaining,
-    int? quotaTotal,
     List<WorkOrderProgressEntity>? progressList,
+    int? tahapanTertinggi,
+    int? progressTahapan,
   }) {
     return MemberProgressEntity(
       userId: userId ?? this.userId,
@@ -88,9 +79,9 @@ class MemberProgressEntity extends Equatable {
       isPic: isPic ?? this.isPic,
       totalSubmissions: totalSubmissions ?? this.totalSubmissions,
       todaySubmissions: todaySubmissions ?? this.todaySubmissions,
-      quotaRemaining: quotaRemaining ?? this.quotaRemaining,
-      quotaTotal: quotaTotal ?? this.quotaTotal,
       progressList: progressList ?? this.progressList,
+      tahapanTertinggi: tahapanTertinggi ?? this.tahapanTertinggi,
+      progressTahapan: progressTahapan ?? this.progressTahapan,
     );
   }
 }

@@ -23,6 +23,7 @@ class WorkOrderEntity extends Equatable {
   final StatusEntity? status;
   final int? progresPersen;
   final DateTime? createdAt;
+  final int? tahapanTertinggi;
 
   /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
   /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
@@ -61,6 +62,7 @@ class WorkOrderEntity extends Equatable {
     this.prioritas,
     this.assignment,
     this.assignments,
+    this.tahapanTertinggi,
   });
 
   bool get isLembur =>
@@ -91,6 +93,7 @@ class WorkOrderEntity extends Equatable {
     prioritas,
     assignment,
     assignments,
+    tahapanTertinggi,
   ];
 
   WorkOrderEntity copyWith({
@@ -117,6 +120,7 @@ class WorkOrderEntity extends Equatable {
     String? prioritas,
     AssignmentWorkorderEntity? assignment,
     List<AssignmentWorkorderEntity>? assignments,
+    int? tahapanTertinggi,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -142,6 +146,7 @@ class WorkOrderEntity extends Equatable {
       prioritas: prioritas ?? this.prioritas,
       assignment: assignment ?? this.assignment,
       assignments: assignments ?? this.assignments,
+      tahapanTertinggi: tahapanTertinggi ?? this.tahapanTertinggi,
     );
   }
 }

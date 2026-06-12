@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 
 abstract class LemburState extends Equatable {
@@ -48,15 +47,6 @@ class LemburProgressUpdated extends LemburState {
 
   @override
   List<Object?> get props => [progress];
-}
-
-class LemburProgressQuotaLoaded extends LemburState {
-  final ProgressQuotaEntity quota;
-
-  const LemburProgressQuotaLoaded(this.quota);
-
-  @override
-  List<Object?> get props => [quota];
 }
 
 class LemburProgressByMemberLoaded extends LemburState {

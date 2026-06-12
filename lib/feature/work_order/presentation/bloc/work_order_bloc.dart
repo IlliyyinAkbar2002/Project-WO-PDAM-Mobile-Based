@@ -19,7 +19,6 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/resubmit_progress_usecase.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_quota_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_by_member_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
@@ -66,7 +65,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   final GetWorkOrderProgressDetailUsecase getWorkOrderProgressDetailUsecase;
   final UpdateWorkOrderProgressUseCase updateWorkOrderProgressUseCase;
   final ResubmitProgressUseCase resubmitProgressUseCase;
-  final GetProgressQuotaUseCase getProgressQuotaUseCase;
   final GetProgressByMemberUseCase getProgressByMemberUseCase;
 
   //progress detail
@@ -109,7 +107,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     this.getWorkOrderProgressDetailUsecase,
     this.updateWorkOrderProgressUseCase,
     this.resubmitProgressUseCase,
-    this.getProgressQuotaUseCase,
     this.getProgressByMemberUseCase,
 
     //progress detail
@@ -154,7 +151,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     on<GetWorkOrderProgressDetailEvent>(_onGetWorkOrderProgressDetailEvent);
     on<UpdateWorkOrderProgressEvent>(_onUpdateWorkOrderProgressEvent);
     on<ResubmitProgressEvent>(_onResubmitProgressEvent);
-    on<GetProgressQuotaEvent>(_onGetProgressQuotaEvent);
     on<GetProgressByMemberEvent>(_onGetProgressByMemberEvent);
 
     //progress detail
@@ -725,28 +721,6 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     } catch (e) {
       debugPrint("❌ Error saat mengambil Master Location: $e");
       emit(WorkOrderError("Gagal mengambil master location: $e"));
-    }
-  }
-
-  // Individual progress tracking handlers
-  Future<void> _onGetProgressQuotaEvent(
-    GetProgressQuotaEvent event,
-    Emitter<WorkOrderState> emit,
-  ) async {
-    emit(WorkOrderLoading());
-    debugPrint("📊 Memuat kuota progress individual...");
-    try {
-      final dataState = await getProgressQuotaUseCase(event.workOrderId);
-      if (dataState is DataSuccess) {
-        debugPrint("✅ Kuota progress berhasil dimuat: ${dataState.data}");
-        emit(ProgressQuotaLoaded(dataState.data!));
-      } else if (dataState is DataFailed) {
-        debugPrint("❌ Gagal memuat kuota progress: ${dataState.error}");
-        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
-      }
-    } catch (e) {
-      debugPrint("❌ Error saat mengambil kuota progress: $e");
-      emit(WorkOrderError("Gagal mengambil kuota progress: $e"));
     }
   }
 

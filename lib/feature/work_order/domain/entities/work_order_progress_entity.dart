@@ -24,6 +24,7 @@ class WorkOrderProgressEntity extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final List<ProgressDetailEntity>? progressDetail;
+  final int? tahapan;
 
   const WorkOrderProgressEntity({
     this.id,
@@ -38,6 +39,7 @@ class WorkOrderProgressEntity extends Equatable {
     this.createdAt,
     this.updatedAt,
     this.progressDetail,
+    this.tahapan,
   });
 
   /// Backward-compat getter: UI Flutter lama masih membaca
@@ -81,6 +83,7 @@ class WorkOrderProgressEntity extends Equatable {
     createdAt,
     updatedAt,
     progressDetail,
+    tahapan,
   ];
 
   WorkOrderProgressEntity copyWith({
@@ -96,6 +99,7 @@ class WorkOrderProgressEntity extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<ProgressDetailEntity>? progressDetail,
+    int? tahapan,
   }) {
     return WorkOrderProgressEntity(
       id: id ?? this.id,
@@ -110,6 +114,7 @@ class WorkOrderProgressEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       progressDetail: progressDetail ?? this.progressDetail,
+      tahapan: tahapan ?? this.tahapan,
     );
   }
 }

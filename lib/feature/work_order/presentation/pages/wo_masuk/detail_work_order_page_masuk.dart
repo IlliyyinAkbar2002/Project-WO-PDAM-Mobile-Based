@@ -578,17 +578,10 @@ class _DetailWorkOrderPageMasukState
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildTeamStat(
-                  'Rata-rata Progress',
-                  '${progressByMember!.averageProgress.toStringAsFixed(1)}%',
-                  Icons.trending_up,
-                  Colors.blue,
-                ),
-                Container(width: 1, height: 40, color: Colors.grey[300]),
-                _buildTeamStat(
-                  'Total Submissions',
+                  'Total Laporan',
                   '${progressByMember!.totalSubmissionsAll}',
                   Icons.check_circle,
                   Colors.green,

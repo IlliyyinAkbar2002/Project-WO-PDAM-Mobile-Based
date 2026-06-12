@@ -51,11 +51,6 @@ class FormFieldsConfig {
         "value": isOvertime, // ✅ Simpan nilai isOvertime di form fields
       },
       {
-        "key": "kuotaUploadProgress",
-        "type": "custom",
-        "showIf": (formData) => true,
-      },
-      {
         "type": "custom",
         "key": "assignees",
         "options": assigneeOptions, // 🔹 Menggunakan daftar user dari backend
@@ -125,12 +120,6 @@ class FormFieldsConfig {
       },
       {"key": "isOvertime", "type": "hidden", "value": isOvertime},
       {
-        "key": "kuotaUploadProgress",
-        "type": "custom",
-        "showIf": isAssignMode,
-        "isReadOnly": readOnlyInDetail,
-      },
-      {
         "type": "custom",
         "key": "assignee",
         "options": assigneeOptions,
@@ -176,16 +165,6 @@ class FormFieldsConfig {
     ];
   }
 
-  /// Field kategori "awal" yang diisi oleh staff lapangan saat menekan
-  /// tombol "Mulai" (tipe progress 1 / start).
-  ///
-  /// Sebelumnya field ini diisi oleh SPV pada saat assign-staff. Sekarang
-  /// dipindah ke staff lapangan, sehingga SPV cukup menentukan petugas, PIC,
-  /// dan deskripsi pekerjaan.
-  ///
-  /// Key memakai snake_case agar nilainya bisa dikirim apa adanya (pass-through)
-  /// sebagai payload ke endpoint `/v1/progress-workorder/start`, mengikuti
-  /// kontrak `form_kategori` yang lama.
   static List<Map<String, dynamic>> getStartKategoriFields({
     required String? kategoriForm,
     bool isReadOnly = false,

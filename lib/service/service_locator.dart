@@ -19,7 +19,6 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_work_order_lembur_progresses_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/update_work_order_lembur_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/resubmit_lembur_progress_usecase.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_quota_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_by_member_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/lembur_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_type_remote_data_source.dart';
@@ -54,7 +53,6 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_work_order_progresses_usecases.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/update_work_order_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/resubmit_progress_usecase.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_quota_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_progress_usecases/get_progress_by_member_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_type_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_type_usecases/get_work_order_types_usecase.dart';
@@ -303,7 +301,6 @@ Future<void> init() async {
     sl.registerLazySingleton(() => GetWorkOrderLemburProgressDetailUsecase(sl<WorkOrderLemburRepository>()));
     sl.registerLazySingleton(() => UpdateWorkOrderLemburProgressUseCase(sl<WorkOrderLemburRepository>()));
     sl.registerLazySingleton(() => ResubmitLemburProgressUseCase(sl<WorkOrderLemburRepository>()));
-    sl.registerLazySingleton(() => GetLemburProgressQuotaUseCase(sl<WorkOrderLemburRepository>()));
     sl.registerLazySingleton(() => GetLemburProgressByMemberUseCase(sl<WorkOrderLemburRepository>()));
     sl.registerLazySingleton(
       () =>
@@ -314,9 +311,6 @@ Future<void> init() async {
     );
     sl.registerLazySingleton(
       () => ResubmitProgressUseCase(sl<WorkOrderProgressRepository>()),
-    );
-    sl.registerLazySingleton(
-      () => GetProgressQuotaUseCase(sl<WorkOrderProgressRepository>()),
     );
     sl.registerLazySingleton(
       () => GetProgressByMemberUseCase(sl<WorkOrderProgressRepository>()),
@@ -393,7 +387,6 @@ Future<void> init() async {
         sl<GetWorkOrderProgressDetailUsecase>(),
         sl<UpdateWorkOrderProgressUseCase>(),
         sl<ResubmitProgressUseCase>(),
-        sl<GetProgressQuotaUseCase>(),
         sl<GetProgressByMemberUseCase>(),
 
         //progress detail
@@ -432,7 +425,6 @@ Future<void> init() async {
         getWorkOrderLemburProgressDetailUsecase: sl<GetWorkOrderLemburProgressDetailUsecase>(),
         updateWorkOrderLemburProgressUseCase: sl<UpdateWorkOrderLemburProgressUseCase>(),
         resubmitLemburProgressUseCase: sl<ResubmitLemburProgressUseCase>(),
-        getLemburProgressQuotaUseCase: sl<GetLemburProgressQuotaUseCase>(),
         getLemburProgressByMemberUseCase: sl<GetLemburProgressByMemberUseCase>(),
         workOrderLemburRepository: sl<WorkOrderLemburRepository>(),
       ),

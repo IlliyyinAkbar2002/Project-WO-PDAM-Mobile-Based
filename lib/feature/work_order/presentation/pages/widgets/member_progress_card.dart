@@ -46,8 +46,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
 
   @override
   Widget build(BuildContext context) {
-    final progressPercentage = widget.member.progressPercentage;
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
@@ -138,46 +136,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
               ),
               const SizedBox(height: 16),
 
-              // Progress Bar
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Progress',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        '${progressPercentage.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progressPercentage / 100,
-                      minHeight: 8,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _getProgressColor(progressPercentage),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
 
               // Statistics Grid
               Row(
@@ -192,20 +150,21 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   ),
                   Expanded(
                     child: _buildStatItem(
-                      'Total',
+                      'Total Laporan',
                       '${widget.member.totalSubmissions}',
                       Icons.check_circle_outline,
                       Colors.green,
                     ),
                   ),
-                  Expanded(
-                    child: _buildStatItem(
-                      'Sisa Kuota',
-                      '${widget.member.quotaRemaining}',
-                      Icons.hourglass_empty,
-                      Colors.orange,
+                  if (widget.member.tahapanTertinggi != null && widget.member.tahapanTertinggi! > 0)
+                    Expanded(
+                      child: _buildStatItem(
+                        'Tahapan',
+                        '${widget.member.tahapanTertinggi}',
+                        Icons.flag,
+                        Colors.orange,
+                      ),
                     ),
-                  ),
                 ],
               ),
 
@@ -372,12 +331,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
     );
   }
 
-  Color _getProgressColor(double percentage) {
-    if (percentage >= 75) return Colors.green;
-    if (percentage >= 50) return Colors.blue;
-    if (percentage >= 25) return Colors.orange;
-    return Colors.red;
-  }
 
   Color _getProgressTypeColor(int? tipeProgressId) {
     switch (tipeProgressId) {

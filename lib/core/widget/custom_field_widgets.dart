@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/widget/input_chip/editable_chip_field.dart';
 import 'package:project_mobile_pdam/core/widget/location_picker.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/time_estimate.dart';
-import 'package:project_mobile_pdam/core/widget/kuota_upload_stepper.dart';
 
 typedef CustomFieldBuilder =
     Widget Function(
@@ -92,30 +91,6 @@ class CustomFieldWidgets {
           onFieldChanged("endDateTime", endDateTime);
         }
       },
-    ),
-    "kuotaUploadProgress": (field, formData, onFieldChanged) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: KuotaUploadStepper(
-        value: formData["kuotaUploadProgress"] ?? 2,
-        onChanged: (val) {
-          if (!(field["isReadOnly"] ?? false)) {
-            onFieldChanged("kuotaUploadProgress", val);
-          }
-        },
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFAFBACA)),
-        ),
-        padding: const EdgeInsets.all(16),
-        titleStyle: const TextStyle(
-          fontFamily: 'Roboto',
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF2D499B),
-          letterSpacing: -0.3,
-          height: 1.6,
-        ),
-      ),
     ),
     // "estimateEditor": (field, formData, onFieldChanged) => EstimateEditor(),
     "assignees": (field, formData, onFieldChanged) => EditableChipField(

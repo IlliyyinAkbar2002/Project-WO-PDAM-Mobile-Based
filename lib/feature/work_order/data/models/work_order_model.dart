@@ -33,6 +33,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.prioritas,
     super.assignment,
     super.assignments,
+    super.tahapanTertinggi,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -187,12 +188,19 @@ class WorkOrderModel extends WorkOrderEntity {
             final userMap = member['user'];
             UserModel? parsedUser;
             if (userMap is Map) {
-              parsedUser = UserModel.fromMap(Map<String, dynamic>.from(userMap));
+              parsedUser = UserModel.fromMap(
+                Map<String, dynamic>.from(userMap),
+              );
             }
             if (parsedUser != null) {
-              final String? peranDirect = member['peran']?.toString() ?? member['role']?.toString();
-              final Map? pivotMap = member['pivot'] is Map ? member['pivot'] as Map : null;
-              final String? peranPivot = pivotMap?['peran']?.toString() ?? pivotMap?['role']?.toString();
+              final String? peranDirect =
+                  member['peran']?.toString() ?? member['role']?.toString();
+              final Map? pivotMap = member['pivot'] is Map
+                  ? member['pivot'] as Map
+                  : null;
+              final String? peranPivot =
+                  pivotMap?['peran']?.toString() ??
+                  pivotMap?['role']?.toString();
               final String? peran = peranDirect ?? peranPivot;
               if (peran == 'koordinator') {
                 coordinator = parsedUser;
@@ -230,10 +238,6 @@ class WorkOrderModel extends WorkOrderEntity {
     final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
     final detailKategori = _extractDetailKategoriMap(map);
 
-    // Assignment-side schedule + lokasi take precedence over the workorder
-    // row, because the workorder row keeps the original values set at
-    // creation time while the SPV's reassignment is persisted on the
-    // workorder_assignment row.
     const startDateKeys = [
       'tanggal_mulai',
       'tanggalMulai',
@@ -318,7 +322,8 @@ class WorkOrderModel extends WorkOrderEntity {
         parseIdFromAny(map['petugas_id']) ??
         assigneeCandidate?.id;
 
-    final UserModel? assignee = coordinator ??
+    final UserModel? assignee =
+        coordinator ??
         ((assignees != null && assignees.isNotEmpty)
             ? (parsedAssigneeId != null
                   ? assignees.firstWhere(
@@ -409,6 +414,7 @@ class WorkOrderModel extends WorkOrderEntity {
           : null,
       createdAt: parseUtcDateTime(map['created_at']),
       assignment: assignment,
+      tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
     );
   }
 
@@ -479,6 +485,7 @@ class WorkOrderModel extends WorkOrderEntity {
       prioritas: prioritas,
       assignment: assignment,
       assignments: assignments,
+      tahapanTertinggi: tahapanTertinggi,
     );
   }
 
@@ -504,6 +511,7 @@ class WorkOrderModel extends WorkOrderEntity {
       prioritas: entity.prioritas,
       assignment: entity.assignment,
       assignments: entity.assignments,
+      tahapanTertinggi: entity.tahapanTertinggi,
     );
   }
 

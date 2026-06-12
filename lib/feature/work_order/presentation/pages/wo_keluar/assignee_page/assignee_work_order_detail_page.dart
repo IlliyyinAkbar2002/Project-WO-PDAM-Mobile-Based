@@ -9,11 +9,11 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
-import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/core/constants/tahapan_labels.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -24,8 +24,6 @@ final List<Map<String, dynamic>> progressList = [
   {"id": 1, "type": "start", "isFilled": false},
   {"id": 4, "type": "finish", "isFilled": false},
 ];
-
-const int _kDailyReportLimit = 8;
 
 const double _kActionButtonHeight = 48.0;
 const double _kActionButtonRadius = 8.0;
@@ -78,7 +76,6 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
 class _AssigneeWorkOrderDetailPageState
     extends AppStatePage<AssigneeWorkOrderDetailPage> {
   List<WorkOrderProgressEntity> progresses = [];
-  ProgressQuotaEntity? progressQuota;
   bool _progressesLoaded = false;
   bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
@@ -134,23 +131,12 @@ class _AssigneeWorkOrderDetailPageState
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _fetchProgresses();
-    _fetchQuota();
 
     // Check if WorkOrderBloc already has the work order detail loaded
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
-  }
-
-  /// Fetch quota individual user dari API baru
-  Future<void> _fetchQuota() async {
-    if (widget.workOrderId == null) return;
-    debugPrint("📊 Fetching individual quota for WO ${widget.workOrderId}");
-
-    context.read<WorkOrderBloc>().add(
-      GetProgressQuotaEvent(widget.workOrderId!),
-    );
   }
 
   /// Fetch progresses directly from remote data source — bypass BLoC
@@ -203,14 +189,6 @@ class _AssigneeWorkOrderDetailPageState
             _workOrder = state.workOrder;
           });
         }
-        if (state is ProgressQuotaLoaded) {
-          setState(() {
-            progressQuota = state.quota;
-          });
-          debugPrint(
-            "✅ Quota loaded: ${state.quota.sisaKuotaHariIni}/${state.quota.totalKuotaHariIni}",
-          );
-        }
       },
       child: Scaffold(
         appBar: CustomAppBar(title: _resolveAppBarTitle()),
@@ -221,28 +199,11 @@ class _AssigneeWorkOrderDetailPageState
 
   Future<void> _handleRefresh() async {
     _fetchProgresses();
-    _fetchQuota();
     if (widget.workOrderId != null) {
       context.read<WorkOrderBloc>().add(
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
-  }
-
-  /// Hitung jumlah laporan yang sudah disubmit hari ini (bukan draft).
-  /// Mulai tidak dihitung karena tidak mengonsumsi kuota.
-  int _countSubmittedToday() {
-    final today = DateTime.now();
-    return progresses.where((p) {
-      if (p.isMulai) return false;
-      if (p.isDibatalkan) return false;
-      final t = p.submitTime;
-      if (t == null) return false;
-      final local = t.toLocal();
-      return local.year == today.year &&
-          local.month == today.month &&
-          local.day == today.day;
-    }).length;
   }
 
   Widget _buildBody() {
@@ -258,17 +219,6 @@ class _AssigneeWorkOrderDetailPageState
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
     final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
 
-    // Gunakan quota dari API jika tersedia, fallback ke perhitungan manual
-    final int sisaKuota =
-        progressQuota?.sisaKuotaHariIni ??
-        (_kDailyReportLimit - _countSubmittedToday()).clamp(
-          0,
-          _kDailyReportLimit,
-        );
-    final int totalKuotaHariIni =
-        progressQuota?.totalKuotaHariIni ?? _kDailyReportLimit;
-    final bool isKuotaHabis = sisaKuota == 0;
-
     return RefreshIndicator(
       onRefresh: _handleRefresh,
       child: ListView(
@@ -281,6 +231,7 @@ class _AssigneeWorkOrderDetailPageState
             status: widget.status,
             enableInnerScroll: false,
           ),
+          if (_workOrder != null) _buildTahapanStepper(),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -290,8 +241,6 @@ class _AssigneeWorkOrderDetailPageState
                   style: textTheme.displayMedium,
                 ),
               ),
-              if (hasMulai && !hasSelesai)
-                _buildKuotaChip(sisaKuota, totalKuotaHariIni),
             ],
           ),
           const SizedBox(height: 8),
@@ -336,9 +285,7 @@ class _AssigneeWorkOrderDetailPageState
               children: [
                 Expanded(child: _buildActionButton('Selesai')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildActionButton('Laporan', disabled: isKuotaHabis),
-                ),
+                Expanded(child: _buildActionButton('Laporan')),
               ],
             ),
           ],
@@ -374,20 +321,122 @@ class _AssigneeWorkOrderDetailPageState
     );
   }
 
-  Widget _buildKuotaChip(int sisaKuota, int totalKuota) {
-    final bool isHabis = sisaKuota == 0;
-    return Chip(
-      label: Text(
-        isHabis ? 'Kuota Anda Habis' : 'Kuota Anda: $sisaKuota/$totalKuota',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isHabis ? Colors.white : color.primary[700],
-        ),
+  Widget _buildTahapanStepper() {
+    int computedTahapan = 0;
+    if (_workOrder?.tahapanTertinggi != null) {
+      computedTahapan = _workOrder!.tahapanTertinggi!;
+    } else {
+      for (final p in progresses) {
+        if (!p.isDibatalkan &&
+            p.tahapan != null &&
+            p.tahapan! > computedTahapan) {
+          computedTahapan = p.tahapan!;
+        }
+      }
+    }
+
+    final labels = tahapanLabelsFor(_workOrder?.workOrderType?.name);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.foreground[200]!),
       ),
-      backgroundColor: isHabis ? color.danger : color.primary[100],
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      visualDensity: VisualDensity.compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tahapan Pekerjaan',
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: List.generate(4, (index) {
+              final stepTahapan = index + 1;
+              final isCompleted = computedTahapan >= stepTahapan;
+              final isCurrent =
+                  computedTahapan + 1 == stepTahapan && computedTahapan != 4;
+              // Jika selesai semua, step 4 akan isCompleted=true, isCurrent=false
+
+              final Color circleColor = isCompleted
+                  ? color.status[2]! // hijau
+                  : isCurrent
+                  ? color.primary[500]! // biru primary
+                  : color.foreground[300]!; // abu-abu
+
+              return Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: isCompleted
+                                  ? circleColor
+                                  : Colors.transparent,
+                              border: Border.all(color: circleColor, width: 2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: isCompleted
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
+                                : isCurrent
+                                ? Center(
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: circleColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            labels[index],
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              fontWeight: isCurrent || isCompleted
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: isCurrent || isCompleted
+                                  ? color.foreground[900]
+                                  : color.foreground[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (index < 3)
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 11),
+                          height: 2,
+                          color: isCompleted
+                              ? color.status[2]
+                              : color.foreground[200],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 
@@ -477,10 +526,8 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    final String message = progress.isMulai
-        ? 'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.'
-        : 'Laporan ini akan dibatalkan dan kuota harian Anda akan dikembalikan. '
-              'Tindakan ini tidak dapat diurungkan.';
+    final String message =
+        'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -511,9 +558,7 @@ class _AssigneeWorkOrderDetailPageState
     final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
     if (!mounted) return;
     if (result is DataSuccess) {
-      final String successMsg = progress.isMulai
-          ? 'Laporan berhasil dibatalkan.'
-          : 'Laporan berhasil dibatalkan. Kuota dikembalikan.';
+      final String successMsg = 'Laporan berhasil dibatalkan.';
       AppSnackbar.showSuccess(successMsg);
       _handleRefresh();
     } else {

@@ -14,7 +14,6 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/profile_view_data.dart';
 import 'package:project_mobile_pdam/core/widget/location_picker.dart';
-import 'package:project_mobile_pdam/core/widget/kuota_upload_stepper.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
 class PengajuanLemburPage extends StatelessWidget {
@@ -64,7 +63,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     (value: 'darurat', label: 'Darurat'),
   ];
 
-  int _kuotaUploadProgress = 2;
 
   bool _isSubmitting = false;
   bool _usersRequested = false;
@@ -960,32 +958,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              KuotaUploadStepper(
-                                value: _kuotaUploadProgress,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _kuotaUploadProgress = val;
-                                  });
-                                },
-                                titleStyle: const TextStyle(
-                                  color: Color(0xFF0F172A),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x0F000000),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(14),
-                              ),
-                              const SizedBox(height: 12),
+
                               const _FieldLabel('Prioritas'),
                               const SizedBox(height: 6),
                               InputDecorator(

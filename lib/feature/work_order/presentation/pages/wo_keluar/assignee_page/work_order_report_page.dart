@@ -24,6 +24,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_m
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
+import 'package:project_mobile_pdam/core/constants/tahapan_labels.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
@@ -98,6 +99,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _hasClosedAfterSubmit = false;
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
+  int? _selectedTahapan;
 
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
 
@@ -125,6 +127,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _descriptionController.text = draft.description;
       _images = List.from(draft.images);
       _formData = Map.from(draft.formData);
+      if (_formData.containsKey('tahapan')) {
+        _selectedTahapan = int.tryParse(_formData['tahapan'].toString());
+      }
     } else if (widget.initialKategoriData != null) {
       final init = widget.initialKategoriData!;
       dynamic pick(List<String> keys) {
@@ -185,6 +190,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             'kondisiMeterAwal',
           ]),
       };
+    }
+
+    if (widget.mode == 'Progress' && _selectedTahapan == null) {
+      final state = _workOrderBloc.state;
+      if (state is WorkOrderDetailLoaded) {
+        _selectedTahapan = state.workOrder.tahapanTertinggi ?? 1;
+        _formData['tahapan'] = _selectedTahapan;
+      }
     }
 
     if (widget.progressId == null) {
@@ -251,6 +264,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Proses data di luar setState
             final description = state.progress.description ?? '';
             final statusId = state.progress.statusId;
+            final tahapan = state.progress.tahapan;
             final images = (state.progress.documentation ?? [])
                 .map((doc) => doc.url)
                 .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
@@ -268,6 +282,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 } else {
                   _descriptionController.text = description;
                   _images = images;
+                  if (tahapan != null) {
+                    _selectedTahapan = tahapan;
+                  } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
+                    _selectedTahapan = (_workOrderBloc.state as WorkOrderDetailLoaded).workOrder.tahapanTertinggi ?? 1;
+                  } else {
+                    _selectedTahapan = 1;
+                  }
+                  _formData['tahapan'] = _selectedTahapan;
                 }
                 _progressStatusId = statusId;
                 _requestedHeaderFallback = false;
@@ -305,6 +327,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             final description =
                 progressDetails.first.workOrderProgress?.description ?? '';
             final statusId = progressDetails.first.workOrderProgress?.statusId;
+            final tahapan = progressDetails.first.workOrderProgress?.tahapan;
 
             // Ambil images dari workOrderProgress.documentation
             final images =
@@ -342,6 +365,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   _descriptionController.text = description;
                   _formData = formData;
                   _images = images;
+                  if (tahapan != null) {
+                    _selectedTahapan = tahapan;
+                  } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
+                    _selectedTahapan = (_workOrderBloc.state as WorkOrderDetailLoaded).workOrder.tahapanTertinggi ?? 1;
+                  } else {
+                    _selectedTahapan = 1;
+                  }
+                  _formData['tahapan'] = _selectedTahapan;
                 }
                 _progressStatusId = statusId;
                 isDataLoaded = true;
@@ -454,6 +485,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
+                          if (widget.mode == 'Progress') _buildTahapanSelector(),
+                          if (widget.mode == 'Progress') const SizedBox(height: 16),
                           if (widget.mode == 'Selesai' ||
                               widget.mode == 'Mulai')
                             _buildDynamicForm(),
@@ -579,6 +612,85 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       onFieldChanged: _onFieldChanged,
       customWidgets: CustomFieldWidgets.fields,
       readOnly: false,
+    );
+  }
+
+  Widget _buildTahapanSelector() {
+    String? jenisPekerjaan;
+    int tahapanTertinggi = 1;
+    bool isPic = true;
+    
+    final state = _workOrderBloc.state;
+    if (state is WorkOrderDetailLoaded) {
+      jenisPekerjaan = state.workOrder.workOrderType?.name;
+      tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
+      
+      final currentUser = AuthStorage.getUserSync();
+      final currentUserIdStr = currentUser?['id']?.toString();
+      final picIdStr = state.workOrder.assignment?.assigneeId?.toString();
+      
+      if (picIdStr != null && currentUserIdStr != null) {
+        isPic = currentUserIdStr == picIdStr;
+      }
+    }
+    
+    final labels = tahapanLabelsFor(jenisPekerjaan);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.foreground[400]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Tahapan Pekerjaan",
+            style: textTheme.titleMedium,
+          ),
+          if (!isPic) ...[
+            const SizedBox(height: 4),
+            Text(
+              "Pilih tahapan pekerjaan. Hanya koordinator (PIC) yang dapat memajukan tahapan.",
+              style: textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            ),
+          ],
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: OutlineInputBorder(),
+            ),
+            value: _selectedTahapan,
+            hint: const Text('Pilih tahapan... (Opsional)'),
+            items: List.generate(4, (index) {
+              final val = index + 1;
+              final isDisabled = !isPic && val > tahapanTertinggi;
+              return DropdownMenuItem<int>(
+                value: val,
+                enabled: !isDisabled,
+                child: Text(
+                  '$val - ${labels[index]}',
+                  style: TextStyle(
+                    color: isDisabled ? Colors.grey : Colors.black,
+                  ),
+                ),
+              );
+            }),
+            onChanged: isDetailMode || _isAlreadyRecorded
+                ? null
+                : (value) {
+                    setState(() {
+                      _selectedTahapan = value;
+                      _formData['tahapan'] = value;
+                    });
+                  },
+          ),
+        ],
+      ),
     );
   }
 
@@ -956,6 +1068,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             : (widget.mode == 'Selesai'
                   ? 3
                   : (widget.mode == 'Inspeksi' ? 6 : 2)),
+        tahapan: widget.mode == 'Selesai'
+            ? 4
+            : (widget.mode == 'Progress' ? _selectedTahapan : null),
         description: _descriptionController.text,
         photos: _images.whereType<XFile>().toList(),
         submitTime: DateTime.now().toUtc(),

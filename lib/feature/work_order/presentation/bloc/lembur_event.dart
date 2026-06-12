@@ -53,15 +53,6 @@ class CancelLemburProgressEvent extends LemburEvent {
   List<Object?> get props => [progressId];
 }
 
-class GetLemburProgressQuotaEvent extends LemburEvent {
-  final int workOrderId;
-
-  const GetLemburProgressQuotaEvent(this.workOrderId);
-
-  @override
-  List<Object?> get props => [workOrderId];
-}
-
 class GetLemburProgressByMemberEvent extends LemburEvent {
   final int workOrderId;
 

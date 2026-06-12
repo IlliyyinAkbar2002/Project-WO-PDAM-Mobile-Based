@@ -7,7 +7,7 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
-import 'package:project_mobile_pdam/feature/work_order/data/models/progress_quota_model.dart';
+
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_by_member_model.dart';
 
 class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
@@ -549,37 +549,6 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
         '/v1/progress-lembur/${workOrderProgress.id}',
       );
       _logDioError('updateWorkOrderProgressDetail', dioError);
-      return DataFailed(dioError);
-    }
-  }
-
-  Future<DataState<ProgressQuotaModel>> getProgressQuota(
-    int workOrderId,
-  ) async {
-    try {
-      final response = await get(
-        path: '/v1/progress-lembur/quota/$workOrderId',
-      );
-      final dynamic raw = response.data;
-      debugPrint("📊 getProgressQuota($workOrderId) raw: $raw");
-
-      final Map<String, dynamic> payload;
-      if (raw is Map<String, dynamic>) {
-        payload = raw['data'] is Map<String, dynamic>
-            ? Map<String, dynamic>.from(raw['data'])
-            : Map<String, dynamic>.from(raw);
-      } else {
-        throw const FormatException('Format quota tidak dikenali.');
-      }
-
-      final data = ProgressQuotaModel.fromMap(payload);
-      return DataSuccess(data);
-    } catch (e) {
-      final dioError = _toDioException(
-        e,
-        '/v1/progress-lembur/quota/$workOrderId',
-      );
-      _logDioError('getProgressQuota', dioError);
       return DataFailed(dioError);
     }
   }

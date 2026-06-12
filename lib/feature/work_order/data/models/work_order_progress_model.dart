@@ -34,6 +34,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     this.longitude,
     this.accuracy,
     this.kategoriData,
+    super.tahapan,
   });
 
   factory WorkOrderProgressModel.fromJson(String source) =>
@@ -123,6 +124,11 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
               ),
             )
           : null,
+      tahapan: map['tahapan'] != null
+          ? (map['tahapan'] is int
+              ? map['tahapan']
+              : int.tryParse(map['tahapan'].toString()))
+          : null,
     );
   }
 
@@ -138,6 +144,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       // submitted_by_user_id TIDAK dikirim — backend inject dari auth.
       'detail_progress':
           progressDetails?.map((detail) => detail.toMap()).toList() ?? [],
+      'tahapan': tahapan,
     };
   }
 
@@ -155,6 +162,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       createdAt: createdAt,
       updatedAt: updatedAt,
       progressDetail: progressDetails?.map((e) => e.toEntity()).toList(),
+      tahapan: tahapan,
     );
   }
 
@@ -178,6 +186,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       latitude: null,
       longitude: null,
       accuracy: null,
+      tahapan: entity.tahapan,
     );
   }
 
@@ -201,6 +210,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     double? longitude,
     double? accuracy,
     Map<String, dynamic>? kategoriData,
+    int? tahapan,
   }) {
     return WorkOrderProgressModel(
       id: id ?? this.id,
@@ -223,6 +233,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       longitude: longitude ?? this.longitude,
       accuracy: accuracy ?? this.accuracy,
       kategoriData: kategoriData ?? this.kategoriData,
+      tahapan: tahapan ?? this.tahapan,
     );
   }
 }

@@ -12,9 +12,9 @@ class MemberProgressModel extends MemberProgressEntity {
     required super.isPic,
     required super.totalSubmissions,
     required super.todaySubmissions,
-    required super.quotaRemaining,
-    required super.quotaTotal,
     required super.progressList,
+    super.tahapanTertinggi,
+    super.progressTahapan,
   });
 
   factory MemberProgressModel.fromJson(String source) =>
@@ -46,9 +46,11 @@ class MemberProgressModel extends MemberProgressEntity {
       if (value is List) {
         return value
             .whereType<Map>()
-            .map((json) => WorkOrderProgressModel.fromMap(
-                  Map<String, dynamic>.from(json),
-                ))
+            .map(
+              (json) => WorkOrderProgressModel.fromMap(
+                Map<String, dynamic>.from(json),
+              ),
+            )
             .toList();
       }
       return [];
@@ -62,9 +64,9 @@ class MemberProgressModel extends MemberProgressEntity {
       isPic: parseBool(map['is_pic']),
       totalSubmissions: parseInt(map['total_submissions']) ?? 0,
       todaySubmissions: parseInt(map['today_submissions']) ?? 0,
-      quotaRemaining: parseInt(map['quota_remaining']) ?? 0,
-      quotaTotal: parseInt(map['quota_total']) ?? 0,
       progressList: parseProgressList(map['progress_list']),
+      tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
+      progressTahapan: parseInt(map['progress_tahapan']),
     );
   }
 
@@ -77,11 +79,14 @@ class MemberProgressModel extends MemberProgressEntity {
       'is_pic': isPic,
       'total_submissions': totalSubmissions,
       'today_submissions': todaySubmissions,
-      'quota_remaining': quotaRemaining,
-      'quota_total': quotaTotal,
+
       'progress_list': progressList
-          .map((progress) => WorkOrderProgressModel.fromEntity(progress).toMap())
+          .map(
+            (progress) => WorkOrderProgressModel.fromEntity(progress).toMap(),
+          )
           .toList(),
+      'tahapan_tertinggi': tahapanTertinggi,
+      'progress_tahapan': progressTahapan,
     };
   }
 
@@ -94,9 +99,10 @@ class MemberProgressModel extends MemberProgressEntity {
       isPic: isPic,
       totalSubmissions: totalSubmissions,
       todaySubmissions: todaySubmissions,
-      quotaRemaining: quotaRemaining,
-      quotaTotal: quotaTotal,
+
       progressList: progressList,
+      tahapanTertinggi: tahapanTertinggi,
+      progressTahapan: progressTahapan,
     );
   }
 
@@ -109,9 +115,9 @@ class MemberProgressModel extends MemberProgressEntity {
       isPic: entity.isPic,
       totalSubmissions: entity.totalSubmissions,
       todaySubmissions: entity.todaySubmissions,
-      quotaRemaining: entity.quotaRemaining,
-      quotaTotal: entity.quotaTotal,
       progressList: entity.progressList,
+      tahapanTertinggi: entity.tahapanTertinggi,
+      progressTahapan: entity.progressTahapan,
     );
   }
 }

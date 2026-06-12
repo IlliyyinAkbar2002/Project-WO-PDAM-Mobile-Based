@@ -6,7 +6,6 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_orde
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_work_order_lembur_progresses_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/update_work_order_lembur_progress_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/resubmit_lembur_progress_usecase.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_quota_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/work_order_lembur_progress_usecases/get_lembur_progress_by_member_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_lembur_repository.dart';
 import 'lembur_event.dart';
@@ -20,7 +19,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
   final UpdateWorkOrderLemburProgressUseCase
   updateWorkOrderLemburProgressUseCase;
   final ResubmitLemburProgressUseCase resubmitLemburProgressUseCase;
-  final GetLemburProgressQuotaUseCase getLemburProgressQuotaUseCase;
   final GetLemburProgressByMemberUseCase getLemburProgressByMemberUseCase;
   final WorkOrderLemburRepository workOrderLemburRepository;
 
@@ -29,7 +27,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
     required this.getWorkOrderLemburProgressDetailUsecase,
     required this.updateWorkOrderLemburProgressUseCase,
     required this.resubmitLemburProgressUseCase,
-    required this.getLemburProgressQuotaUseCase,
     required this.getLemburProgressByMemberUseCase,
     required this.workOrderLemburRepository,
   }) : super(LemburInitial()) {
@@ -38,7 +35,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
     on<UpdateLemburProgressEvent>(_onUpdateLemburProgress);
     on<ResubmitLemburProgressEvent>(_onResubmitLemburProgress);
     on<CancelLemburProgressEvent>(_onCancelLemburProgress);
-    on<GetLemburProgressQuotaEvent>(_onGetLemburProgressQuota);
     on<GetLemburProgressByMemberEvent>(_onGetLemburProgressByMember);
     on<GetLemburProgressDetailsHistoryEvent>(
       _onGetLemburProgressDetailsHistory,
@@ -178,23 +174,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
       }
     } catch (e) {
       emit(LemburError("Gagal membatalkan progres: $e"));
-    }
-  }
-
-  Future<void> _onGetLemburProgressQuota(
-    GetLemburProgressQuotaEvent event,
-    Emitter<LemburState> emit,
-  ) async {
-    emit(LemburLoading());
-    try {
-      final dataState = await getLemburProgressQuotaUseCase(event.workOrderId);
-      if (dataState is DataSuccess) {
-        emit(LemburProgressQuotaLoaded(dataState.data!));
-      } else if (dataState is DataFailed) {
-        emit(LemburError(_friendlyErrorMessage(dataState.error)));
-      }
-    } catch (e) {
-      emit(LemburError("Gagal mengambil kuota progress lembur: $e"));
     }
   }
 

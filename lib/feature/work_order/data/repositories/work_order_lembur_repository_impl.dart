@@ -2,7 +2,6 @@ import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_lembur_remote_data.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_quota_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_lembur_repository.dart';
 
@@ -68,15 +67,6 @@ class WorkOrderLemburRepositoryImpl implements WorkOrderLemburRepository {
     int progressWorkorderId,
   ) async {
     return _remoteDataSource.getProgressDetailsHistory(progressWorkorderId);
-  }
-
-  @override
-  Future<DataState<ProgressQuotaEntity>> getProgressQuota(int workOrderId) async {
-    final response = await _remoteDataSource.getProgressQuota(workOrderId);
-    if (response is DataSuccess) {
-      return DataSuccess(response.data!.toEntity());
-    }
-    return DataFailed(response.error!);
   }
 
   @override
