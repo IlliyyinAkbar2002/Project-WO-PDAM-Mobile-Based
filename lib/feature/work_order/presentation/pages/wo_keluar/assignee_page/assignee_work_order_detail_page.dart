@@ -478,6 +478,7 @@ class _AssigneeWorkOrderDetailPageState
                   initialKategoriData: _workOrder != null
                       ? _buildKategoriFormData(_workOrder!)
                       : null,
+                  workOrderTypeName: _workOrder?.workOrderType?.name,
                 ),
               ),
             );
@@ -577,9 +578,6 @@ class _AssigneeWorkOrderDetailPageState
     Future<void> handleTap() async {
       if (disabled) return;
       if (_isNavigatingToReport) {
-        // Tap kedua saat navigasi push masih berjalan: tampilkan pesan sekali
-        // alih-alih diam-diam mengabaikan, supaya user tahu tombolnya memang
-        // sudah ter-respon dan tidak perlu menekan berulang.
         AppSnackbar.showWarning('Tombol $mode sudah ditekan, mohon tunggu.');
         return;
       }
@@ -602,6 +600,7 @@ class _AssigneeWorkOrderDetailPageState
               initialKategoriData: _workOrder != null
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
+              workOrderTypeName: _workOrder?.workOrderType?.name,
             ),
           ),
         );

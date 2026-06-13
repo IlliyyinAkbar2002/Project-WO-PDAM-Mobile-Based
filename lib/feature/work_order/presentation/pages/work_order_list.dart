@@ -52,10 +52,6 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         excludeStatus: widget.excludeStatus,
         picId: widget.creatorId ?? widget.picId,
         userId: widget.userId,
-        // type: _selectedType,
-        // dateRange: _selectedDateRange,
-        // startDate: _startDate,
-        // endDate: _endDate,
       ),
     );
   }
@@ -131,23 +127,17 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
-        title: Row(
-          spacing: 8,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                workOrder.title,
-                style: textTheme.titleLarge,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Text(
+              workOrder.title,
+              style: textTheme.titleLarge,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: _buildStatusChip(workOrder),
-              ),
-            ),
+            const SizedBox(height: 6),
+            _buildStatusChip(workOrder),
           ],
         ),
         subtitle: Row(
@@ -268,18 +258,27 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         color.status[workOrder.status?.id ?? workOrder.statusId] ??
         color.primary[100]!;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
       spacing: 4,
+      runSpacing: 4,
       children: [
         if (workOrder.isLembur) _buildChip('Lembur', Colors.orange.shade700),
         _buildChip(typeLabel, typeColor),
         if (status != null && status.isNotEmpty)
           _buildChip(status, statusColor),
-        if (workOrder.progresPersen != null)
-          _buildChip('${workOrder.progresPersen}%', color.primary[500]!),
+        if (_progresPersen(workOrder) != null)
+          _buildChip('${_progresPersen(workOrder)}%', color.primary[500]!),
       ],
     );
+  }
+
+  /// Persentase progress WO. Pakai `progresPersen` dari backend kalau ada,
+  /// kalau tidak hitung dari `tahapanTertinggi` (dari 4 tahapan pekerjaan).
+  int? _progresPersen(WorkOrderEntity workOrder) {
+    if (workOrder.progresPersen != null) return workOrder.progresPersen;
+    final tahapan = workOrder.tahapanTertinggi;
+    if (tahapan == null || tahapan <= 0) return null;
+    return ((tahapan.clamp(0, 4) / 4) * 100).round();
   }
 
   Widget _buildChip(String label, Color backgroundColor) {

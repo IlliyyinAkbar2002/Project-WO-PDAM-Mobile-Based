@@ -10,6 +10,8 @@ class IndividualProgressSection extends StatelessWidget {
   final LatLng? lngLat;
   final String? locationName;
   final int radiusMeter;
+  final String? workOrderTypeName;
+  final int? workOrderTypeId;
 
   const IndividualProgressSection({
     super.key,
@@ -19,6 +21,8 @@ class IndividualProgressSection extends StatelessWidget {
     this.lngLat,
     this.locationName,
     this.radiusMeter = 100,
+    this.workOrderTypeName,
+    this.workOrderTypeId,
   });
 
   @override
@@ -93,6 +97,8 @@ class IndividualProgressSection extends StatelessWidget {
             lngLat: lngLat,
             locationName: locationName,
             radiusMeter: radiusMeter,
+            workOrderTypeName: workOrderTypeName,
+            workOrderTypeId: workOrderTypeId,
           );
         }),
         const SizedBox(height: 16),

@@ -5,6 +5,18 @@ const List<String> kTahapanGeneric = [
   'Dokumentasi',
 ];
 
+const Map<int, String> kJenisWorkOrderIdToName = {
+  1: 'Kalibrasi Meteran',
+  2: 'Pergantian Meteran',
+  3: 'Pemasangan Meteran',
+  4: 'Penanganan Kebocoran',
+  5: 'Perbaikan Pipa',
+  6: 'Pembersihan Saluran',
+  7: 'Inspeksi Jaringan',
+  8: 'Pemeliharaan Pompa',
+  9: 'Instalasi Baru',
+};
+
 /// Keyed by jenis pekerjaan name as returned by the API.
 const Map<String, List<String>> kTahapanByJenis = {
   'Kalibrasi Meteran': [
@@ -13,7 +25,7 @@ const Map<String, List<String>> kTahapanByJenis = {
     'Verifikasi hasil',
     'Segel ulang + foto',
   ],
-  'Penggantian Meteran': [
+  'Pergantian Meteran': [
     'Catat stand meter lama',
     'Lepas & pasang meteran baru',
     'Cek kebocoran sambungan',

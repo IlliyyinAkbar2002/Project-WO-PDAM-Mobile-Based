@@ -65,8 +65,7 @@ class WorkOrderEntity extends Equatable {
     this.tahapanTertinggi,
   });
 
-  bool get isLembur =>
-      workOrderTypeId == 2 || workOrderType?.id == 2 || splId != null;
+  bool get isLembur => splId != null;
 
   @override
   List<Object?> get props => [

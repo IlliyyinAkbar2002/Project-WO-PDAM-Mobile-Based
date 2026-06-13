@@ -323,6 +323,10 @@ class _DetailWorkOrderPageMasukState
             formData = {
               "title": state.workOrder.title,
               "jobType": _resolveJobTypeLabel(state.workOrder),
+              "workOrderTypeName": state.workOrder.workOrderType?.name,
+              "workOrderTypeId":
+                  state.workOrder.workOrderTypeId ??
+                  state.workOrder.workOrderType?.id,
               "kategoriForm": state.workOrder.kategoriForm,
               "prioritas":
                   (state.workOrder.prioritas != null &&
@@ -510,6 +514,10 @@ class _DetailWorkOrderPageMasukState
                                       formData["locationName"] as String?,
                                   radiusMeter:
                                       (formData["radiusMeter"] as int?) ?? 100,
+                                  workOrderTypeName:
+                                      formData["workOrderTypeName"] as String?,
+                                  workOrderTypeId:
+                                      formData["workOrderTypeId"] as int?,
                                 ),
                               ),
                             );
@@ -593,7 +601,23 @@ class _DetailWorkOrderPageMasukState
         const SizedBox(height: 16),
         // Member List
         ...progressByMember!.members.map((member) {
-          return MemberProgressCard(member: member, isExpanded: false);
+          return MemberProgressCard(
+            member: member,
+            isExpanded: false,
+            status: widget.status,
+            kategoriForm: formData["kategoriForm"] as String?,
+            lngLat:
+                (formData["latitude"] != null && formData["longitude"] != null)
+                ? LatLng(
+                    (formData["latitude"] as num).toDouble(),
+                    (formData["longitude"] as num).toDouble(),
+                  )
+                : null,
+            locationName: formData["locationName"] as String?,
+            radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
+            workOrderTypeName: formData["workOrderTypeName"] as String?,
+            workOrderTypeId: formData["workOrderTypeId"] as int?,
+          );
         }),
         const SizedBox(height: 16),
       ],
@@ -661,8 +685,6 @@ class _DetailWorkOrderPageMasukState
       );
     }
 
-    // For all other cases (already approved, rejected, in progress, etc.)
-    // Don't show any buttons (read-only mode)
     return const SizedBox();
   }
 
@@ -723,7 +745,9 @@ class _DetailWorkOrderPageMasukState
       return;
     }
     if (endDateTime.isBefore(startDateTime)) {
-      AppSnackbar.showError("Waktu selesai tidak boleh mendahului waktu mulai.");
+      AppSnackbar.showError(
+        "Waktu selesai tidak boleh mendahului waktu mulai.",
+      );
       return;
     }
     if (assigneeIds.isEmpty) {
@@ -796,25 +820,17 @@ class _DetailWorkOrderPageMasukState
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
-    // Build form_kategori berdasarkan kategoriForm.
-    // Field kategori "awal" kini diisi oleh staff lapangan saat menekan
-    // "Mulai" (lihat WorkOrderReportPage). SPV cukup menentukan petugas, PIC,
-    // dan deskripsi, sehingga form_kategori dikirim kosong.
     final String kategoriForm = _readTrimmedString("kategoriForm");
     final String kategori = kategoriForm.isEmpty
         ? WoKategoriForm.meter
         : kategoriForm;
     final Map<String, dynamic> formKategori = const {};
 
-    // Kirim lokasi yang dipilih SPV (dari location search) ke backend.
-    // Jika SPV memilih lokasi baru via search, formData akan ter-update.
     final double? assignLatitude = _toDouble(formData["latitude"]);
     final double? assignLongitude = _toDouble(formData["longitude"]);
     final int? locationId = _toInt(formData["locationId"]);
     final String locationName = _readTrimmedString("locationName");
 
-    // Location is considered unset if locationId is null, locationName is empty,
-    // coordinates are null/zero, or coordinates match the default fallback (-7.2704960, 112.5672211).
     final bool isDefaultLocation =
         assignLatitude != null &&
         assignLongitude != null &&
@@ -870,7 +886,9 @@ class _DetailWorkOrderPageMasukState
       return;
     }
     if (estimasiSelesai.isBefore(tanggalMulai)) {
-      AppSnackbar.showError("Estimasi selesai tidak boleh mendahului waktu mulai.");
+      AppSnackbar.showError(
+        "Estimasi selesai tidak boleh mendahului waktu mulai.",
+      );
       return;
     }
 

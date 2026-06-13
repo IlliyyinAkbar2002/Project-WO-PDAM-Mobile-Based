@@ -18,6 +18,8 @@ class MemberProgressCard extends StatefulWidget {
   final LatLng? lngLat;
   final String? locationName;
   final int radiusMeter;
+  final String? workOrderTypeName;
+  final int? workOrderTypeId;
 
   const MemberProgressCard({
     super.key,
@@ -29,6 +31,8 @@ class MemberProgressCard extends StatefulWidget {
     this.lngLat,
     this.locationName,
     this.radiusMeter = 100,
+    this.workOrderTypeName,
+    this.workOrderTypeId,
   });
 
   @override
@@ -266,11 +270,12 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   isAssignee: false,
                   progressId: progress.id,
                   workOrderId: progress.workOrderId,
-                  workOrderTypeId: progress.tipeProgressId,
+                  workOrderTypeId: widget.workOrderTypeId,
                   lngLat: widget.lngLat,
                   locationName: widget.locationName,
                   radiusMeter: widget.radiusMeter,
                   kategoriForm: widget.kategoriForm,
+                  workOrderTypeName: widget.workOrderTypeName,
                 ),
               ),
             );

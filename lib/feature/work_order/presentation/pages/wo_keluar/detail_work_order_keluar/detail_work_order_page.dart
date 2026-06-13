@@ -368,6 +368,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
             formData = {
               "title": state.workOrder.title,
               "jobType": _resolveJobTypeLabel(state.workOrder),
+              "workOrderTypeName": state.workOrder.workOrderType?.name,
+              "workOrderTypeId": state.workOrder.workOrderTypeId ?? state.workOrder.workOrderType?.id,
               "kategoriForm": state.workOrder.kategoriForm,
               "prioritas":
                   (state.workOrder.prioritas != null &&
@@ -549,6 +551,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                                       formData["locationName"] as String?,
                                   radiusMeter:
                                       (formData["radiusMeter"] as int?) ?? 100,
+                                  workOrderTypeName: formData["workOrderTypeName"] as String?,
                                 ),
                               ),
                             );
@@ -575,6 +578,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                     : null,
                 locationName: formData["locationName"] as String?,
                 radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
+                workOrderTypeName: formData["workOrderTypeName"] as String?,
+                workOrderTypeId: formData["workOrderTypeId"] as int?,
               )
             : const SizedBox(),
         widget.isAssignee

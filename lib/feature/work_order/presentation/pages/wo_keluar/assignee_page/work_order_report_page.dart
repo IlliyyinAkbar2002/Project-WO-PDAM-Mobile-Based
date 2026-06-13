@@ -43,6 +43,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
   final String? kategoriForm;
   final Map<String, dynamic>? initialKategoriData;
+  final String? workOrderTypeName;
 
   const WorkOrderReportPage({
     super.key,
@@ -57,6 +58,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
     this.kategoriForm,
     this.initialKategoriData,
+    this.workOrderTypeName,
   });
 
   @override
@@ -192,10 +194,23 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       };
     }
 
-    if (widget.mode == 'Progress' && _selectedTahapan == null) {
-      final state = _workOrderBloc.state;
-      if (state is WorkOrderDetailLoaded) {
-        _selectedTahapan = state.workOrder.tahapanTertinggi ?? 1;
+    if (_selectedTahapan == null) {
+      if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
+        _selectedTahapan = 1;
+      } else if (widget.mode == 'Selesai') {
+        _selectedTahapan = 4;
+      } else if (widget.mode == 'Progress') {
+        final state = _workOrderBloc.state;
+        if (state is WorkOrderDetailLoaded) {
+          int tahapan = state.workOrder.tahapanTertinggi ?? 1;
+          if (tahapan < 2) tahapan = 2;
+          if (tahapan > 3) tahapan = 3;
+          _selectedTahapan = tahapan;
+        } else {
+          _selectedTahapan = 2;
+        }
+      }
+      if (_selectedTahapan != null) {
         _formData['tahapan'] = _selectedTahapan;
       }
     }
@@ -285,7 +300,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;
                   } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
-                    _selectedTahapan = (_workOrderBloc.state as WorkOrderDetailLoaded).workOrder.tahapanTertinggi ?? 1;
+                    _selectedTahapan =
+                        (_workOrderBloc.state as WorkOrderDetailLoaded)
+                            .workOrder
+                            .tahapanTertinggi ??
+                        1;
                   } else {
                     _selectedTahapan = 1;
                   }
@@ -316,8 +335,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 if (!mounted) return;
                 setState(() {
                   _progressDetails = [];
-                  // Untuk mode selesai, tunggu fallback header progres
-                  // agar deskripsi/dokumentasi tetap tampil saat detail kosong.
+
                   isDataLoaded = widget.mode == 'Selesai' ? false : true;
                 });
               });
@@ -368,7 +386,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;
                   } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
-                    _selectedTahapan = (_workOrderBloc.state as WorkOrderDetailLoaded).workOrder.tahapanTertinggi ?? 1;
+                    _selectedTahapan =
+                        (_workOrderBloc.state as WorkOrderDetailLoaded)
+                            .workOrder
+                            .tahapanTertinggi ??
+                        1;
                   } else {
                     _selectedTahapan = 1;
                   }
@@ -383,10 +405,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           if (state is WorkOrderProgressUpdated) {
             if (_hasClosedAfterSubmit) return;
             _hasClosedAfterSubmit = true;
-            // Sengaja TIDAK reset `_isSubmitting = false` di sukses. Page akan
-            // pop pada post-frame berikutnya; sampai itu, tombol harus tetap
-            // terkunci agar tap kedua di window pop tidak mengirim payload
-            // duplikat ke /start atau /submit.
             AppSnackbar.showSuccess("Form berhasil disubmit.");
             if ((widget.isAssignee && !isDetailMode) || !widget.isAssignee) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -420,6 +438,40 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             final bool canShowResubmitButton =
                 !isSelesaiResubmit || isSeniorStaff;
 
+            String? jenisPekerjaan = widget.workOrderTypeName;
+            if (jenisPekerjaan == null && widget.workOrderTypeId != null) {
+              jenisPekerjaan = kJenisWorkOrderIdToName[widget.workOrderTypeId];
+            }
+            
+            String? katForm = widget.kategoriForm;
+            if (state is WorkOrderDetailLoaded) {
+              jenisPekerjaan ??= state.workOrder.workOrderType?.name;
+              katForm ??= state.workOrder.kategoriForm;
+            }
+
+            // Fallback to determine specific label if jenisPekerjaan is missing or unknown
+            if (jenisPekerjaan == null ||
+                !kTahapanByJenis.containsKey(jenisPekerjaan)) {
+              if (katForm == 'meter') {
+                jenisPekerjaan = 'Kalibrasi Meteran';
+              } else if (katForm == 'jaringan') {
+                jenisPekerjaan = 'Penanganan Kebocoran';
+              } else if (katForm == 'infrastruktur') {
+                jenisPekerjaan = 'Pemeliharaan Pompa';
+              }
+            }
+
+            final List<String> specificLabels = tahapanLabelsFor(
+              jenisPekerjaan,
+            );
+            final String specificLabel =
+                specificLabels.isNotEmpty &&
+                    _selectedTahapan != null &&
+                    _selectedTahapan! > 0 &&
+                    _selectedTahapan! <= specificLabels.length
+                ? specificLabels[_selectedTahapan! - 1]
+                : "Persiapan";
+
             return !isDataLoaded || _isCheckingDistance
                 ? Center(
                     child: Column(
@@ -442,11 +494,28 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Text(widget.mode, style: textTheme.displaySmall),
-                          // const SizedBox(height: 16),
-                          // Map dan info lokasi
                           if (widget.lngLat != null) _buildLocationMap(),
                           const SizedBox(height: 16),
+
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: TextFormField(
+                              key: ValueKey(specificLabel),
+                              initialValue: specificLabel,
+                              readOnly: true,
+                              decoration: const InputDecoration(
+                                labelText: "Target Pekerjaan",
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Color(0xFFF5F5F5),
+                              ),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+
                           if (isRejected && _revisionNote != null) ...[
                             _buildRevisionNotePanel(),
                             const SizedBox(height: 16),
@@ -485,8 +554,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (widget.mode == 'Progress') _buildTahapanSelector(),
-                          if (widget.mode == 'Progress') const SizedBox(height: 16),
+                          _buildTahapanSelector(),
+                          const SizedBox(height: 16),
                           if (widget.mode == 'Selesai' ||
                               widget.mode == 'Mulai')
                             _buildDynamicForm(),
@@ -588,15 +657,19 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   Widget _buildDynamicForm() {
     final List<Map<String, dynamic>> dynamicFields;
     if (widget.kategoriForm != null) {
-      dynamicFields = widget.mode == 'Mulai'
-          ? FormFieldsConfig.getStartKategoriFields(
-              kategoriForm: widget.kategoriForm,
-              isReadOnly: isDetailMode || _isAlreadyRecorded,
-            )
-          : FormFieldsConfig.getSubmissionFields(
-              kategoriForm: widget.kategoriForm,
-              isReadOnly: isDetailMode || _isAlreadyRecorded,
-            );
+      if (widget.mode == 'Mulai') {
+        dynamicFields = FormFieldsConfig.getStartKategoriFields(
+          kategoriForm: widget.kategoriForm,
+          isReadOnly: isDetailMode || _isAlreadyRecorded,
+        );
+      } else if (widget.mode == 'Selesai') {
+        dynamicFields = FormFieldsConfig.getSubmissionFields(
+          kategoriForm: widget.kategoriForm,
+          isReadOnly: isDetailMode || _isAlreadyRecorded,
+        );
+      } else {
+        dynamicFields = [];
+      }
     } else {
       dynamicFields = (isDetailMode || !widget.isAssignee)
           ? DynamicFormConfig.getDetailDynamicFormFields(
@@ -616,25 +689,36 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   Widget _buildTahapanSelector() {
-    String? jenisPekerjaan;
+    String? jenisPekerjaan = widget.workOrderTypeName;
     int tahapanTertinggi = 1;
     bool isPic = true;
-    
+
     final state = _workOrderBloc.state;
     if (state is WorkOrderDetailLoaded) {
-      jenisPekerjaan = state.workOrder.workOrderType?.name;
+      jenisPekerjaan ??= state.workOrder.workOrderType?.name;
       tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
-      
+
       final currentUser = AuthStorage.getUserSync();
       final currentUserIdStr = currentUser?['id']?.toString();
       final picIdStr = state.workOrder.assignment?.assigneeId?.toString();
-      
+
       if (picIdStr != null && currentUserIdStr != null) {
         isPic = currentUserIdStr == picIdStr;
       }
     }
-    
-    final labels = tahapanLabelsFor(jenisPekerjaan);
+
+    List<int> validTahapan = [1, 2, 3, 4];
+    if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
+      validTahapan = [1];
+    } else if (widget.mode == 'Progress') {
+      validTahapan = [2, 3];
+    } else if (widget.mode == 'Selesai') {
+      validTahapan = [4];
+    }
+
+    if (_selectedTahapan != null && !validTahapan.contains(_selectedTahapan)) {
+      _selectedTahapan = validTahapan.first;
+    }
 
     return Container(
       width: double.infinity,
@@ -647,10 +731,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Tahapan Pekerjaan",
-            style: textTheme.titleMedium,
-          ),
+          Text("Tahapan Pekerjaan", style: textTheme.titleMedium),
           if (!isPic) ...[
             const SizedBox(height: 4),
             Text(
@@ -664,22 +745,22 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               border: OutlineInputBorder(),
             ),
-            value: _selectedTahapan,
+            initialValue: _selectedTahapan,
             hint: const Text('Pilih tahapan... (Opsional)'),
-            items: List.generate(4, (index) {
-              final val = index + 1;
+            items: validTahapan.map((val) {
+              final index = val - 1;
               final isDisabled = !isPic && val > tahapanTertinggi;
               return DropdownMenuItem<int>(
                 value: val,
                 enabled: !isDisabled,
                 child: Text(
-                  '$val - ${labels[index]}',
+                  '$val - ${kTahapanGeneric[index]}',
                   style: TextStyle(
                     color: isDisabled ? Colors.grey : Colors.black,
                   ),
                 ),
               );
-            }),
+            }).toList(),
             onChanged: isDetailMode || _isAlreadyRecorded
                 ? null
                 : (value) {
@@ -915,9 +996,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         }
       }
 
-      // Kunci tombol secepat mungkin untuk mencegah double-tap mengirim
-      // payload yang sama dua kali (terutama saat GPS sudah tersedia
-      // sehingga jalur sinkron langsung menuju submit tanpa await).
       setState(() {
         _isSubmitting = true;
         _hasClosedAfterSubmit = false;

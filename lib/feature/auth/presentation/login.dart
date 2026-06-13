@@ -9,7 +9,7 @@ import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
-import 'package:project_mobile_pdam/feature/auth/presentation/register.dart';
+// import 'package:project_mobile_pdam/feature/auth/presentation/register.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/forgot_password.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
@@ -202,8 +202,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 _buildForgotPasswordLink(),
                 const SizedBox(height: 16),
-                _buildRegisterLink(),
-                const SizedBox(height: 4),
+                // _buildRegisterLink(),
+                // const SizedBox(height: 4),
               ],
             ),
           ),
@@ -396,45 +396,45 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildRegisterLink() {
-    return Center(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RegisterPage()),
-          );
-        },
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontSize: 13,
-                color: _LoginTokens.textSecondary,
-                fontWeight: FontWeight.w500,
-                height: 1.5,
-              ),
-              children: [
-                TextSpan(text: 'Belum punya akun?  '),
-                TextSpan(
-                  text: 'Daftar Sekarang',
-                  style: TextStyle(
-                    color: _LoginTokens.accentGreen,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildRegisterLink() {
+  //   return Center(
+  //     child: GestureDetector(
+  //       behavior: HitTestBehavior.opaque,
+  //       onTap: () {
+  //         Navigator.push(
+  //           context,
+  //           MaterialPageRoute(builder: (context) => const RegisterPage()),
+  //         );
+  //       },
+  //       child: const Padding(
+  //         padding: EdgeInsets.symmetric(vertical: 4),
+  //         child: Text.rich(
+  //           TextSpan(
+  //             style: TextStyle(
+  //               fontSize: 13,
+  //               color: _LoginTokens.textSecondary,
+  //               fontWeight: FontWeight.w500,
+  //               height: 1.5,
+  //             ),
+  //             children: [
+  //               TextSpan(text: 'Belum punya akun?  '),
+  //               TextSpan(
+  //                 text: 'Daftar Sekarang',
+  //                 style: TextStyle(
+  //                   color: _LoginTokens.accentGreen,
+  //                   fontWeight: FontWeight.bold,
+  //                   fontSize: 16,
+  //                   height: 1.5,
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           textAlign: TextAlign.center,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   /// Footer: glass pill button untuk Test Koneksi + copyright uppercase
   Widget _buildFooter() {
