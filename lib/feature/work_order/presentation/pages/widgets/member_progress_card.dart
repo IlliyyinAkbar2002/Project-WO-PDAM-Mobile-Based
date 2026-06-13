@@ -144,22 +144,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
               // Statistics Grid
               Row(
                 children: [
-                  Expanded(
-                    child: _buildStatItem(
-                      'Hari Ini',
-                      '${widget.member.todaySubmissions}',
-                      Icons.today,
-                      Colors.blue,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildStatItem(
-                      'Total Laporan',
-                      '${widget.member.totalSubmissions}',
-                      Icons.check_circle_outline,
-                      Colors.green,
-                    ),
-                  ),
                   if (widget.member.tahapanTertinggi != null && widget.member.tahapanTertinggi! > 0)
                     Expanded(
                       child: _buildStatItem(

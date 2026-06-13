@@ -297,6 +297,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 } else {
                   _descriptionController.text = description;
                   _images = images;
+                  if (state.progress.kategoriData != null) {
+                    _formData.addAll(state.progress.kategoriData!);
+                  }
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;
                   } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {

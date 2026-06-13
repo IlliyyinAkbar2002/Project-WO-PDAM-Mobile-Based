@@ -126,8 +126,11 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
           : null,
       tahapan: map['tahapan'] != null
           ? (map['tahapan'] is int
-              ? map['tahapan']
-              : int.tryParse(map['tahapan'].toString()))
+                ? map['tahapan']
+                : int.tryParse(map['tahapan'].toString()))
+          : null,
+      kategoriData: map['kategori_data'] != null
+          ? Map<String, dynamic>.from(map['kategori_data'])
           : null,
     );
   }
@@ -163,6 +166,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       updatedAt: updatedAt,
       progressDetail: progressDetails?.map((e) => e.toEntity()).toList(),
       tahapan: tahapan,
+      kategoriData: kategoriData,
     );
   }
 
@@ -187,6 +191,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       longitude: null,
       accuracy: null,
       tahapan: entity.tahapan,
+      kategoriData: entity.kategoriData,
     );
   }
 

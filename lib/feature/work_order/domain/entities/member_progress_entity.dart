@@ -20,12 +20,6 @@ class MemberProgressEntity extends Equatable {
   /// Apakah anggota ini adalah PIC (koordinator tim)
   final bool isPic;
 
-  /// Total submissions yang sudah dilakukan anggota ini
-  final int totalSubmissions;
-
-  /// Submissions hari ini
-  final int todaySubmissions;
-
   /// List semua progress yang disubmit oleh anggota ini
   final List<WorkOrderProgressEntity> progressList;
   final int? tahapanTertinggi;
@@ -37,8 +31,6 @@ class MemberProgressEntity extends Equatable {
     this.nip,
     required this.jabatan,
     required this.isPic,
-    required this.totalSubmissions,
-    required this.todaySubmissions,
     required this.progressList,
     this.tahapanTertinggi,
     this.progressTahapan,
@@ -51,9 +43,6 @@ class MemberProgressEntity extends Equatable {
     nip,
     jabatan,
     isPic,
-    totalSubmissions,
-    todaySubmissions,
-
     progressList,
     tahapanTertinggi,
     progressTahapan,
@@ -65,8 +54,6 @@ class MemberProgressEntity extends Equatable {
     String? nip,
     String? jabatan,
     bool? isPic,
-    int? totalSubmissions,
-    int? todaySubmissions,
     List<WorkOrderProgressEntity>? progressList,
     int? tahapanTertinggi,
     int? progressTahapan,
@@ -77,8 +64,6 @@ class MemberProgressEntity extends Equatable {
       nip: nip ?? this.nip,
       jabatan: jabatan ?? this.jabatan,
       isPic: isPic ?? this.isPic,
-      totalSubmissions: totalSubmissions ?? this.totalSubmissions,
-      todaySubmissions: todaySubmissions ?? this.todaySubmissions,
       progressList: progressList ?? this.progressList,
       tahapanTertinggi: tahapanTertinggi ?? this.tahapanTertinggi,
       progressTahapan: progressTahapan ?? this.progressTahapan,

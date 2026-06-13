@@ -10,8 +10,6 @@ class MemberProgressModel extends MemberProgressEntity {
     super.nip,
     required super.jabatan,
     required super.isPic,
-    required super.totalSubmissions,
-    required super.todaySubmissions,
     required super.progressList,
     super.tahapanTertinggi,
     super.progressTahapan,
@@ -62,8 +60,6 @@ class MemberProgressModel extends MemberProgressEntity {
       nip: map['nip']?.toString(),
       jabatan: map['jabatan']?.toString() ?? '',
       isPic: parseBool(map['is_pic']),
-      totalSubmissions: parseInt(map['total_submissions']) ?? 0,
-      todaySubmissions: parseInt(map['today_submissions']) ?? 0,
       progressList: parseProgressList(map['progress_list']),
       tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
       progressTahapan: parseInt(map['progress_tahapan']),
@@ -77,9 +73,6 @@ class MemberProgressModel extends MemberProgressEntity {
       'nip': nip,
       'jabatan': jabatan,
       'is_pic': isPic,
-      'total_submissions': totalSubmissions,
-      'today_submissions': todaySubmissions,
-
       'progress_list': progressList
           .map(
             (progress) => WorkOrderProgressModel.fromEntity(progress).toMap(),
@@ -97,9 +90,6 @@ class MemberProgressModel extends MemberProgressEntity {
       nip: nip,
       jabatan: jabatan,
       isPic: isPic,
-      totalSubmissions: totalSubmissions,
-      todaySubmissions: todaySubmissions,
-
       progressList: progressList,
       tahapanTertinggi: tahapanTertinggi,
       progressTahapan: progressTahapan,
@@ -113,8 +103,6 @@ class MemberProgressModel extends MemberProgressEntity {
       nip: entity.nip,
       jabatan: entity.jabatan,
       isPic: entity.isPic,
-      totalSubmissions: entity.totalSubmissions,
-      todaySubmissions: entity.todaySubmissions,
       progressList: entity.progressList,
       tahapanTertinggi: entity.tahapanTertinggi,
       progressTahapan: entity.progressTahapan,

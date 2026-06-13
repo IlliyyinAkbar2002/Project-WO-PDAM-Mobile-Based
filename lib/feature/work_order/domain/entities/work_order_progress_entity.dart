@@ -25,6 +25,7 @@ class WorkOrderProgressEntity extends Equatable {
   final DateTime? updatedAt;
   final List<ProgressDetailEntity>? progressDetail;
   final int? tahapan;
+  final Map<String, dynamic>? kategoriData;
 
   const WorkOrderProgressEntity({
     this.id,
@@ -40,6 +41,7 @@ class WorkOrderProgressEntity extends Equatable {
     this.updatedAt,
     this.progressDetail,
     this.tahapan,
+    this.kategoriData,
   });
 
   /// Backward-compat getter: UI Flutter lama masih membaca
@@ -85,6 +87,7 @@ class WorkOrderProgressEntity extends Equatable {
     updatedAt,
     progressDetail,
     tahapan,
+    kategoriData,
   ];
 
   WorkOrderProgressEntity copyWith({
@@ -101,6 +104,7 @@ class WorkOrderProgressEntity extends Equatable {
     DateTime? updatedAt,
     List<ProgressDetailEntity>? progressDetail,
     int? tahapan,
+    Map<String, dynamic>? kategoriData,
   }) {
     return WorkOrderProgressEntity(
       id: id ?? this.id,
@@ -116,6 +120,7 @@ class WorkOrderProgressEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       progressDetail: progressDetail ?? this.progressDetail,
       tahapan: tahapan ?? this.tahapan,
+      kategoriData: kategoriData ?? this.kategoriData,
     );
   }
 }

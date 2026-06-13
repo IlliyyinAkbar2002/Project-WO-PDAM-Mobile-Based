@@ -575,30 +575,7 @@ class _DetailWorkOrderPageMasukState
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        // Team Statistics
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildTeamStat(
-                  'Total Laporan',
-                  '${progressByMember!.totalSubmissionsAll}',
-                  Icons.check_circle,
-                  Colors.green,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+
         // Member List
         ...progressByMember!.members.map((member) {
           return MemberProgressCard(
@@ -624,33 +601,7 @@ class _DetailWorkOrderPageMasukState
     );
   }
 
-  Widget _buildTeamStat(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildActionButtons({required bool canAssignStaff}) {
     // If creating a new work order, show submit button

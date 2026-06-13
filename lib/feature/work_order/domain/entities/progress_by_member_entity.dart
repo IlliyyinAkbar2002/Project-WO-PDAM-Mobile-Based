@@ -25,14 +25,6 @@ class ProgressByMemberEntity extends Equatable {
     required this.members,
   });
 
-  /// Total submissions dari semua anggota
-  int get totalSubmissionsAll {
-    return members.fold<int>(
-      0,
-      (sum, member) => sum + member.totalSubmissions,
-    );
-  }
-
   /// Cari PIC dari list anggota
   MemberProgressEntity? get pic {
     try {
