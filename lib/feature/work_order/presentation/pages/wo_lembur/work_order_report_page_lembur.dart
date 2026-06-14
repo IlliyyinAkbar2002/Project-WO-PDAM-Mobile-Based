@@ -105,6 +105,7 @@ class _WorkOrderReportPageLemburState
   bool isDataLoaded = false;
   bool _isSubmitting = false;
   bool _hasClosedAfterSubmit = false;
+  bool _requestedHeaderFallback = false;
   Position? _currentPosition;
 
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
@@ -314,67 +315,72 @@ class _WorkOrderReportPageLemburState
                       .cast<dynamic>()
                       .toList() ??
                   [];
+              _requestedHeaderFallback = false;
               isDataLoaded = true;
             });
             _checkDataLoaded();
           } else if (state is LemburProgressDetailsHistoryLoaded) {
             final progressDetails = state.details;
-            if (progressDetails.isEmpty) {
+            final parsedDetails = progressDetails
+                .whereType<ProgressDetailEntity>()
+                .toList();
+            // Endpoint history lembur mengembalikan data mentah; bila tidak ada
+            // ProgressDetailEntity yang ter-parse (mis. progress "Selesai"
+            // berbasis form kategori tanpa field dinamis), deskripsi & status
+            // header tidak bisa diambil dari sini. Ambil header progress lewat
+            // detail endpoint — sama seperti alur WO reguler.
+            if (parsedDetails.isEmpty) {
+              if (widget.mode == 'Selesai' &&
+                  widget.progressId != null &&
+                  !_requestedHeaderFallback) {
+                _requestedHeaderFallback = true;
+                _lemburBloc.add(
+                  GetLemburProgressDetailEvent(widget.progressId!),
+                );
+              }
               SchedulerBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
                 setState(() {
                   _progressDetails = [];
-                  isDataLoaded = true;
+                  isDataLoaded = widget.mode == 'Selesai' ? false : true;
                 });
               });
               return;
             }
 
-            final firstElement = progressDetails.first;
-            final rawDesc = firstElement is ProgressDetailEntity
-                ? firstElement.workOrderProgress?.description
-                : null;
+            final firstElement = parsedDetails.first;
+            final rawDesc = firstElement.workOrderProgress?.description;
             final description = rawDesc?.isNotEmpty == true
                 ? rawDesc!
                 : (widget.initialDescription ?? '');
 
-            final statusId = firstElement is ProgressDetailEntity
-                ? firstElement.workOrderProgress?.statusId
-                : null;
-            final tahapan = firstElement is ProgressDetailEntity
-                ? firstElement.workOrderProgress?.tahapan
-                : null;
+            final statusId = firstElement.workOrderProgress?.statusId;
+            final tahapan = firstElement.workOrderProgress?.tahapan;
 
-            final images = firstElement is ProgressDetailEntity
-                ? (firstElement.workOrderProgress?.documentation ?? [])
-                      .map((doc) => doc.url)
-                      .where(
-                        (urlValue) => urlValue != null && urlValue.isNotEmpty,
-                      )
-                      .cast<dynamic>()
-                      .toList()
-                : [];
+            final images =
+                (firstElement.workOrderProgress?.documentation ?? [])
+                    .map((doc) => doc.url)
+                    .where(
+                      (urlValue) => urlValue != null && urlValue.isNotEmpty,
+                    )
+                    .cast<dynamic>()
+                    .toList();
 
             final formData = <String, dynamic>{};
-            for (var detail in progressDetails) {
-              if (detail is ProgressDetailEntity) {
-                final key =
-                    (detail.form?.id ?? detail.detailFormId ?? detail.id)
-                        ?.toString();
-                if (key == null) continue;
-                formData[key] = isDetailMode
-                    ? detail.value
-                    : _getOptionIdFromValue(detail);
-              }
+            for (var detail in parsedDetails) {
+              final key = (detail.form?.id ?? detail.detailFormId ?? detail.id)
+                  ?.toString();
+              if (key == null) continue;
+              formData[key] = isDetailMode
+                  ? detail.value
+                  : _getOptionIdFromValue(detail);
             }
 
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
-                _progressDetails = progressDetails
-                    .whereType<ProgressDetailEntity>()
-                    .toList();
+                _progressDetails = parsedDetails;
                 if (draft != null && !isDetailMode) {
                   _descriptionController.text = draft.description;
                   _formData = Map.from(draft.formData);
@@ -613,20 +619,20 @@ class _WorkOrderReportPageLemburState
                                     )
                               ? Row(
                                   children: [
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.danger,
-                                        ),
-                                        onPressed: () => _onReview('tolak'),
-                                        child: const Text('Tolak'),
-                                      ),
-                                    ),
+                                    // Expanded(
+                                    //   child: ElevatedButton(
+                                    //     style: ElevatedButton.styleFrom(
+                                    //       backgroundColor: color.danger,
+                                    //     ),
+                                    //     onPressed: () => _onReview('tolak'),
+                                    //     child: const Text('Tolak'),
+                                    //   ),
+                                    // ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.warning,
+                                          backgroundColor: color.danger,
                                         ),
                                         onPressed: _showRevisionDialog,
                                         child: const Text('Revisi'),
@@ -639,7 +645,12 @@ class _WorkOrderReportPageLemburState
                                           backgroundColor: color.status[2],
                                         ),
                                         onPressed: () => _onReview('accept'),
-                                        child: const Text('Terima'),
+                                        child: const Text(
+                                          'Terima',
+                                          style: TextStyle(
+                                            color: Color(0xFF000080),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],

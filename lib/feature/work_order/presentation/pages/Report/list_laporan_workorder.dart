@@ -1,7 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
@@ -37,6 +37,7 @@ class _ListLaporanWorkorderPageState
   final _searchController = TextEditingController();
   late WorkOrderBloc _workOrderBloc;
   Timer? _debounce;
+  DateTimeRange? _dateRange;
 
   @override
   void initState() {
@@ -52,10 +53,53 @@ class _ListLaporanWorkorderPageState
     super.dispose();
   }
 
-  void _fetchCompletedWorkOrders() {
-    _workOrderBloc.add(
-      GetWorkOrdersEvent(status: const [WorkOrderStatusId.selesai]),
+  void _fetchCompletedWorkOrders() => _applyFilters();
+
+  String? _isoDate(DateTime? date) => date?.toIso8601String().split('T').first;
+
+  /// Memuat laporan sesuai filter aktif: gabungan kata kunci + rentang tanggal.
+  void _applyFilters() {
+    final query = _searchController.text.trim();
+    final startDate = _isoDate(_dateRange?.start);
+    final endDate = _isoDate(_dateRange?.end);
+
+    if (query.isNotEmpty) {
+      _workOrderBloc.add(
+        SearchWorkOrdersEvent(
+          query,
+          status: const [WorkOrderStatusId.selesai],
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
+    } else {
+      _workOrderBloc.add(
+        GetWorkOrdersEvent(
+          status: const [WorkOrderStatusId.selesai],
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 5),
+      initialDateRange: _dateRange,
     );
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+      _applyFilters();
+    }
+  }
+
+  void _clearDateRange() {
+    setState(() => _dateRange = null);
+    _applyFilters();
   }
 
   @override
@@ -70,6 +114,7 @@ class _ListLaporanWorkorderPageState
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Daftar Laporan',
@@ -77,9 +122,17 @@ class _ListLaporanWorkorderPageState
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                OutlinedButton.icon(
+                  onPressed: _pickDateRange,
+                  icon: const Icon(Icons.date_range, size: 18),
+                  label: Text(
+                    _dateRange == null ? 'Filter Tanggal' : 'Ubah Tanggal',
+                  ),
+                ),
               ],
             ),
           ),
+          if (_dateRange != null) _buildDateRangeChip(),
           const SizedBox(height: 8),
           Expanded(child: _buildList()),
         ],
@@ -97,14 +150,7 @@ class _ListLaporanWorkorderPageState
         controller: _searchController,
         onChanged: (value) {
           if (_debounce?.isActive ?? false) _debounce!.cancel();
-          _debounce = Timer(const Duration(milliseconds: 500), () {
-            _workOrderBloc.add(
-              SearchWorkOrdersEvent(
-                value,
-                status: const [WorkOrderStatusId.selesai],
-              ),
-            );
-          });
+          _debounce = Timer(const Duration(milliseconds: 500), _applyFilters);
         },
         prefixIcon: const Icon(Icons.search),
         suffixIcon: IconButton(
@@ -113,6 +159,24 @@ class _ListLaporanWorkorderPageState
             _searchController.clear();
             _fetchCompletedWorkOrders();
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeChip() {
+    final fmt = DateFormat('dd MMM yyyy', 'id_ID');
+    final label =
+        '${fmt.format(_dateRange!.start)} - ${fmt.format(_dateRange!.end)}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Chip(
+          avatar: const Icon(Icons.event, size: 18),
+          label: Text(label),
+          onDeleted: _clearDateRange,
+          deleteIcon: const Icon(Icons.close, size: 18),
         ),
       ),
     );
@@ -200,6 +264,7 @@ class _ListLaporanWorkorderPageState
 
     final payload = <String, dynamic>{
       'workorder_id': wo.id,
+      'is_lembur': wo.isLembur,
       'nomor_laporan': 'LP-${wo.id}',
       'hasil_akhir_snapshot': wo.title,
       'petugas_snapshot': {

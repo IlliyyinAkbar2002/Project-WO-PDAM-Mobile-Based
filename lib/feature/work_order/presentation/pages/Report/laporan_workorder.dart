@@ -266,15 +266,16 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // Full PDF Document Widget
-  // ─────────────────────────────────────────────
 
   Widget _buildPdfDocument() {
     final p = widget.payload;
 
     final nomorLaporan = p['nomor_laporan']?.toString() ?? '-';
     final workorderId = p['workorder_id']?.toString() ?? '-';
+    final isLembur = p['is_lembur'] == true;
+    final judulLaporan = isLembur
+        ? 'LAPORAN SELESAI WORK ORDER LEMBUR'
+        : 'LAPORAN SELESAI WORK ORDER';
     final tanggal = DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.now());
     final waktu = "${DateFormat('HH:mm', 'id_ID').format(DateTime.now())} WIB";
 
@@ -325,14 +326,13 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
             ],
           ),
 
-          // ── JUDUL DOKUMEN ────────────────────────────
           const SizedBox(height: 8),
           Center(
             child: Column(
               children: [
-                const Text(
-                  'LAPORAN SELESAI WORK ORDER',
-                  style: TextStyle(
+                Text(
+                  judulLaporan,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87,
@@ -350,7 +350,6 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
           const SizedBox(height: 8),
           Divider(color: Colors.grey.shade300, thickness: 0.5),
 
-          // ── IDENTITAS DOKUMEN ───────────────────────
           _sectionLabel('Identitas Dokumen'),
           _dataGrid([
             _FieldItem('Work Order ID', workorderId),
