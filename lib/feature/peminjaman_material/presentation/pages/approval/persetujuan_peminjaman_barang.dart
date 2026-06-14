@@ -91,58 +91,6 @@ class _PersetujuanPeminjamanBarangPageState
     );
   }
 
-  String _getMaterialAsset(String category, String name) {
-    final lowerCat = category.toLowerCase();
-    final lowerName = name.toLowerCase();
-
-    if (lowerCat.contains('pipa') ||
-        lowerCat.contains('pipe') ||
-        lowerCat.contains('perpipaan')) {
-      if (lowerName.contains('pvc')) {
-        return 'assets/images/Pipe/Pipa-PVC.jpg';
-      }
-      if (lowerName.contains('galvanis') || lowerName.contains('galvanized')) {
-        return 'assets/images/Pipe/Pipe-galvanized.jpg';
-      }
-      return 'assets/images/Pipe/Pipa HDPE.jpg';
-    } else if (lowerCat.contains('fitting')) {
-      if (lowerName.contains('valve')) {
-        return 'assets/images/Fitting/Air-Valve-Reinforced-Nylon-fitting.png';
-      }
-      if (lowerName.contains('elbow')) {
-        return 'assets/images/Fitting/Elbow-90-derajat-fitting.png';
-      }
-      if (lowerName.contains('reducer')) {
-        return 'assets/images/Fitting/Jual-Reducer-fitting.png';
-      }
-      if (lowerName.contains('clamp') || lowerName.contains('saddle')) {
-        return 'assets/images/Fitting/Pipe-Fitting-Saddle-Clamp.png';
-      }
-      if (lowerName.contains('socket') ||
-          lowerName.contains('connector') ||
-          lowerName.contains('penyambung')) {
-        return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-      }
-      if (lowerName.contains('tee')) {
-        return 'assets/images/Fitting/Tee-fitting.jpg';
-      }
-      return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-    } else if (lowerCat.contains('sr')) {
-      if (lowerName.contains('valve')) {
-        return 'assets/images/SR/Ball-Valve-1_2-sr.png';
-      }
-      if (lowerName.contains('box')) {
-        return 'assets/images/SR/Box-Meter_ Plug-sr.png';
-      }
-      if (lowerName.contains('3/4')) {
-        return 'assets/images/SR/Water-Meter-3_4-sr.png';
-      }
-      return 'assets/images/SR/Water-Meter-1_2-sr.png';
-    }
-
-    return 'assets/images/logo_pdam.png';
-  }
-
   List<PeminjamanMaterialEntity> get _filteredPeminjaman {
     final statusFilter = _activeTab == 0 ? 'PENDING_KEMBALI' : 'DIKEMBALIKAN';
     return _allPeminjaman.where((p) {
@@ -254,10 +202,6 @@ class _PersetujuanPeminjamanBarangPageState
       barrierColor: Colors.black.withValues(alpha: 0.4),
       builder: (_) => _ApprovalDetailSheet(
         request: request,
-        imageAsset: _getMaterialAsset(
-          request.material?.kategori ?? 'Umum',
-          request.material?.namaMaterial ?? '',
-        ),
         onVerify: (status) {
           Navigator.pop(context);
           _verifyReturnRequest(request, status);
@@ -543,7 +487,6 @@ class _PersetujuanPeminjamanBarangPageState
     final matName =
         request.material?.namaMaterial ?? 'Material #${request.materialId}';
     final matCat = request.material?.kategori ?? 'Umum';
-    final imageAsset = _getMaterialAsset(matCat, matName);
     final requesterName = request.user?.employee?.name ?? 'Staff';
     final submittedTime = request.waktuKembali ?? DateTime.now();
 
@@ -566,26 +509,6 @@ class _PersetujuanPeminjamanBarangPageState
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                imageAsset,
-                width: 64,
-                height: 64,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 64,
-                  height: 64,
-                  color: const Color(0xFFF3F4F6),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.build_outlined,
-                    color: Color(0xFF99A1AF),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,14 +673,9 @@ class _PersetujuanPeminjamanBarangPageState
 
 class _ApprovalDetailSheet extends StatelessWidget {
   final PeminjamanMaterialEntity request;
-  final String imageAsset;
   final ValueChanged<String> onVerify;
 
-  const _ApprovalDetailSheet({
-    required this.request,
-    required this.imageAsset,
-    required this.onVerify,
-  });
+  const _ApprovalDetailSheet({required this.request, required this.onVerify});
 
   @override
   Widget build(BuildContext context) {
@@ -825,26 +743,6 @@ class _ApprovalDetailSheet extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Image.asset(
-                              imageAsset,
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 64,
-                                height: 64,
-                                color: const Color(0xFFF3F4F6),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.build_outlined,
-                                  color: Color(0xFF99A1AF),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

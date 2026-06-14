@@ -78,57 +78,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
     );
   }
 
-  String _getMaterialAsset(String category, String name) {
-    final lowerCat = category.toLowerCase();
-    final lowerName = name.toLowerCase();
 
-    if (lowerCat.contains('pipa') ||
-        lowerCat.contains('pipe') ||
-        lowerCat.contains('perpipaan')) {
-      if (lowerName.contains('pvc')) {
-        return 'assets/images/Pipe/Pipa-PVC.jpg';
-      }
-      if (lowerName.contains('galvanis') || lowerName.contains('galvanized')) {
-        return 'assets/images/Pipe/Pipe-galvanized.jpg';
-      }
-      return 'assets/images/Pipe/Pipa HDPE.jpg';
-    } else if (lowerCat.contains('fitting')) {
-      if (lowerName.contains('valve')) {
-        return 'assets/images/Fitting/Air-Valve-Reinforced-Nylon-fitting.png';
-      }
-      if (lowerName.contains('elbow')) {
-        return 'assets/images/Fitting/Elbow-90-derajat-fitting.png';
-      }
-      if (lowerName.contains('reducer')) {
-        return 'assets/images/Fitting/Jual-Reducer-fitting.png';
-      }
-      if (lowerName.contains('clamp') || lowerName.contains('saddle')) {
-        return 'assets/images/Fitting/Pipe-Fitting-Saddle-Clamp.png';
-      }
-      if (lowerName.contains('socket') ||
-          lowerName.contains('connector') ||
-          lowerName.contains('penyambung')) {
-        return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-      }
-      if (lowerName.contains('tee')) {
-        return 'assets/images/Fitting/Tee-fitting.jpg';
-      }
-      return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-    } else if (lowerCat.contains('sr')) {
-      if (lowerName.contains('valve')) {
-        return 'assets/images/SR/Ball-Valve-1_2-sr.png';
-      }
-      if (lowerName.contains('box')) {
-        return 'assets/images/SR/Box-Meter_ Plug-sr.png';
-      }
-      if (lowerName.contains('3/4')) {
-        return 'assets/images/SR/Water-Meter-3_4-sr.png';
-      }
-      return 'assets/images/SR/Water-Meter-1_2-sr.png';
-    }
-
-    return 'assets/images/logo_pdam.png';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -523,10 +473,6 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
 
   Widget _buildStockCard(MaterialEntity m, bool isStaff) {
     final available = m.stokTersedia;
-    final imageAsset = _getMaterialAsset(
-      m.kategori ?? '',
-      m.namaMaterial ?? '',
-    );
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -546,29 +492,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
         children: [
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 104,
-                  height: 104,
-                  color: const Color(0xFFF3F4F6),
-                  child: Image.asset(
-                    imageAsset,
-                    width: 104,
-                    height: 104,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFFE5E7EB),
-                      child: const Icon(
-                        Icons.build_outlined,
-                        color: Color(0xFF9CA3AF),
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
+
               Expanded(
                 child: SizedBox(
                   height: 104,
@@ -744,7 +668,6 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
         item.material?.namaMaterial ?? 'Material #${item.materialId}';
     final matCat = item.material?.kategori ?? 'Umum';
     final matSatuan = item.material?.satuan ?? '';
-    final imageAsset = _getMaterialAsset(matCat, matName);
     final isBorrowed = item.status == 'DIPINJAM';
 
     return Container(
@@ -765,29 +688,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
         children: [
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  color: const Color(0xFFF3F4F6),
-                  child: Image.asset(
-                    imageAsset,
-                    width: 90,
-                    height: 90,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFFE5E7EB),
-                      child: const Icon(
-                        Icons.build_outlined,
-                        color: Color(0xFF9CA3AF),
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
+
               Expanded(
                 child: SizedBox(
                   height: 90,

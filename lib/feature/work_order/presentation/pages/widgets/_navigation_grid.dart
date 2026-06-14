@@ -145,7 +145,7 @@ class _NavigationGrid extends StatelessWidget {
       //   icon: Icons.people_outline,
       //   label: 'Attendance',
       //   onTap: () {
-      //     // TODO: Navigate to attendance page
+      //
       //   },
       // ),
       _NavigationItem(
@@ -251,7 +251,7 @@ class _NavigationGrid extends StatelessWidget {
       //   icon: Icons.more_horiz,
       //   label: 'More',
       //   onTap: () {
-      //     // TODO: Show more options
+      //
       //   },
       // ),
     ];

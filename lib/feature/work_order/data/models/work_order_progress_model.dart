@@ -14,7 +14,6 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
   final double? latitude;
   final double? longitude;
   final double? accuracy;
-  final Map<String, dynamic>? kategoriData;
   const WorkOrderProgressModel({
     super.id,
     super.order,
@@ -33,7 +32,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
     this.latitude,
     this.longitude,
     this.accuracy,
-    this.kategoriData,
+    super.kategoriData,
     super.tahapan,
   });
 
@@ -58,13 +57,6 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       return null;
     }
 
-    // TKT-05: backend sekarang mengirim `tipe_progress_id` (int) sebagai
-    // sumber kebenaran. Kolom legacy `tipe_progress` (string) sudah tidak
-    // ada lagi di response. Kalau suatu saat backend menambahkan eager
-    // load relasi `tipeProgress`, prioritas pembacaan:
-    //   1. tipe_progress_id (numeric) — primary
-    //   2. tipeProgress.kode     — fallback via string
-    //   3. tipe_progress         — fallback untuk data lama
     int? tipeProgressId;
     if (map['tipe_progress_id'] != null) {
       tipeProgressId = map['tipe_progress_id'] is int

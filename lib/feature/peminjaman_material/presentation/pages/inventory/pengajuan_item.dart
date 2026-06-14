@@ -33,52 +33,26 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
     super.dispose();
   }
 
-  String _getMaterialAsset(String category, String name) {
-    final lowerCat = category.toLowerCase();
-    final lowerName = name.toLowerCase();
 
-    if (lowerCat.contains('pipa') || lowerCat.contains('pipe') || lowerCat.contains('perpipaan')) {
-      if (lowerName.contains('pvc')) return 'assets/images/Pipe/Pipa-PVC.jpg';
-      if (lowerName.contains('galvanis') || lowerName.contains('galvanized')) return 'assets/images/Pipe/Pipe-galvanized.jpg';
-      return 'assets/images/Pipe/Pipa HDPE.jpg';
-    } else if (lowerCat.contains('fitting')) {
-      if (lowerName.contains('valve')) return 'assets/images/Fitting/Air-Valve-Reinforced-Nylon-fitting.png';
-      if (lowerName.contains('elbow')) return 'assets/images/Fitting/Elbow-90-derajat-fitting.png';
-      if (lowerName.contains('reducer')) return 'assets/images/Fitting/Jual-Reducer-fitting.png';
-      if (lowerName.contains('clamp') || lowerName.contains('saddle')) return 'assets/images/Fitting/Pipe-Fitting-Saddle-Clamp.png';
-      if (lowerName.contains('socket') || lowerName.contains('connector') || lowerName.contains('penyambung')) {
-        return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-      }
-      if (lowerName.contains('tee')) return 'assets/images/Fitting/Tee-fitting.jpg';
-      return 'assets/images/Fitting/Socket-Penyambung-Lurus-Fitting.png';
-    } else if (lowerCat.contains('sr')) {
-      if (lowerName.contains('valve')) return 'assets/images/SR/Ball-Valve-1_2-sr.png';
-      if (lowerName.contains('box')) return 'assets/images/SR/Box-Meter_ Plug-sr.png';
-      if (lowerName.contains('3/4')) return 'assets/images/SR/Water-Meter-3_4-sr.png';
-      return 'assets/images/SR/Water-Meter-1_2-sr.png';
-    }
-
-    return 'assets/images/logo_pdam.png';
-  }
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final qty = int.tryParse(_jumlahController.text.trim()) ?? 0;
     final note = _catatanController.text.trim();
 
-    // The backend uses 'material_kode', which is an integer in the seed.
-    // In our model mapping, we parse it as String in kodeMaterial.
-    // Let's pass the integer value of kodeMaterial as materialId parameter.
-    final materialKodeInt = int.tryParse(widget.material.kodeMaterial ?? '') ?? widget.material.id ?? 0;
+    final materialKodeInt =
+        int.tryParse(widget.material.kodeMaterial ?? '') ??
+        widget.material.id ??
+        0;
 
     context.read<MaterialBloc>().add(
-          PinjamMaterialEvent(
-            workOrderId: widget.workOrderId,
-            materialId: materialKodeInt,
-            jumlahPinjam: qty,
-            catatan: note.isNotEmpty ? note : null,
-          ),
-        );
+      PinjamMaterialEvent(
+        workOrderId: widget.workOrderId,
+        materialId: materialKodeInt,
+        jumlahPinjam: qty,
+        catatan: note.isNotEmpty ? note : null,
+      ),
+    );
   }
 
   @override
@@ -114,7 +88,6 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
   Widget _buildFormState(BuildContext context, bool isLoading) {
     final m = widget.material;
     final available = m.stokTersedia;
-    final imageAsset = _getMaterialAsset(m.kategori ?? '', m.namaMaterial ?? '');
 
     return SafeArea(
       child: Column(
@@ -123,9 +96,7 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFF3F4F6)),
-              ),
+              border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
             ),
             child: Row(
               children: [
@@ -180,22 +151,6 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                   ),
                   child: Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          imageAsset,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 64,
-                            height: 64,
-                            color: const Color(0xFFF3F4F6),
-                            child: const Icon(Icons.build_outlined),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +159,8 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                               m.namaMaterial ?? '',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
                                     color: const Color(0xFF101828),
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -212,9 +168,8 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                             const SizedBox(height: 4),
                             Text(
                               'Kode: ${m.kodeMaterial} • Tersedia: $available ${m.satuan ?? ""}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: const Color(0xFF6A7282),
-                                  ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: const Color(0xFF6A7282)),
                             ),
                           ],
                         ),
@@ -238,18 +193,28 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                           hintText: 'Masukkan jumlah yang ingin dipinjam',
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFF155DFC), width: 1.5),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF155DFC),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                         validator: (value) {
@@ -277,21 +242,29 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                           filled: true,
                           fillColor: Colors.white,
                           contentPadding: const EdgeInsets.all(16),
-                          hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          hintStyle: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
                                 color: const Color(0xFF99A1AF),
                                 fontWeight: FontWeight.w500,
                               ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Color(0xFF155DFC), width: 1.5),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF155DFC),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -313,11 +286,17 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                               ? const SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Text(
                                   'Ajukan Peminjaman',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                         ),
                       ),
@@ -368,16 +347,16 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
               Text(
                 'Peminjaman Berhasil!',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 'Peminjaman material berhasil diproses dan stok telah dikurangi.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF6B7280),
-                    ),
+                  color: const Color(0xFF6B7280),
+                ),
               ),
               const SizedBox(height: 28),
               SizedBox(

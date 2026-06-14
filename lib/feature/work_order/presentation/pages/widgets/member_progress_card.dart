@@ -140,17 +140,29 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
               ),
               const SizedBox(height: 16),
 
-
               // Statistics Grid
               Row(
                 children: [
-                  if (widget.member.tahapanTertinggi != null && widget.member.tahapanTertinggi! > 0)
+                  Expanded(
+                    child: _buildStatItem(
+                      'Total Laporan',
+                      '${widget.member.progressList.length}',
+                      Icons.assignment,
+                      Colors.blue,
+                    ),
+                  ),
+                  if (widget.member.progressList.isNotEmpty)
                     Expanded(
                       child: _buildStatItem(
-                        'Tahapan',
-                        '${widget.member.tahapanTertinggi}',
-                        Icons.flag,
-                        Colors.orange,
+                        'Status Terakhir',
+                        widget.member.progressList.first.progressType ??
+                            'Progress',
+                        widget.member.progressList.first.isSelesai
+                            ? Icons.check_circle
+                            : Icons.sync,
+                        widget.member.progressList.first.isSelesai
+                            ? Colors.green
+                            : Colors.orange,
                       ),
                     ),
                 ],
@@ -217,8 +229,9 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
         const SizedBox(height: 4),
         Text(
           value,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: value.length > 3 ? 14 : 16,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -319,7 +332,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
       ),
     );
   }
-
 
   Color _getProgressTypeColor(int? tipeProgressId) {
     switch (tipeProgressId) {

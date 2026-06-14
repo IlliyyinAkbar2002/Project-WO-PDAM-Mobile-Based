@@ -96,9 +96,7 @@ class _RoleSelectionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: () {
-                    // TODO: Show attendance history
-                  },
+                  onTap: () {},
                   child: Text(
                     'View daily attendance history >',
                     style: textTheme.bodySmall?.copyWith(
