@@ -26,6 +26,15 @@ class GetLemburProgressDetailEvent extends LemburEvent {
   List<Object?> get props => [id];
 }
 
+class StartLemburProgressEvent extends LemburEvent {
+  final WorkOrderProgressModel progress;
+
+  const StartLemburProgressEvent(this.progress);
+
+  @override
+  List<Object?> get props => [progress];
+}
+
 class UpdateLemburProgressEvent extends LemburEvent {
   final WorkOrderProgressModel progress;
 

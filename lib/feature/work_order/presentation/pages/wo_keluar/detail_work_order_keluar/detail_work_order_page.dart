@@ -369,7 +369,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
               "title": state.workOrder.title,
               "jobType": _resolveJobTypeLabel(state.workOrder),
               "workOrderTypeName": state.workOrder.workOrderType?.name,
-              "workOrderTypeId": state.workOrder.workOrderTypeId ?? state.workOrder.workOrderType?.id,
+              "workOrderTypeId":
+                  state.workOrder.workOrderTypeId ??
+                  state.workOrder.workOrderType?.id,
               "kategoriForm": state.workOrder.kategoriForm,
               "prioritas":
                   (state.workOrder.prioritas != null &&
@@ -390,10 +392,14 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
               "locationId": state.workOrder.assignment?.locationId,
               "locationName": state.workOrder.assignment?.location?.nama,
               "radiusMeter": state.workOrder.assignment?.location?.radiusMeter,
-              "startDateTime": canAssignStaff ? null : state.workOrder.startDateTime,
+              "startDateTime": canAssignStaff
+                  ? null
+                  : state.workOrder.startDateTime,
               "duration": state.workOrder.duration,
               "durationUnit": state.workOrder.durationUnit,
-              "endDateTime": canAssignStaff ? null : state.workOrder.endDateTime,
+              "endDateTime": canAssignStaff
+                  ? null
+                  : state.workOrder.endDateTime,
               "deskripsiPekerjaan":
                   state.workOrder.assignment?.description ?? "",
               "picId": state.workOrder.assignment?.assigneeId,
@@ -506,10 +512,11 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        !widget.isAssignee &&
+        widget.isAssignee &&
                 progresses != null &&
                 progresses.isNotEmpty &&
-                progresses.first.description != null
+                progresses.first.description != null &&
+                !widget.isOvertime
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -551,7 +558,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                                       formData["locationName"] as String?,
                                   radiusMeter:
                                       (formData["radiusMeter"] as int?) ?? 100,
-                                  workOrderTypeName: formData["workOrderTypeName"] as String?,
+                                  workOrderTypeName:
+                                      formData["workOrderTypeName"] as String?,
+                                  initialDescription: progressIndex.description,
                                 ),
                               ),
                             );
@@ -684,7 +693,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       return;
     }
     if (endDateTime.isBefore(startDateTime)) {
-      AppSnackbar.showError("Waktu selesai tidak boleh mendahului waktu mulai.");
+      AppSnackbar.showError(
+        "Waktu selesai tidak boleh mendahului waktu mulai.",
+      );
       return;
     }
     if (assigneeIds.isEmpty) {
@@ -829,7 +840,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       return;
     }
     if (estimasiSelesai.isBefore(tanggalMulai)) {
-      AppSnackbar.showError("Estimasi selesai tidak boleh mendahului waktu mulai.");
+      AppSnackbar.showError(
+        "Estimasi selesai tidak boleh mendahului waktu mulai.",
+      );
       return;
     }
 

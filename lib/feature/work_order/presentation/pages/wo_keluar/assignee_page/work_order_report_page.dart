@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,6 +42,7 @@ class WorkOrderReportPage extends StatefulWidget {
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
   final String? kategoriForm;
   final Map<String, dynamic>? initialKategoriData;
+  final String? initialDescription;
   final String? workOrderTypeName;
 
   const WorkOrderReportPage({
@@ -58,6 +58,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
     this.kategoriForm,
     this.initialKategoriData,
+    this.initialDescription,
     this.workOrderTypeName,
   });
 
@@ -113,8 +114,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     _workOrderBloc = context.read<WorkOrderBloc>();
     _journalDraftCubit = context.read<JournalDraftCubit>();
 
-    // Tunda inisialisasi sampai frame pertama selesai
-    // untuk menghindari konflik dengan Google Maps dari halaman sebelumnya
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeData();
     });
@@ -277,7 +276,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         listener: (context, state) {
           if (state is WorkOrderProgressDetailLoaded) {
             // Proses data di luar setState
-            final description = state.progress.description ?? '';
+            final description = state.progress.description?.isNotEmpty == true
+                ? state.progress.description!
+                : (widget.initialDescription ?? '');
             final statusId = state.progress.statusId;
             final tahapan = state.progress.tahapan;
             final images = (state.progress.documentation ?? [])
@@ -291,7 +292,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
-                if (draft != null) {
+                if (draft != null && !isDetailMode) {
                   _descriptionController.text = draft.description;
                   _images = List.from(draft.images);
                 } else {
@@ -345,12 +346,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               return;
             }
 
-            final description =
-                progressDetails.first.workOrderProgress?.description ?? '';
+            final rawDesc =
+                progressDetails.first.workOrderProgress?.description;
+            final description = rawDesc?.isNotEmpty == true
+                ? rawDesc!
+                : (widget.initialDescription ?? '');
             final statusId = progressDetails.first.workOrderProgress?.statusId;
             final tahapan = progressDetails.first.workOrderProgress?.tahapan;
 
-            // Ambil images dari workOrderProgress.documentation
             final images =
                 progressDetails.first.workOrderProgress?.documentation
                     ?.map((doc) => doc.url)
@@ -378,7 +381,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               if (!mounted) return;
               setState(() {
                 _progressDetails = progressDetails;
-                if (draft != null) {
+                if (draft != null && !isDetailMode) {
                   _descriptionController.text = draft.description;
                   _formData = Map.from(draft.formData);
                   _images = List.from(draft.images);
@@ -445,7 +448,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             if (jenisPekerjaan == null && widget.workOrderTypeId != null) {
               jenisPekerjaan = kJenisWorkOrderIdToName[widget.workOrderTypeId];
             }
-            
+
             String? katForm = widget.kategoriForm;
             if (state is WorkOrderDetailLoaded) {
               jenisPekerjaan ??= state.workOrder.workOrderType?.name;

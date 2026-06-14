@@ -182,6 +182,11 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
           MapEntry('accuracy', workOrderProgress.accuracy.toString()),
         );
       }
+      if (workOrderProgress.tahapan != null) {
+        formData.fields.add(
+          MapEntry('tahapan', workOrderProgress.tahapan.toString()),
+        );
+      }
 
       if (workOrderProgress.photos != null &&
           workOrderProgress.photos!.isNotEmpty) {
@@ -297,6 +302,11 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
           MapEntry('accuracy', workOrderProgress.accuracy.toString()),
         );
       }
+      if (workOrderProgress.tahapan != null) {
+        formData.fields.add(
+          MapEntry('tahapan', workOrderProgress.tahapan.toString()),
+        );
+      }
 
       if (workOrderProgress.photos != null &&
           workOrderProgress.photos!.isNotEmpty) {
@@ -382,7 +392,8 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
       final bool isSubmit =
           workOrderProgress.id == null &&
           (workOrderProgress.tipeProgressId == 2 ||
-              workOrderProgress.tipeProgressId == 3);
+              workOrderProgress.tipeProgressId == 3 ||
+              workOrderProgress.tipeProgressId == 6);
       final bool isReview = workOrderProgress.reviewAction != null;
 
       if (isReview) {
@@ -495,7 +506,9 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
         final progressKode =
             workOrderProgress.tipeProgressId == TipeProgressId.selesai
             ? TipeProgressId.kodeSelesai
-            : TipeProgressId.kodeProgress;
+            : (workOrderProgress.tipeProgressId == TipeProgressId.inspeksi
+                  ? TipeProgressId.kodeInspeksi
+                  : TipeProgressId.kodeProgress);
         formData.fields.addAll([
           MapEntry('workorder_id', workOrderProgress.workOrderId.toString()),
           MapEntry('tipe_progress_kode', progressKode),

@@ -19,15 +19,18 @@ import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
-import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/option_form_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/progress_detail_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/work_order_progress_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_detail_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/lembur_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/lembur_event.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/lembur_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/journal_draft_cubit.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
+import 'package:project_mobile_pdam/core/constants/tahapan_labels.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/repositories/work_order_lembur_repository.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
 class WorkOrderReportPageLembur extends StatefulWidget {
@@ -42,6 +45,7 @@ class WorkOrderReportPageLembur extends StatefulWidget {
   final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
   final String? kategoriForm;
   final Map<String, dynamic>? initialKategoriData;
+  final String? initialDescription;
 
   const WorkOrderReportPageLembur({
     super.key,
@@ -56,6 +60,7 @@ class WorkOrderReportPageLembur extends StatefulWidget {
     this.radiusMeter = 100, // Default 100 meter jika tidak ada
     this.kategoriForm,
     this.initialKategoriData,
+    this.initialDescription,
   });
 
   @override
@@ -65,6 +70,7 @@ class WorkOrderReportPageLembur extends StatefulWidget {
 
 class _WorkOrderReportPageLemburState
     extends AppStatePage<WorkOrderReportPageLembur> {
+  late LemburBloc _lemburBloc;
   late WorkOrderBloc _workOrderBloc;
   late JournalDraftCubit _journalDraftCubit;
   bool get isDetailMode =>
@@ -92,13 +98,13 @@ class _WorkOrderReportPageLemburState
   Map<String, dynamic> _formData = {};
   List<ProgressDetailEntity> _progressDetails = [];
   List<dynamic> _images = [];
+  int? _selectedTahapan;
   int? _progressStatusId;
   String? _revisionNote;
   bool _isCheckingDistance = true;
   bool isDataLoaded = false;
   bool _isSubmitting = false;
   bool _hasClosedAfterSubmit = false;
-  bool _requestedHeaderFallback = false;
   Position? _currentPosition;
 
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
@@ -108,6 +114,7 @@ class _WorkOrderReportPageLemburState
   @override
   void initState() {
     super.initState();
+    _lemburBloc = context.read<LemburBloc>();
     _workOrderBloc = context.read<WorkOrderBloc>();
     _journalDraftCubit = context.read<JournalDraftCubit>();
 
@@ -127,6 +134,9 @@ class _WorkOrderReportPageLemburState
       _descriptionController.text = draft.description;
       _images = List.from(draft.images);
       _formData = Map.from(draft.formData);
+      if (_formData.containsKey('tahapan')) {
+        _selectedTahapan = int.tryParse(_formData['tahapan'].toString());
+      }
     } else if (widget.initialKategoriData != null) {
       final init = widget.initialKategoriData!;
       dynamic pick(List<String> keys) {
@@ -189,6 +199,27 @@ class _WorkOrderReportPageLemburState
       };
     }
 
+    if (_selectedTahapan == null) {
+      if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
+        _selectedTahapan = 1;
+      } else if (widget.mode == 'Selesai') {
+        _selectedTahapan = 4;
+      } else if (widget.mode == 'Progress') {
+        final state = _workOrderBloc.state;
+        if (state is WorkOrderDetailLoaded) {
+          int tahapan = state.workOrder.tahapanTertinggi ?? 1;
+          if (tahapan < 2) tahapan = 2;
+          if (tahapan > 3) tahapan = 3;
+          _selectedTahapan = tahapan;
+        } else {
+          _selectedTahapan = 2;
+        }
+      }
+      if (_selectedTahapan != null) {
+        _formData['tahapan'] = _selectedTahapan;
+      }
+    }
+
     if (widget.progressId == null) {
       if (widget.mode == 'Selesai') {
         setState(() {
@@ -212,9 +243,9 @@ class _WorkOrderReportPageLemburState
 
     // Dispatch BLoC event untuk mengambil data
     if (widget.mode == 'Selesai') {
-      _workOrderBloc.add(GetProgressDetailsEvent(widget.progressId!));
+      _lemburBloc.add(GetLemburProgressDetailsHistoryEvent(widget.progressId!));
     } else {
-      _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
+      _lemburBloc.add(GetLemburProgressDetailEvent(widget.progressId!));
     }
 
     if (widget.mode == 'Mulai' && widget.lngLat != null && widget.isAssignee) {
@@ -233,13 +264,14 @@ class _WorkOrderReportPageLemburState
   }
 
   void _checkDataLoaded() {
-    // Removed nested setState - this method is now only for logging
-    if (_progressDetails.isNotEmpty) {
-      debugPrint("✅ Data loaded: $_progressDetails");
-      debugPrint("Value : ${_progressDetails.first.value}");
-      debugPrint(
-        "Description: ${_progressDetails.first.workOrderProgress?.description}",
-      );
+    if (isDataLoaded && !_isCheckingDistance) {
+      if (_lemburBloc.state is LemburProgressDetailsHistoryLoaded ||
+          _lemburBloc.state is LemburProgressDetailLoaded) {
+        return;
+      }
+      setState(() {
+        isDataLoaded = true;
+      });
     }
   }
 
@@ -247,96 +279,103 @@ class _WorkOrderReportPageLemburState
   Widget buildPage(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: "Form Jurnal Lembur"),
-      body: BlocListener<WorkOrderBloc, WorkOrderState>(
+      body: BlocListener<LemburBloc, LemburState>(
         listener: (context, state) {
-          if (state is WorkOrderProgressDetailLoaded) {
-            // Proses data di luar setState
-            final description = state.progress.description ?? '';
-            final statusId = state.progress.statusId;
-            final images = (state.progress.documentation ?? [])
-                .map((doc) => doc.url)
-                .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
-                .cast<dynamic>()
-                .toList();
+          debugPrint("📢 State saat ini: $state");
 
-            // Schedule setState setelah frame selesai untuk menghindari blocking
-            final draft = _journalDraftCubit.getDraft(_draftKey);
-            SchedulerBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              setState(() {
-                if (draft != null) {
-                  _descriptionController.text = draft.description;
-                  _images = List.from(draft.images);
-                } else {
-                  _descriptionController.text = description;
-                  _images = images;
-                }
-                _progressStatusId = statusId;
-                _requestedHeaderFallback = false;
-                isDataLoaded = true;
-              });
-            });
-          }
-          if (state is ProgressDetailsLoaded) {
-            // Proses data di luar setState untuk menghindari blocking UI
-            final progressDetails = state.progressDetails;
-
-            // 🔒 Safety check: Handle empty list to prevent "Bad state: No element" error
-            if (progressDetails.isEmpty) {
-              debugPrint("⚠️ ProgressDetails kosong, skip processing");
-              if (widget.mode == 'Selesai' &&
-                  widget.progressId != null &&
-                  !_requestedHeaderFallback) {
-                _requestedHeaderFallback = true;
-                _workOrderBloc.add(
-                  GetWorkOrderProgressDetailEvent(widget.progressId!),
-                );
+          if (state is LemburProgressDetailLoaded) {
+            setState(() {
+              _progressStatusId = state.progress.statusId;
+              if (ProgressStatusId.isRevisiRequested(state.progress.statusId)) {
+                _revisionNote = state.progress.description ?? '';
               }
+              _descriptionController.text =
+                  state.progress.description ?? widget.initialDescription ?? '';
+
+              if (state.progress.tahapan != null) {
+                _selectedTahapan = state.progress.tahapan;
+              } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
+                _selectedTahapan =
+                    (_workOrderBloc.state as WorkOrderDetailLoaded)
+                        .workOrder
+                        .tahapanTertinggi ??
+                    1;
+              } else {
+                _selectedTahapan = 1;
+              }
+              _formData['tahapan'] = _selectedTahapan;
+
+              _images =
+                  state.progress.documentation
+                      ?.map((doc) => doc.url)
+                      .where(
+                        (urlValue) => urlValue != null && urlValue.isNotEmpty,
+                      )
+                      .cast<dynamic>()
+                      .toList() ??
+                  [];
+              isDataLoaded = true;
+            });
+            _checkDataLoaded();
+          } else if (state is LemburProgressDetailsHistoryLoaded) {
+            final progressDetails = state.details;
+            if (progressDetails.isEmpty) {
               SchedulerBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
                 setState(() {
                   _progressDetails = [];
-                  // Untuk mode selesai, tunggu fallback header progres
-                  // agar deskripsi/dokumentasi tetap tampil saat detail kosong.
-                  isDataLoaded = widget.mode == 'Selesai' ? false : true;
+                  isDataLoaded = true;
                 });
               });
               return;
             }
 
-            final description =
-                progressDetails.first.workOrderProgress?.description ?? '';
-            final statusId = progressDetails.first.workOrderProgress?.statusId;
+            final firstElement = progressDetails.first;
+            final rawDesc = firstElement is ProgressDetailEntity
+                ? firstElement.workOrderProgress?.description
+                : null;
+            final description = rawDesc?.isNotEmpty == true
+                ? rawDesc!
+                : (widget.initialDescription ?? '');
 
-            // Ambil images dari workOrderProgress.documentation
-            final images =
-                progressDetails.first.workOrderProgress?.documentation
-                    ?.map((doc) => doc.url)
-                    .where(
-                      (urlValue) => urlValue != null && urlValue.isNotEmpty,
-                    )
-                    .cast<dynamic>()
-                    .toList() ??
-                [];
+            final statusId = firstElement is ProgressDetailEntity
+                ? firstElement.workOrderProgress?.statusId
+                : null;
+            final tahapan = firstElement is ProgressDetailEntity
+                ? firstElement.workOrderProgress?.tahapan
+                : null;
 
-            // Hitung formData di luar setState
+            final images = firstElement is ProgressDetailEntity
+                ? (firstElement.workOrderProgress?.documentation ?? [])
+                      .map((doc) => doc.url)
+                      .where(
+                        (urlValue) => urlValue != null && urlValue.isNotEmpty,
+                      )
+                      .cast<dynamic>()
+                      .toList()
+                : [];
+
             final formData = <String, dynamic>{};
             for (var detail in progressDetails) {
-              final key = (detail.form?.id ?? detail.detailFormId ?? detail.id)
-                  ?.toString();
-              if (key == null) continue;
-              formData[key] = isDetailMode
-                  ? detail.value
-                  : _getOptionIdFromValue(detail);
+              if (detail is ProgressDetailEntity) {
+                final key =
+                    (detail.form?.id ?? detail.detailFormId ?? detail.id)
+                        ?.toString();
+                if (key == null) continue;
+                formData[key] = isDetailMode
+                    ? detail.value
+                    : _getOptionIdFromValue(detail);
+              }
             }
 
-            // Schedule setState setelah frame selesai untuk menghindari blocking
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               setState(() {
-                _progressDetails = progressDetails;
-                if (draft != null) {
+                _progressDetails = progressDetails
+                    .whereType<ProgressDetailEntity>()
+                    .toList();
+                if (draft != null && !isDetailMode) {
                   _descriptionController.text = draft.description;
                   _formData = Map.from(draft.formData);
                   _images = List.from(draft.images);
@@ -344,6 +383,18 @@ class _WorkOrderReportPageLemburState
                   _descriptionController.text = description;
                   _formData = formData;
                   _images = images;
+                  if (tahapan != null) {
+                    _selectedTahapan = tahapan;
+                  } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
+                    _selectedTahapan =
+                        (_workOrderBloc.state as WorkOrderDetailLoaded)
+                            .workOrder
+                            .tahapanTertinggi ??
+                        1;
+                  } else {
+                    _selectedTahapan = 1;
+                  }
+                  _formData['tahapan'] = _selectedTahapan;
                 }
                 _progressStatusId = statusId;
                 isDataLoaded = true;
@@ -351,13 +402,9 @@ class _WorkOrderReportPageLemburState
               _checkDataLoaded();
             });
           }
-          if (state is WorkOrderProgressUpdated) {
+          if (state is LemburProgressUpdated) {
             if (_hasClosedAfterSubmit) return;
             _hasClosedAfterSubmit = true;
-            // Sengaja TIDAK reset `_isSubmitting = false` di sukses. Page akan
-            // pop pada post-frame berikutnya; sampai itu, tombol harus tetap
-            // terkunci agar tap kedua di window pop tidak mengirim payload
-            // duplikat ke /start atau /submit.
             AppSnackbar.showSuccess("Form berhasil disubmit.");
             if ((widget.isAssignee && !isDetailMode) || !widget.isAssignee) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -373,7 +420,7 @@ class _WorkOrderReportPageLemburState
               });
             }
           }
-          if (state is WorkOrderError) {
+          if (state is LemburError) {
             if (mounted) {
               setState(() {
                 _isSubmitting = false;
@@ -382,7 +429,7 @@ class _WorkOrderReportPageLemburState
             AppSnackbar.showError(state.message);
           }
         },
-        child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
+        child: BlocBuilder<LemburBloc, LemburState>(
           builder: (context, state) {
             final bool isSelesaiResubmit =
                 isRejected && widget.mode == 'Selesai';
@@ -390,6 +437,41 @@ class _WorkOrderReportPageLemburState
                 AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
             final bool canShowResubmitButton =
                 !isSelesaiResubmit || isSeniorStaff;
+
+            String? jenisPekerjaan;
+            if (widget.workOrderTypeId != null) {
+              jenisPekerjaan = kJenisWorkOrderIdToName[widget.workOrderTypeId];
+            }
+
+            String? katForm = widget.kategoriForm;
+            final woState = _workOrderBloc.state;
+            if (woState is WorkOrderDetailLoaded) {
+              jenisPekerjaan ??= woState.workOrder.workOrderType?.name;
+              katForm ??= woState.workOrder.kategoriForm;
+            }
+
+            // Fallback to determine specific label if jenisPekerjaan is missing or unknown
+            if (jenisPekerjaan == null ||
+                !kTahapanByJenis.containsKey(jenisPekerjaan)) {
+              if (katForm == 'meter') {
+                jenisPekerjaan = 'Kalibrasi Meteran';
+              } else if (katForm == 'jaringan') {
+                jenisPekerjaan = 'Penanganan Kebocoran';
+              } else if (katForm == 'infrastruktur') {
+                jenisPekerjaan = 'Pemeliharaan Pompa';
+              }
+            }
+
+            final List<String> specificLabels = tahapanLabelsFor(
+              jenisPekerjaan,
+            );
+            final String specificLabel =
+                specificLabels.isNotEmpty &&
+                    _selectedTahapan != null &&
+                    _selectedTahapan! > 0 &&
+                    _selectedTahapan! <= specificLabels.length
+                ? specificLabels[_selectedTahapan! - 1]
+                : "Persiapan";
 
             return !isDataLoaded || _isCheckingDistance
                 ? Center(
@@ -413,11 +495,28 @@ class _WorkOrderReportPageLemburState
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Text(widget.mode, style: textTheme.displaySmall),
-                          // const SizedBox(height: 16),
-                          // Map dan info lokasi
                           if (widget.lngLat != null) _buildLocationMap(),
                           const SizedBox(height: 16),
+
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: TextFormField(
+                              key: ValueKey(specificLabel),
+                              initialValue: specificLabel,
+                              readOnly: true,
+                              decoration: const InputDecoration(
+                                labelText: "Target Pekerjaan",
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Color(0xFFF5F5F5),
+                              ),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+
                           if (isRejected && _revisionNote != null) ...[
                             _buildRevisionNotePanel(),
                             const SizedBox(height: 16),
@@ -455,6 +554,8 @@ class _WorkOrderReportPageLemburState
                               ],
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          _buildTahapanSelector(),
                           const SizedBox(height: 16),
                           if (widget.mode == 'Selesai' ||
                               widget.mode == 'Mulai')
@@ -574,7 +675,6 @@ class _WorkOrderReportPageLemburState
             )
           : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
     }
-    debugPrint("🔍 detail mode: $isDetailMode");
     return DynamicFormBuilder(
       fields: dynamicFields,
       formData: _formData,
@@ -584,13 +684,103 @@ class _WorkOrderReportPageLemburState
     );
   }
 
-  /// Widget untuk menampilkan map lokasi work order
+  Widget _buildTahapanSelector() {
+    String? jenisPekerjaan;
+    int tahapanTertinggi = 1;
+    bool isPic = true;
+
+    final state = _workOrderBloc.state;
+    if (state is WorkOrderDetailLoaded) {
+      jenisPekerjaan ??= state.workOrder.workOrderType?.name;
+      tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
+
+      final currentUser = AuthStorage.getUserSync();
+      final currentUserIdStr = currentUser?['id']?.toString();
+      final picIdStr = state.workOrder.assignment?.assigneeId?.toString();
+      final creatorIdStr = state.workOrder.creator?.toString();
+      final isSeniorStaff = AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
+
+      if (currentUserIdStr != null) {
+        isPic =
+            (picIdStr != null && currentUserIdStr == picIdStr) ||
+            (creatorIdStr != null && currentUserIdStr == creatorIdStr) ||
+            isSeniorStaff;
+      }
+    }
+
+    List<int> validTahapan = [1, 2, 3, 4];
+    if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
+      validTahapan = [1];
+    } else if (widget.mode == 'Progress') {
+      validTahapan = [2, 3];
+    } else if (widget.mode == 'Selesai') {
+      validTahapan = [4];
+    }
+
+    if (_selectedTahapan != null && !validTahapan.contains(_selectedTahapan)) {
+      _selectedTahapan = validTahapan.first;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.foreground[400]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Tahapan Pekerjaan", style: textTheme.titleMedium),
+          if (!isPic) ...[
+            const SizedBox(height: 4),
+            Text(
+              "Pilih tahapan pekerjaan. Hanya koordinator (PIC) yang dapat memajukan tahapan.",
+              style: textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            ),
+          ],
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: OutlineInputBorder(),
+            ),
+            initialValue: _selectedTahapan,
+            hint: const Text('Pilih tahapan... (Opsional)'),
+            items: validTahapan.map((val) {
+              final index = val - 1;
+              final isDisabled = !isPic && val > tahapanTertinggi;
+              return DropdownMenuItem<int>(
+                value: val,
+                enabled: !isDisabled,
+                child: Text(
+                  '$val - ${kTahapanGeneric[index]}',
+                  style: TextStyle(
+                    color: isDisabled ? Colors.grey : Colors.black,
+                  ),
+                ),
+              );
+            }).toList(),
+            onChanged: isDetailMode || _isAlreadyRecorded
+                ? null
+                : (value) {
+                    setState(() {
+                      _selectedTahapan = value;
+                      _formData['tahapan'] = value;
+                    });
+                  },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLocationMap() {
     final location = widget.lngLat!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Google Maps
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
@@ -619,7 +809,6 @@ class _WorkOrderReportPageLemburState
           ),
         ),
         const SizedBox(height: 8),
-        // Info lokasi
         Text(
           widget.locationName ?? "Lokasi Work Order",
           style: textTheme.titleMedium?.copyWith(
@@ -628,10 +817,6 @@ class _WorkOrderReportPageLemburState
           ),
         ),
         const SizedBox(height: 4),
-        // Text(
-        //   "Long ${location.longitude.toStringAsFixed(6)}  Lat ${location.latitude.toStringAsFixed(6)}",
-        //   style: textTheme.bodySmall?.copyWith(color: color.foreground[600]),
-        // ),
       ],
     );
   }
@@ -640,8 +825,6 @@ class _WorkOrderReportPageLemburState
     switch (widget.mode) {
       case 'Mulai':
         return color.status[2];
-      // case 'progress':
-      //   return color.control;
       case 'Selesai':
         return color.primary[500];
       default:
@@ -698,7 +881,6 @@ class _WorkOrderReportPageLemburState
         return;
       }
 
-      // Validate photo size (<= 2048 KB)
       for (final photo in _images) {
         if (photo is XFile) {
           final size = await File(photo.path).length();
@@ -805,15 +987,11 @@ class _WorkOrderReportPageLemburState
         }
       }
 
-      // Kunci tombol secepat mungkin untuk mencegah double-tap mengirim
-      // payload yang sama dua kali (terutama saat GPS sudah tersedia
-      // sehingga jalur sinkron langsung menuju submit tanpa await).
       setState(() {
         _isSubmitting = true;
         _hasClosedAfterSubmit = false;
       });
 
-      // Pastikan lokasi diambil untuk semua mode submit jika belum ada
       if (_currentPosition == null) {
         try {
           bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -857,14 +1035,6 @@ class _WorkOrderReportPageLemburState
         }
       }
 
-      debugPrint("✅ Deskripsi: ${_descriptionController.text}");
-      debugPrint(
-        "✅ Gambar: ${_images.map((x) => x is XFile ? x.path : x.toString()).toList()}",
-      );
-      debugPrint("✅ Form Dinamis: $_formData");
-      debugPrint(
-        "📤 Submit ke backend dengan progressId: ${widget.progressId}",
-      );
       final List<ProgressDetailModel> progressDetails = [];
       for (final detail in _progressDetails) {
         final int? resolvedDetailFormId =
@@ -876,10 +1046,6 @@ class _WorkOrderReportPageLemburState
             : null;
         String? value;
         XFile? image;
-
-        debugPrint(
-          "🔍 Processing detail ID: ${detail.id}, formId: $formIdKey, value: $dynamicValue",
-        );
 
         if (resolvedDetailFormId == null) {
           if (mounted) {
@@ -915,12 +1081,8 @@ class _WorkOrderReportPageLemburState
             if (dynamicValue is XFile) {
               image = dynamicValue;
               value = null;
-              debugPrint(
-                "🖼️ Image for form ${detail.form!.id}: ${image.path}",
-              );
             } else {
               value = null;
-              debugPrint("⚠️ No image for form ${detail.form!.id}");
             }
           } else if (dynamicValue is int) {
             final options =
@@ -930,14 +1092,11 @@ class _WorkOrderReportPageLemburState
               orElse: () => const OptionFormModel(id: -1, optionName: ''),
             );
             value = selectedOption.id != -1 ? selectedOption.optionName : null;
-            debugPrint("✅ Option for valueId $dynamicValue: $value");
           } else {
             value = dynamicValue.toString().trim();
-            debugPrint("✅ Value as string: $value");
           }
         } else {
           value = detail.value?.trim() ?? '';
-          debugPrint("⚠️ Fallback to existing value: $value");
         }
 
         progressDetails.add(
@@ -950,14 +1109,17 @@ class _WorkOrderReportPageLemburState
         );
       }
 
-      final workOrderProgress = WorkOrderProgressModel(
-        id: null,
+      final progressModel = WorkOrderProgressModel(
+        id: isRejected ? widget.progressId : null,
         workOrderId: widget.workOrderId,
         tipeProgressId: widget.mode == 'Mulai'
             ? 1
             : (widget.mode == 'Selesai'
                   ? 3
                   : (widget.mode == 'Inspeksi' ? 6 : 2)),
+        tahapan: widget.mode == 'Selesai'
+            ? 4
+            : (widget.mode == 'Progress' ? _selectedTahapan : null),
         description: _descriptionController.text,
         photos: _images.whereType<XFile>().toList(),
         submitTime: DateTime.now().toUtc(),
@@ -1017,15 +1179,16 @@ class _WorkOrderReportPageLemburState
       );
 
       debugPrint(
-        "📩 Submitting Progress: photos=${workOrderProgress.photos?.map((p) => p.path).toList()}, details=${progressDetails.map((d) => d.detailFormId).toList()}",
+        "📩 Submitting Progress: photos=${progressModel.photos?.map((p) => p.path).toList()}, details=${progressDetails.map((d) => d.detailFormId).toList()}",
       );
+
       if (isRejected) {
-        final resubmitProgress = workOrderProgress.copyWith(
-          id: widget.progressId,
-        );
-        _workOrderBloc.add(ResubmitProgressEvent(resubmitProgress));
+        final resubmitProgress = progressModel.copyWith(id: widget.progressId);
+        _lemburBloc.add(ResubmitLemburProgressEvent(resubmitProgress));
+      } else if (widget.mode == 'Mulai') {
+        _lemburBloc.add(StartLemburProgressEvent(progressModel));
       } else {
-        _workOrderBloc.add(UpdateWorkOrderProgressEvent(workOrderProgress));
+        _lemburBloc.add(UpdateLemburProgressEvent(progressModel));
       }
     }
   }
@@ -1038,7 +1201,7 @@ class _WorkOrderReportPageLemburState
           : _descriptionController.text.trim(),
       reviewAction: action,
     );
-    _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
+    _lemburBloc.add(UpdateLemburProgressEvent(reviewModel));
   }
 
   void _onReviewWithNote(String action, String note) {
@@ -1047,13 +1210,13 @@ class _WorkOrderReportPageLemburState
       description: note,
       reviewAction: action,
     );
-    _workOrderBloc.add(UpdateWorkOrderProgressEvent(reviewModel));
+    _lemburBloc.add(UpdateLemburProgressEvent(reviewModel));
   }
 
   void _fetchRevisionNote() async {
     try {
-      final remoteDataSource = sl<WorkOrderProgressRemoteDataSource>();
-      final response = await remoteDataSource.getProgressDetailsHistory(
+      final repository = sl<WorkOrderLemburRepository>();
+      final response = await repository.getProgressDetailsHistory(
         widget.progressId!,
       );
       if (response is DataSuccess<List<dynamic>>) {
@@ -1337,8 +1500,6 @@ class _WorkOrderReportPageLemburState
   }
 
   Future<void> _checkDistance() async {
-    // Beri jeda untuk memastikan Google Maps dari halaman sebelumnya
-    // sudah selesai melakukan heavy initialization
     await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;

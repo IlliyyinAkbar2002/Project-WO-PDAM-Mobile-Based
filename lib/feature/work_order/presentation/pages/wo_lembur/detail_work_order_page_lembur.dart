@@ -443,6 +443,7 @@ class _DetailWorkOrderPageLemburState
                   initialKategoriData: _workOrder != null
                       ? _buildKategoriFormData(_workOrder!)
                       : null,
+                  initialDescription: progress.description,
                 ),
               ),
             );

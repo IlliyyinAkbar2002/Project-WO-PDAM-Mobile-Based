@@ -479,6 +479,7 @@ class _AssigneeWorkOrderDetailPageState
                       ? _buildKategoriFormData(_workOrder!)
                       : null,
                   workOrderTypeName: _workOrder?.workOrderType?.name,
+                  initialDescription: progress.description,
                 ),
               ),
             );

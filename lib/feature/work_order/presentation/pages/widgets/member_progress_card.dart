@@ -273,6 +273,7 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   radiusMeter: widget.radiusMeter,
                   kategoriForm: widget.kategoriForm,
                   workOrderTypeName: widget.workOrderTypeName,
+                  initialDescription: progress.description,
                 ),
               ),
             );

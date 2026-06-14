@@ -33,9 +33,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     );
   }
 
-  /// Normalisasi UI action ke kontrak BE `/progress-workorder/review`.
-  /// BE validator: `decision: required, in:accept,revisi,tolak`.
-  /// Sebelumnya kita memetakan `reject` → `reject` (salah). Harus `tolak`.
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
     if (normalized == 'accept' ||

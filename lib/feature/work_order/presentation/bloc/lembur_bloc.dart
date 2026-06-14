@@ -32,6 +32,7 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
   }) : super(LemburInitial()) {
     on<GetLemburProgressByWorkOrderIdEvent>(_onGetLemburProgressByWorkOrderId);
     on<GetLemburProgressDetailEvent>(_onGetLemburProgressDetail);
+    on<StartLemburProgressEvent>(_onStartLemburProgress);
     on<UpdateLemburProgressEvent>(_onUpdateLemburProgress);
     on<ResubmitLemburProgressEvent>(_onResubmitLemburProgress);
     on<CancelLemburProgressEvent>(_onCancelLemburProgress);
@@ -119,6 +120,25 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
       }
     } catch (e) {
       emit(LemburError("Gagal mengambil detail progres lembur: $e"));
+    }
+  }
+
+  Future<void> _onStartLemburProgress(
+    StartLemburProgressEvent event,
+    Emitter<LemburState> emit,
+  ) async {
+    emit(LemburLoading());
+    try {
+      final dataState = await updateWorkOrderLemburProgressUseCase(
+        event.progress,
+      );
+      if (dataState is DataSuccess) {
+        emit(LemburProgressUpdated(dataState.data!));
+      } else if (dataState is DataFailed) {
+        emit(LemburError(_friendlyErrorMessage(dataState.error)));
+      }
+    } catch (e) {
+      emit(LemburError("Gagal memulai progres lembur: $e"));
     }
   }
 
