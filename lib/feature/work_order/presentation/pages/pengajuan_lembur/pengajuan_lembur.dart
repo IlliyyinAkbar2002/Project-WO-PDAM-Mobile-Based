@@ -54,6 +54,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   String? _prioritas;
   double? _latitude;
   double? _longitude;
+  int? _locationId;
   int? _koordinatorUserId;
 
   static const List<({String value, String label})> _prioritasOptions = [
@@ -62,7 +63,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     (value: 'tinggi', label: 'Tinggi'),
     (value: 'darurat', label: 'Darurat'),
   ];
-
 
   bool _isSubmitting = false;
   bool _usersRequested = false;
@@ -92,9 +92,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     return (name: name, npp: npp, jabatan: jabatan);
   }
 
-  /// Hitung jabatan ids yang boleh dipilih sebagai anggota tim. Mirror dari
-  /// pola yang dipakai `DetailWorkOrderPageMasuk._assignableJabatanIds()`:
-  /// staff yang levelnya di bawah pemohon. Server tetap clamp ke hirarki.
   List<int>? _assignableJabatanIds() {
     final user = AuthStorage.getUserSync();
     final employee = user?['employee'];
@@ -148,8 +145,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   void initState() {
     super.initState();
     _loadWorkOrders();
-    // Defer first event dispatch to after the first frame so the bloc that's
-    // provided up the tree (in main.dart) is reliably reachable via context.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final bloc = context.read<WorkOrderBloc>();
@@ -302,14 +298,9 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     }
   }
 
-  /// Auto-load (v2): saat sebuah WO dipilih, isi Prioritas, Lokasi, dan titik
-  /// peta dari data WO tersebut. Mengganti WO = muat ulang penuh ketiga field
-  /// ini (edit sebelumnya dibuang) karena nilainya terikat pada WO terpilih.
   void _applyParityFromWorkOrder(WorkOrderEntity wo) {
     _selectedWorkType = wo.workOrderType?.name;
 
-    // Prioritas: cocokkan ke kosakata kontrak (lowercase) secara
-    // case-insensitive; jika tak cocok salah satu dari empat nilai, kosongkan.
     final rawPrioritas = wo.prioritas?.trim().toLowerCase();
     _prioritas = _prioritasOptions.any((o) => o.value == rawPrioritas)
         ? rawPrioritas
@@ -328,11 +319,11 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     final coords = _coordsFromWorkOrder(wo);
     _latitude = coords?.$1;
     _longitude = coords?.$2;
+    _locationId = (coords != null)
+        ? (wo.assignment?.locationId ?? wo.assignment?.location?.id)
+        : null;
   }
 
-  /// Koordinat WO, atau null jika tidak ada koordinat asli. Urutan sumber:
-  /// pin GPS pada assignment → master-location. (0,0) dianggap sentinel
-  /// "tidak ada" karena MasterLocationModel men-default null menjadi 0.
   (double, double)? _coordsFromWorkOrder(WorkOrderEntity wo) {
     final assignment = wo.assignment;
     if (assignment == null) return null;
@@ -570,6 +561,9 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (_alasanController.text.trim().isEmpty) {
       return 'Alasan lembur wajib diisi.';
     }
+    if (_latitude == null || _longitude == null) {
+      return 'Titik peta wajib dipilih. Ketuk peta untuk menandai lokasi lembur.';
+    }
     return null;
   }
 
@@ -601,6 +595,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     final lokasi = _lokasiController.text.trim();
     if (lokasi.isNotEmpty) {
       payload['lokasi'] = lokasi;
+      payload['nama_lokasi'] = lokasi;
     }
     if (_latitude != null && _longitude != null) {
       payload['latitude'] = double.parse(_latitude!.toStringAsFixed(7));
@@ -1009,6 +1004,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         setState(() {
                                           _latitude = null;
                                           _longitude = null;
+                                          _locationId = null;
                                         });
                                       },
                                       style: TextButton.styleFrom(
@@ -1052,20 +1048,57 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                         setState(() {
                                           _latitude = lat;
                                           _longitude = long;
+                                          _locationId = locationId;
                                         });
                                       },
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                _selectedWorkOrder == null
-                                    ? 'Pilih pekerjaan untuk menentukan titik peta.'
-                                    : 'Titik peta dapat disesuaikan jika lokasi kerja di lapangan berbeda dengan lokasi pada WO.',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
+                              if (_selectedWorkOrder != null &&
+                                  (_latitude == null || _longitude == null))
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: const Color(0xFFFCD34D),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.warning_amber_rounded,
+                                        size: 18,
+                                        color: Color(0xFFB45309),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Titik peta belum dipilih. Ketuk peta untuk menandai lokasi lembur. '
+                                          'Penanda merah saat ini hanya posisi awal peta, bukan lokasi tersimpan.',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF92400E),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Text(
+                                  _selectedWorkOrder == null
+                                      ? 'Pilih pekerjaan untuk menentukan titik peta.'
+                                      : 'Titik peta dapat disesuaikan jika lokasi kerja di lapangan berbeda dengan lokasi pada WO.',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
                                 ),
-                              ),
                               const SizedBox(height: 12),
                               Row(
                                 children: [

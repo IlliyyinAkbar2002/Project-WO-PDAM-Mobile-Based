@@ -55,7 +55,6 @@ class CustomFieldWidgets {
               onFieldChanged("locationId", locationId);
               onFieldChanged("radiusMeter", radiusMeter);
               onFieldChanged("locationName", locationName);
-              // Update field "lokasi" text jika user pilih dari search
               if (locationName != null && locationName.isNotEmpty) {
                 onFieldChanged("lokasi", locationName);
               }

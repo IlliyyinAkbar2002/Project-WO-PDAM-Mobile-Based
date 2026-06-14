@@ -40,12 +40,6 @@ class SplRemoteDataSource extends RemoteDatasource {
     }
   }
 
-  /// Create a new lembur SPL (POST /v1/lembur-spl).
-  /// Payload contract (per BE):
-  /// - judul_pekerjaan, jenis_pekerjaan, tanggal_lembur (yyyy-MM-dd),
-  ///   jam_mulai (HH:mm), estimasi_jam (int), alasan_lembur,
-  ///   members: `List<int>` user ids
-  /// `pemohon_id` and `status_id` are auto-filled by the server.
   Future<DataState<SplModel>> createSpl(Map<String, dynamic> payload) async {
     try {
       final response = await post(path: '/v1/lembur-spl', data: payload);

@@ -486,7 +486,6 @@ class _PersetujuanPeminjamanBarangPageState
   Widget _buildRequestCard(PeminjamanMaterialEntity request) {
     final matName =
         request.material?.namaMaterial ?? 'Material #${request.materialId}';
-    final matCat = request.material?.kategori ?? 'Umum';
     final requesterName = request.user?.employee?.name ?? 'Staff';
     final submittedTime = request.waktuKembali ?? DateTime.now();
 

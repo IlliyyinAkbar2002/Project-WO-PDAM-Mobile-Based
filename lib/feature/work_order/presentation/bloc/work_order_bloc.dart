@@ -289,7 +289,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         if (customError != null && customError is String) {
           return customError; // Prioritize custom 'error' key for custom 422s verbatim
         }
-        
+
         final errors = data['errors'];
         if (errors is Map && errors.isNotEmpty) {
           final first = errors.values.first;
@@ -626,9 +626,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   ) async {
     emit(WorkOrderLoading());
     try {
-      final dataState = await resubmitProgressUseCase(
-        event.progress,
-      );
+      final dataState = await resubmitProgressUseCase(event.progress);
       if (dataState is DataSuccess) {
         emit(WorkOrderProgressUpdated(dataState.data!));
       } else if (dataState is DataFailed) {
