@@ -13,6 +13,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dar
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
@@ -75,6 +76,7 @@ class _DetailWorkOrderPageLemburState
   bool _progressesLoaded = false;
   bool _isNavigatingToReport = false;
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
+  late final MaterialRemoteDataSource _materialRemoteDataSource;
   WorkOrderEntity? _workOrder;
 
   bool _isManager = false;
@@ -136,6 +138,7 @@ class _DetailWorkOrderPageLemburState
 
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
+    _materialRemoteDataSource = GetIt.instance<MaterialRemoteDataSource>();
     _fetchProgresses();
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (widget.workOrderId != null) {
@@ -536,6 +539,60 @@ class _DetailWorkOrderPageLemburState
     }
   }
 
+  Future<bool> _needsPinjamMaterialFirst() async {
+    if (widget.workOrderId == null) return false;
+    try {
+      final result = await _materialRemoteDataSource.getPeminjamanByWo(
+        widget.workOrderId!,
+      );
+      if (result is DataSuccess) {
+        return (result.data ?? const []).isEmpty;
+      }
+    } catch (e) {
+      debugPrint('⚠️ Gagal cek peminjaman material: $e');
+    }
+    return false;
+  }
+
+  Future<void> _showPinjamMaterialReminder() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Pinjam Material Dulu',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Anda belum meminjam material untuk work order ini. Silakan ajukan '
+          'peminjaman material terlebih dahulu sebelum memulai pekerjaan.',
+          style: TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final shouldRefresh = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PeminjamanItemListPage(workOrderId: widget.workOrderId),
+      ),
+    );
+    if (shouldRefresh == true && mounted) {
+      _handleRefresh();
+    }
+  }
+
   Widget _buildActionButton(String mode, {bool disabled = false}) {
     final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
 
@@ -547,6 +604,15 @@ class _DetailWorkOrderPageLemburState
       }
       _isNavigatingToReport = true;
       try {
+        if (mode == 'Mulai') {
+          final bool needPinjam = await _needsPinjamMaterialFirst();
+          if (!mounted) return;
+          if (needPinjam) {
+            await _showPinjamMaterialReminder();
+            return;
+          }
+        }
+
         final bool? shouldRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(

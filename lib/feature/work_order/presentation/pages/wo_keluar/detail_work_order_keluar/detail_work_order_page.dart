@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
@@ -23,9 +22,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/progress_individu.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
@@ -512,65 +509,6 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        widget.isAssignee &&
-                progresses != null &&
-                progresses.isNotEmpty &&
-                progresses.first.description != null &&
-                !widget.isOvertime
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Pelaporan Work Order", style: textTheme.displayMedium),
-                  const SizedBox(height: 10),
-                  ...progresses
-                      .where(
-                        (progressIndex) => progressIndex.description != null,
-                      )
-                      .map(
-                        (progressIndex) => ProgressCard(
-                          type: progressIndex.progressType!,
-                          index: progressIndex.order!,
-                          description: progressIndex.description,
-                          dateTime: _resolveProgressDateTime(progressIndex),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WorkOrderReportPage(
-                                  mode: progressIndex.progressType!,
-                                  status: widget.status,
-                                  progressId: progressIndex.id,
-                                  workOrderId: widget.workOrderId,
-                                  kategoriForm:
-                                      formData["kategoriForm"] as String?,
-                                  initialKategoriData: formData,
-                                  lngLat:
-                                      (formData["latitude"] != null &&
-                                          formData["longitude"] != null)
-                                      ? LatLng(
-                                          (formData["latitude"] as num)
-                                              .toDouble(),
-                                          (formData["longitude"] as num)
-                                              .toDouble(),
-                                        )
-                                      : null,
-                                  locationName:
-                                      formData["locationName"] as String?,
-                                  radiusMeter:
-                                      (formData["radiusMeter"] as int?) ?? 100,
-                                  workOrderTypeName:
-                                      formData["workOrderTypeName"] as String?,
-                                  initialDescription: progressIndex.description,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  const SizedBox(height: 16),
-                ],
-              )
-            : const SizedBox(),
         // Progress Individual Anggota (untuk SPV)
         !widget.isAssignee && progressByMember != null
             ? IndividualProgressSection(
@@ -891,17 +829,5 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     final message =
         (result as DataFailed).error?.toString() ?? "Gagal assign staff.";
     AppSnackbar.showError(message);
-  }
-
-  String? _resolveProgressDateTime(WorkOrderProgressEntity progress) {
-    final DateTime? sourceTime =
-        progress.submitTime ?? progress.updatedAt ?? progress.createdAt;
-    if (sourceTime == null) return null;
-    return _formatEndDateTime(sourceTime);
-  }
-
-  String _formatEndDateTime(DateTime dateTime) {
-    final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm \'WIB\'');
-    return formatter.format(dateTime);
   }
 }

@@ -618,20 +618,20 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                     )
                               ? Row(
                                   children: [
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.danger,
-                                        ),
-                                        onPressed: () => _onReview('tolak'),
-                                        child: const Text('Tolak'),
-                                      ),
-                                    ),
+                                    // Expanded(
+                                    //   child: ElevatedButton(
+                                    //     style: ElevatedButton.styleFrom(
+                                    //       backgroundColor: color.danger,
+                                    //     ),
+                                    //     onPressed: () => _onReview('tolak'),
+                                    //     child: const Text('Tolak'),
+                                    //   ),
+                                    // ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.warning,
+                                          backgroundColor: color.danger,
                                         ),
                                         onPressed: _showRevisionDialog,
                                         child: const Text('Revisi'),
@@ -644,7 +644,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                           backgroundColor: color.status[2],
                                         ),
                                         onPressed: () => _onReview('accept'),
-                                        child: const Text('Terima'),
+                                        child: const Text('Terima', style: TextStyle(
+                                            color: Color(0xFF000080),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
