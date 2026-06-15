@@ -74,8 +74,17 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     final currentState = state;
     if (currentState is! NotificationLoaded) return;
 
-    // Optimistically update state
-    final updatedNotifications = currentState.notifications.map((n) {
+    // Lewati jika notifikasi tidak ada atau sudah dibaca (hindari panggilan
+    // API berulang saat di-tap lagi).
+    final alreadyRead = currentState.notifications.any(
+      (n) => n.id == event.id && n.isRead,
+    );
+    final exists = currentState.notifications.any((n) => n.id == event.id);
+    if (!exists || alreadyRead) return;
+
+    // Simpan snapshot untuk revert, lalu update optimistis.
+    final previousNotifications = currentState.notifications;
+    final updatedNotifications = previousNotifications.map((n) {
       if (n.id == event.id) {
         return n.copyWith(readAt: DateTime.now());
       }
@@ -84,11 +93,11 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     emit(NotificationLoaded(updatedNotifications));
 
-    // Call API in the background
+    // Panggil API di latar belakang.
     final result = await _markNotificationAsReadUseCase(event.id);
-    if (result is DataFailed) {
-      // Revert optimism if failed
-      add(FetchNotificationsEvent());
+    if (result is DataFailed && state is NotificationLoaded) {
+      // Revert tanpa memicu loading flash (kembalikan snapshot sebelumnya).
+      emit(NotificationLoaded(previousNotifications));
     }
   }
 }

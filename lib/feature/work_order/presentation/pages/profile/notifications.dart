@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/notificat
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -67,120 +68,153 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
   }
 
+  /// Ikon yang merepresentasikan setiap jenis notifikasi (berdasarkan
+  /// `data.type` yang sudah dipetakan ke [NotificationKind]).
+  IconData _iconForKind(NotificationKind kind) {
+    switch (kind) {
+      case NotificationKind.woCreated:
+        return Icons.assignment_add;
+      case NotificationKind.woAssigned:
+        return Icons.assignment_ind_rounded;
+      case NotificationKind.woReadyForReview:
+        return Icons.fact_check_rounded;
+      case NotificationKind.materialReturnSubmitted:
+        return Icons.inventory_2_rounded;
+      case NotificationKind.unknown:
+        return Icons.notifications_rounded;
+    }
+  }
+
   Future<void> _handleNotificationTap(
     BuildContext context,
     NotificationEntity n,
   ) async {
-    // 1. Mark as read immediately (optimistic UI update is handled by Bloc)
+    // 1. Selalu tandai sudah dibaca (optimistic update ditangani Bloc).
     context.read<NotificationBloc>().add(MarkNotificationAsReadEvent(n.id));
 
-    // Redirect SPV directly to PersetujuanPeminjamanBarangPage when tapping a material return notification
-    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
-    if (n.data.type == 'material_return_submitted' && isSpv) {
-      if (context.mounted) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const PersetujuanPeminjamanBarangPage(),
-          ),
-        );
-        if (context.mounted) {
-          context.read<NotificationBloc>().add(FetchNotificationsEvent());
+    switch (n.data.kind) {
+      case NotificationKind.materialReturnSubmitted:
+        // Pengembalian material → SPV langsung ke halaman persetujuan.
+        if (AuthStorage.getJabatanKodeSync() == 'SPV') {
+          await _openPage(context, const PersetujuanPeminjamanBarangPage());
         }
-      }
-      return;
-    }
+        return;
 
-    final workOrderId = n.data.workOrderId;
+      case NotificationKind.woCreated:
+      case NotificationKind.woAssigned:
+      case NotificationKind.woReadyForReview:
+        await _openWorkOrderDetail(context, n.data.workOrderId);
+        return;
+
+      case NotificationKind.unknown:
+        if (n.data.workOrderId > 0) {
+          await _openWorkOrderDetail(context, n.data.workOrderId);
+        }
+        return;
+    }
+  }
+
+  /// Buka halaman lalu refresh daftar notifikasi saat kembali.
+  Future<void> _openPage(BuildContext context, Widget page) async {
+    if (!context.mounted) return;
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    if (context.mounted) {
+      context.read<NotificationBloc>().add(FetchNotificationsEvent());
+    }
+  }
+
+  Future<void> _openWorkOrderDetail(
+    BuildContext context,
+    int workOrderId,
+  ) async {
     if (workOrderId <= 0) return;
 
-    // 2. Show loading dialog
+    // Loading dialog selama fetch detail.
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(),
-            ),
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: CircularProgressIndicator(),
           ),
-        );
-      },
+        ),
+      ),
     );
 
     try {
-      // 3. Fetch details
       final ds = WorkOrderRemoteDataSource();
       final result = await ds.fetchWorkOrderDetail(workOrderId);
 
-      // Close loading dialog
       if (context.mounted) {
-        Navigator.of(context).pop(); // pop the dialog
+        Navigator.of(context).pop(); // tutup loading dialog
       }
 
-      if (result is DataSuccess) {
-        final workOrder = result.data!;
-
-        if (context.mounted) {
-          final user = AuthStorage.getUserSync();
-          final roleId = user?['role_id'] as int?;
-          final jabatanKode = AuthStorage.getJabatanKodeSync();
-
-          Widget detailPage;
-          if (roleId == 3 && jabatanKode != 'SPV') {
-            // Staff
-            final lnglat = workOrder.assignment?.latitude != null
-                ? LatLng(
-                    workOrder.assignment!.latitude!,
-                    workOrder.assignment!.longitude!,
-                  )
-                : null;
-            final radiusMeter =
-                workOrder.assignment?.location?.radiusMeter ?? 100;
-            final locationName = workOrder.assignment?.location?.nama;
-
-            detailPage = AssigneeWorkOrderDetailPage(
-              isAssignee: true,
-              workOrderId: workOrder.id,
-              workOrderTypeId:
-                  workOrder.workOrderTypeId ?? workOrder.workOrderType?.id,
-              status: workOrder.statusId,
-              kategoriForm: workOrder.kategoriForm,
-              lngLat: lnglat,
-              locationName: locationName,
-              radiusMeter: radiusMeter,
-            );
-          } else {
-            // SPV or fallback
-            detailPage = DetailWorkOrderPage(
-              picId: null,
-              userId: user?['id'] as int?,
-              workOrderId: workOrder.id,
-              status: workOrder.statusId,
-              isOvertime: workOrder.requiresApproval,
-            );
-          }
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => detailPage),
-          );
-
-          // Refresh notifications list when coming back
-          if (context.mounted) {
-            context.read<NotificationBloc>().add(FetchNotificationsEvent());
-          }
-        }
-      } else {
+      if (result is! DataSuccess) {
         if (context.mounted) {
           AppSnackbar.showError("Gagal mengambil detail pekerjaan.");
         }
+        return;
       }
+
+      final workOrder = result.data!;
+      if (!context.mounted) return;
+
+      final user = AuthStorage.getUserSync();
+      final roleId = user?['role_id'] as int?;
+      final jabatanKode = AuthStorage.getJabatanKodeSync();
+      final isStaff = roleId == 3 && jabatanKode != 'SPV';
+
+      final lngLat = workOrder.assignment?.latitude != null
+          ? LatLng(
+              workOrder.assignment!.latitude!,
+              workOrder.assignment!.longitude!,
+            )
+          : null;
+      final radiusMeter = workOrder.assignment?.location?.radiusMeter ?? 100;
+      final locationName = workOrder.assignment?.location?.nama;
+      final workOrderTypeId =
+          workOrder.workOrderTypeId ?? workOrder.workOrderType?.id;
+
+      final Widget detailPage;
+      if (workOrder.isLembur) {
+        // Layar WO lembur dipakai bersama staff & SPV.
+        detailPage = DetailWorkOrderPageLembur(
+          isAssignee: isStaff,
+          workOrderId: workOrder.id,
+          workOrderTypeId: workOrderTypeId,
+          status: workOrder.statusId,
+          kategoriForm: workOrder.kategoriForm,
+          lngLat: lngLat,
+          locationName: locationName,
+          radiusMeter: radiusMeter,
+        );
+      } else if (isStaff) {
+        detailPage = AssigneeWorkOrderDetailPage(
+          isAssignee: true,
+          workOrderId: workOrder.id,
+          workOrderTypeId: workOrderTypeId,
+          status: workOrder.statusId,
+          kategoriForm: workOrder.kategoriForm,
+          lngLat: lngLat,
+          locationName: locationName,
+          radiusMeter: radiusMeter,
+        );
+      } else {
+        detailPage = DetailWorkOrderPage(
+          picId: null,
+          userId: user?['id'] as int?,
+          workOrderId: workOrder.id,
+          status: workOrder.statusId,
+          isOvertime: workOrder.requiresApproval,
+        );
+      }
+
+      await _openPage(context, detailPage);
     } catch (e) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // Close dialog on error
+        Navigator.of(context).pop(); // tutup dialog bila error
         AppSnackbar.showError("Terjadi kesalahan: $e");
       }
     }
@@ -193,7 +227,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       content: n.data.message,
       subtitle: '${n.data.title} - ${_formatTimeAgo(n.createdAt)}',
       avatarColor: _getAvatarColor(n.data.senderName),
-      hasHeart: false,
+      typeIcon: _iconForKind(n.data.kind),
       isUnread: !n.isRead,
       onTap: () => _handleNotificationTap(context, n),
     );
@@ -448,7 +482,7 @@ class _NotificationItem extends StatelessWidget {
   final String content;
   final String subtitle;
   final Color avatarColor;
-  final bool hasHeart;
+  final IconData typeIcon;
   final bool isUnread;
   final VoidCallback onTap;
 
@@ -458,7 +492,7 @@ class _NotificationItem extends StatelessWidget {
     required this.content,
     required this.subtitle,
     required this.avatarColor,
-    required this.hasHeart,
+    required this.typeIcon,
     required this.isUnread,
     required this.onTap,
   });
@@ -549,13 +583,11 @@ class _NotificationItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
-              child: hasHeart
-                  ? const Icon(
-                      Icons.favorite,
-                      color: NotificationsPage._accentBlue,
-                      size: 14,
-                    )
-                  : null,
+              child: Icon(
+                typeIcon,
+                color: NotificationsPage._accentBlue,
+                size: 20,
+              ),
             ),
           ],
         ),

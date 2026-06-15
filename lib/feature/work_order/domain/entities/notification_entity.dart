@@ -37,12 +37,38 @@ class NotificationEntity extends Equatable {
   List<Object?> get props => [id, type, data, readAt, createdAt];
 }
 
+enum NotificationKind {
+  woCreated,
+  woAssigned,
+  woReadyForReview,
+  materialReturnSubmitted,
+  unknown,
+}
+
+extension NotificationKindParsing on String {
+  NotificationKind toNotificationKind() {
+    switch (this) {
+      case 'wo_created':
+        return NotificationKind.woCreated;
+      case 'wo_assigned':
+        return NotificationKind.woAssigned;
+      case 'wo_ready_for_review':
+        return NotificationKind.woReadyForReview;
+      case 'material_return_submitted':
+        return NotificationKind.materialReturnSubmitted;
+      default:
+        return NotificationKind.unknown;
+    }
+  }
+}
+
 class NotificationDataEntity extends Equatable {
   final String title;
   final String message;
   final int workOrderId;
-  final String
-  type; // "wo_created" | "wo_assigned" | "wo_ready_for_review" | "wo_completed"
+
+  /// Nilai mentah `data.type` dari BE. Gunakan [kind] untuk percabangan logika.
+  final String type;
   final String senderName;
 
   const NotificationDataEntity({
@@ -52,6 +78,9 @@ class NotificationDataEntity extends Equatable {
     required this.type,
     required this.senderName,
   });
+
+  /// Tipe notifikasi yang sudah dipetakan; aman untuk tipe yang tidak dikenal.
+  NotificationKind get kind => type.toNotificationKind();
 
   @override
   List<Object?> get props => [title, message, workOrderId, type, senderName];
