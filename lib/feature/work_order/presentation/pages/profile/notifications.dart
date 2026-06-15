@@ -164,7 +164,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final user = AuthStorage.getUserSync();
       final roleId = user?['role_id'] as int?;
       final jabatanKode = AuthStorage.getJabatanKodeSync();
-      final isStaff = roleId == 3 && jabatanKode != 'SPV';
+      final isStaff = roleId == 4 && jabatanKode != 'SPV';
 
       final lngLat = workOrder.assignment?.latitude != null
           ? LatLng(

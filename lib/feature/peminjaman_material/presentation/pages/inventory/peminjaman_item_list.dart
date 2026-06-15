@@ -32,13 +32,13 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
   bool get _isStaff {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    return roleId == 3 && AuthStorage.getJabatanKodeSync() != 'SPV';
+    return roleId == 4 && AuthStorage.getJabatanKodeSync() != 'SPV';
   }
 
   bool get _isSpv {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    return roleId == 3 && AuthStorage.getJabatanKodeSync() == 'SPV';
+    return roleId == 4 && AuthStorage.getJabatanKodeSync() == 'SPV';
   }
 
   @override

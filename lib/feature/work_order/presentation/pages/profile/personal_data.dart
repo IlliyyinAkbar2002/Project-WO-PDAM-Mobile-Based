@@ -78,6 +78,11 @@ class PersonalDataPage extends StatelessWidget {
                             icon: Icons.badge_outlined,
                             value: data.position,
                           ),
+                          _ReadOnlyField(
+                            label: 'Departemen',
+                            icon: Icons.apartment_outlined,
+                            value: data.department,
+                          ),
                         ],
                       ),
                     ),

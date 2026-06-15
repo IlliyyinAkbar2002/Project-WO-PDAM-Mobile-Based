@@ -8,7 +8,6 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/mate
 
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 
 class PersetujuanPeminjamanBarangPage extends StatefulWidget {
@@ -76,9 +75,7 @@ class _PersetujuanPeminjamanBarangPageState
     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
     Widget target;
-    if (roleId == 2) {
-      target = const ManajerLandingPage();
-    } else if (roleId == 3 && isSpv) {
+    if (roleId == 4 && isSpv) {
       target = const SpvLandingPage();
     } else {
       target = const StaffLandingPage();
