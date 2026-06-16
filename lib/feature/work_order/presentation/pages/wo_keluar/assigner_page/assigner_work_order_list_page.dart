@@ -11,15 +11,23 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/work_o
 class AssignerWorkOrderListPage extends StatefulWidget {
   final int? picId;
   final int? userId;
-
-  /// Status WO yang tidak ditampilkan di daftar ini (mis. WO Masuk saja).
   final List<int>? excludeStatus;
+  final int? assignedToPegawaiId;
+  // final int? departemenId;
+  final bool onlyActive;
+  final List<String>? includeStatusNames;
+  final List<String>? excludeStatusNames;
 
   const AssignerWorkOrderListPage({
     super.key,
     this.picId,
     this.userId,
     this.excludeStatus,
+    this.assignedToPegawaiId,
+    // this.departemenId,
+    this.onlyActive = false,
+    this.includeStatusNames,
+    this.excludeStatusNames,
   });
 
   @override
@@ -62,6 +70,11 @@ class _AssignerWorkOrderListPageState
             .split('T')
             .first,
         endDate: _currentFilter?.endDate?.toIso8601String().split('T').first,
+        assignedToPegawaiId: widget.assignedToPegawaiId,
+        // departemenId: widget.departemenId,
+        onlyActive: widget.onlyActive ? true : null,
+        includeStatusNames: widget.includeStatusNames,
+        excludeStatusNames: widget.excludeStatusNames,
       ),
     );
   }
@@ -132,6 +145,11 @@ class _AssignerWorkOrderListPageState
               picId: widget.picId,
               userId: widget.userId,
               excludeStatus: widget.excludeStatus,
+              assignedToPegawaiId: widget.assignedToPegawaiId,
+              // departemenId: widget.departemenId,
+              onlyActive: widget.onlyActive,
+              includeStatusNames: widget.includeStatusNames,
+              excludeStatusNames: widget.excludeStatusNames,
             ),
           ),
         ],
@@ -155,6 +173,11 @@ class _AssignerWorkOrderListPageState
                 value,
                 picId: widget.picId,
                 excludeStatus: widget.excludeStatus,
+                assignedToPegawaiId: widget.assignedToPegawaiId,
+                // departemenId: widget.departemenId,
+                onlyActive: widget.onlyActive ? true : null,
+                includeStatusNames: widget.includeStatusNames,
+                excludeStatusNames: widget.excludeStatusNames,
               ),
             );
           });

@@ -346,11 +346,15 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
           splId = state.workOrder.splId;
+          final bool isPendingStage =
+              state.workOrder.statusName?.toLowerCase() == 'pending' ||
+              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
           final bool canAssignStaff =
               isDetailMode &&
               !_isManager &&
               !widget.isAssignee &&
-              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
+              isPendingStage &&
+              state.workOrder.isActive != false;
           debugPrint(
             "📢 DetailWorkOrderPage: state.workOrder.assignment = ${state.workOrder.assignment}",
           );

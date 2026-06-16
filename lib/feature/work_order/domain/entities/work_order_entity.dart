@@ -24,14 +24,13 @@ class WorkOrderEntity extends Equatable {
   final int? progresPersen;
   final DateTime? createdAt;
   final int? tahapanTertinggi;
-
-  /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
-  /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
+  // final int? departemenId;
+  // final String? departemenNama;
+  final bool? isActive;
+  final int? assignedToPegawaiId;
+  final String? statusName;
   final String? kategoriForm;
   final Map<String, dynamic>? detailKategori;
-
-  /// Prioritas WO sesuai BE enum: rendah | sedang | tinggi | darurat.
-  /// Default `sedang` saat create kalau caller tidak set.
   final String? prioritas;
 
   /// Relasi ke entity assignment
@@ -63,6 +62,11 @@ class WorkOrderEntity extends Equatable {
     this.assignment,
     this.assignments,
     this.tahapanTertinggi,
+    // this.departemenId,
+    // this.departemenNama,
+    this.isActive,
+    this.assignedToPegawaiId,
+    this.statusName,
   });
 
   bool get isLembur => splId != null;
@@ -93,6 +97,11 @@ class WorkOrderEntity extends Equatable {
     assignment,
     assignments,
     tahapanTertinggi,
+    // departemenId,
+    // departemenNama,
+    isActive,
+    assignedToPegawaiId,
+    statusName,
   ];
 
   WorkOrderEntity copyWith({
@@ -120,6 +129,11 @@ class WorkOrderEntity extends Equatable {
     AssignmentWorkorderEntity? assignment,
     List<AssignmentWorkorderEntity>? assignments,
     int? tahapanTertinggi,
+    // int? departemenId,
+    // String? departemenNama,
+    bool? isActive,
+    int? assignedToPegawaiId,
+    String? statusName,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -146,6 +160,11 @@ class WorkOrderEntity extends Equatable {
       assignment: assignment ?? this.assignment,
       assignments: assignments ?? this.assignments,
       tahapanTertinggi: tahapanTertinggi ?? this.tahapanTertinggi,
+      // departemenId: departemenId ?? this.departemenId,
+      // departemenNama: departemenNama ?? this.departemenNama,
+      isActive: isActive ?? this.isActive,
+      assignedToPegawaiId: assignedToPegawaiId ?? this.assignedToPegawaiId,
+      statusName: statusName ?? this.statusName,
     );
   }
 }

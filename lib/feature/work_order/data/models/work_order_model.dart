@@ -34,6 +34,11 @@ class WorkOrderModel extends WorkOrderEntity {
     super.assignment,
     super.assignments,
     super.tahapanTertinggi,
+    // super.departemenId,
+    // super.departemenNama,
+    super.isActive,
+    super.assignedToPegawaiId,
+    super.statusName,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -238,6 +243,27 @@ class WorkOrderModel extends WorkOrderEntity {
     final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
     final detailKategori = _extractDetailKategoriMap(map);
 
+    // final Map<String, dynamic>? departemenMap = parseMap(map['departemen']);
+    // final int? departemenId =
+    //     parseIdFromAny(map['departemen_id']) ?? parseIdFromAny(departemenMap);
+    // final String? departemenNama = departemenMap?['nama'] as String?;
+    final int? assignedToPegawaiId =
+        parseIdFromAny(map['assigned_to']) ??
+        parseIdFromAny(map['assigned_to_id']);
+
+    final dynamic rawIsActive = map['is_active'];
+    final bool? isActive = rawIsActive == null
+        ? null
+        : (rawIsActive is bool
+              ? rawIsActive
+              : (rawIsActive.toString().toLowerCase() == 'true' ||
+                    rawIsActive.toString() == '1'));
+
+    final dynamic rawStatusValue = map['status'] ?? map['status_workorder'];
+    final String? statusName = rawStatusValue is String
+        ? (rawStatusValue.trim().isEmpty ? null : rawStatusValue.trim())
+        : (rawStatusValue is Map ? rawStatusValue['status'] as String? : null);
+
     const startDateKeys = [
       'tanggal_mulai',
       'tanggalMulai',
@@ -415,6 +441,11 @@ class WorkOrderModel extends WorkOrderEntity {
       createdAt: parseUtcDateTime(map['created_at']),
       assignment: assignment,
       tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
+      // departemenId: departemenId,
+      // departemenNama: departemenNama,
+      isActive: isActive,
+      assignedToPegawaiId: assignedToPegawaiId,
+      statusName: statusName,
     );
   }
 
@@ -446,8 +477,6 @@ class WorkOrderModel extends WorkOrderEntity {
           : assignment?.location?.nama,
       'deskripsi': assignment?.description,
       'assigned_to': assignedTo,
-      // `prioritas` enum: rendah | sedang | tinggi | darurat. Default `sedang`
-      // kalau caller tidak set; BE wajibkan field ini.
       'prioritas': prioritas ?? 'sedang',
     };
 
@@ -486,6 +515,11 @@ class WorkOrderModel extends WorkOrderEntity {
       assignment: assignment,
       assignments: assignments,
       tahapanTertinggi: tahapanTertinggi,
+      // departemenId: departemenId,
+      // departemenNama: departemenNama,
+      isActive: isActive,
+      assignedToPegawaiId: assignedToPegawaiId,
+      statusName: statusName,
     );
   }
 
@@ -512,6 +546,11 @@ class WorkOrderModel extends WorkOrderEntity {
       assignment: entity.assignment,
       assignments: entity.assignments,
       tahapanTertinggi: entity.tahapanTertinggi,
+      // departemenId: entity.departemenId,
+      // departemenNama: entity.departemenNama,
+      isActive: entity.isActive,
+      assignedToPegawaiId: entity.assignedToPegawaiId,
+      statusName: entity.statusName,
     );
   }
 

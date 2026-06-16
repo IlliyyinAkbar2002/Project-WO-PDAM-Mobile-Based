@@ -18,6 +18,11 @@ class WorkOrderList extends StatefulWidget {
   final int? userId;
   final int? creatorId;
   final bool isAssignee;
+  final int? assignedToPegawaiId;
+  // final int? departemenId;
+  final bool onlyActive;
+  final List<String>? includeStatusNames;
+  final List<String>? excludeStatusNames;
 
   const WorkOrderList({
     super.key,
@@ -27,6 +32,11 @@ class WorkOrderList extends StatefulWidget {
     this.userId,
     this.creatorId,
     this.isAssignee = false,
+    this.assignedToPegawaiId,
+    // this.departemenId,
+    this.onlyActive = false,
+    this.includeStatusNames,
+    this.excludeStatusNames,
   });
 
   @override
@@ -52,6 +62,11 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         excludeStatus: widget.excludeStatus,
         picId: widget.creatorId ?? widget.picId,
         userId: widget.userId,
+        assignedToPegawaiId: widget.assignedToPegawaiId,
+        // departemenId: widget.departemenId,
+        onlyActive: widget.onlyActive ? true : null,
+        includeStatusNames: widget.includeStatusNames,
+        excludeStatusNames: widget.excludeStatusNames,
       ),
     );
   }
@@ -68,6 +83,11 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           excludeStatus: widget.excludeStatus,
           picId: widget.picId,
           userId: widget.userId,
+          assignedToPegawaiId: widget.assignedToPegawaiId,
+          //  departemenId: widget.departemenId,
+          onlyActive: widget.onlyActive ? true : null,
+          includeStatusNames: widget.includeStatusNames,
+          excludeStatusNames: widget.excludeStatusNames,
         ),
       );
     }
@@ -253,7 +273,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         typeColor = color.success;
     }
 
-    final status = workOrder.status?.status;
+    final status = workOrder.status?.status ?? workOrder.statusName;
     final statusColor =
         color.status[workOrder.status?.id ?? workOrder.statusId] ??
         color.primary[100]!;
@@ -264,8 +284,13 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       children: [
         if (workOrder.isLembur) _buildChip('Lembur', Colors.orange.shade700),
         _buildChip(typeLabel, typeColor),
+        // if (workOrder.departemenNama != null &&
+        //     workOrder.departemenNama!.isNotEmpty)
+        //   _buildChip(workOrder.departemenNama!, const Color(0xFF0EA5E9)),
         if (status != null && status.isNotEmpty)
           _buildChip(status, statusColor),
+        if (workOrder.isActive == false)
+          _buildChip('Nonaktif', const Color(0xFF94A3B8)),
         if (_progresPersen(workOrder) != null)
           _buildChip('${_progresPersen(workOrder)}%', color.primary[500]!),
       ],

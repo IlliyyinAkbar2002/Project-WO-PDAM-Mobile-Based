@@ -17,6 +17,25 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
   final String? endDate;
   final String? search;
 
+  /// Filter FE-side (BE belum mendukungnya). Bila di-set, daftar WO hanya
+  /// menampilkan WO yang `assigned_to`-nya pegawai ini. Lihat WorkOrderBloc.
+  final int? assignedToPegawaiId;
+
+  /// Filter FE-side berdasar departemen pemilik WO.
+  final int? departemenId;
+
+  /// Bila true, WO dengan `is_active == false` disembunyikan (FE-side).
+  final bool? onlyActive;
+
+  /// Filter FE-side berdasar `status` string BE (case-insensitive). Hanya WO
+  /// dengan status di daftar ini yang ditampilkan (mis. ['Pending'] untuk WO
+  /// Masuk). Null = tidak memfilter.
+  final List<String>? includeStatusNames;
+
+  /// Kebalikan: WO dengan status di daftar ini disembunyikan (mis. ['Pending']
+  /// untuk WO Keluar). Null = tidak memfilter.
+  final List<String>? excludeStatusNames;
+
   GetWorkOrdersEvent({
     this.status,
     this.excludeStatus,
@@ -27,6 +46,11 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
     this.startDate,
     this.endDate,
     this.search,
+    this.assignedToPegawaiId,
+    this.departemenId,
+    this.onlyActive,
+    this.includeStatusNames,
+    this.excludeStatusNames,
   });
 }
 
@@ -41,6 +65,11 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
   final String? dateRange;
   final String? startDate;
   final String? endDate;
+  final int? assignedToPegawaiId;
+  final int? departemenId;
+  final bool? onlyActive;
+  final List<String>? includeStatusNames;
+  final List<String>? excludeStatusNames;
 
   LoadMoreWorkOrdersEvent(
     this.page,
@@ -53,6 +82,11 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
     this.dateRange,
     this.startDate,
     this.endDate,
+    this.assignedToPegawaiId,
+    this.departemenId,
+    this.onlyActive,
+    this.includeStatusNames,
+    this.excludeStatusNames,
   });
 }
 
@@ -66,6 +100,11 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
   final String? dateRange;
   final String? startDate;
   final String? endDate;
+  final int? assignedToPegawaiId;
+  final int? departemenId;
+  final bool? onlyActive;
+  final List<String>? includeStatusNames;
+  final List<String>? excludeStatusNames;
 
   SearchWorkOrdersEvent(
     this.query, {
@@ -77,6 +116,11 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
     this.dateRange,
     this.startDate,
     this.endDate,
+    this.assignedToPegawaiId,
+    this.departemenId,
+    this.onlyActive,
+    this.includeStatusNames,
+    this.excludeStatusNames,
   });
 }
 
