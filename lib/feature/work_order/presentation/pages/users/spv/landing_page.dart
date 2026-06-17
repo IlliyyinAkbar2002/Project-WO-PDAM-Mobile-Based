@@ -19,9 +19,9 @@ class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
   void initState() {
     super.initState();
     final user = AuthStorage.getUserSync();
-    final userId = user?['id'] as int?;
+    final pegawaiId = user?['pegawai_id'] as int?;
     context.read<WorkOrderBloc>().add(
-      GetWorkOrdersEvent(picId: userId),
+      GetWorkOrdersEvent(assignedToPegawaiId: pegawaiId),
     );
   }
   @override

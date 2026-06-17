@@ -97,6 +97,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   List<WorkOrderProgressEntity> progresses = [];
   ProgressByMemberEntity? progressByMember;
   int? status;
+  String? statusName;
+  bool? isActive;
   int? splId;
 
   bool _isManager = false;
@@ -135,11 +137,27 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
   }
 
-  bool _shouldLoadAssignableUsersForDetail() {
+  bool _canAssignStaffFor({
+    required String? statusName,
+    required int? statusId,
+    required bool? isActive,
+  }) {
+    final bool isPendingStage =
+        statusName?.toLowerCase() == 'pending' ||
+        statusId == WorkOrderStatusId.ditugaskanKeSpv;
     return isDetailMode &&
         !_isManager &&
         !widget.isAssignee &&
-        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
+        isPendingStage &&
+        isActive != false;
+  }
+
+  bool _shouldLoadAssignableUsersForDetail() {
+    return _canAssignStaffFor(
+      statusName: statusName,
+      statusId: status ?? widget.status,
+      isActive: isActive,
+    );
   }
 
   void _reloadDetail() {
@@ -345,16 +363,14 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         }
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
+          statusName = state.workOrder.statusName;
+          isActive = state.workOrder.isActive;
           splId = state.workOrder.splId;
-          final bool isPendingStage =
-              state.workOrder.statusName?.toLowerCase() == 'pending' ||
-              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
-          final bool canAssignStaff =
-              isDetailMode &&
-              !_isManager &&
-              !widget.isAssignee &&
-              isPendingStage &&
-              state.workOrder.isActive != false;
+          final bool canAssignStaff = _canAssignStaffFor(
+            statusName: statusName,
+            statusId: status,
+            isActive: isActive,
+          );
           debugPrint(
             "📢 DetailWorkOrderPage: state.workOrder.assignment = ${state.workOrder.assignment}",
           );
@@ -482,11 +498,11 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   }
 
   Widget _buildFormContent(List<WorkOrderProgressEntity>? progresses) {
-    final bool canAssignStaff =
-        isDetailMode &&
-        !_isManager &&
-        !widget.isAssignee &&
-        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
+    final bool canAssignStaff = _canAssignStaffFor(
+      statusName: statusName,
+      statusId: status ?? widget.status,
+      isActive: isActive,
+    );
 
     final formFields = (isDetailMode)
         ? FormFieldsConfig.getDetailWorkOrderFields(

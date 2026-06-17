@@ -98,7 +98,7 @@ class _StatsCard extends StatelessWidget {
                 .toList();
 
             if (areas.isEmpty) {
-              focusArea = 'All Sectors';
+              focusArea = 'No Sectors';
             } else if (areas.length == 1) {
               focusArea = areas.first;
             } else if (areas.length <= 2) {
