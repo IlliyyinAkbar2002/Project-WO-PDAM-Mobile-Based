@@ -79,8 +79,8 @@ enum MobileAccessResult { allowed, deniedRole, deniedDepartemen, deniedJabatan }
 class MobileAccess {
   MobileAccess._();
 
-  /// Role `employee` pada `m_role` (1 superadmin, 2 admin, 3 manager, 4 employee).
-  static const int employeeRoleId = 4;
+  /// Role pada `m_role` (1 superadmin, 2 admin, 3 manager, 4/5 employee/spv).
+  static const Set<int> allowedRoleIds = {4, 5};
 
   /// Departemen yang diizinkan: Operasional (1) & Pelayanan (2). Keuangan (3) ditolak.
   static const Set<int> allowedDepartemenIds = {1, 2};
@@ -97,8 +97,8 @@ class MobileAccess {
   static MobileAccessResult evaluate(Map<String, dynamic>? user) {
     if (user == null) return MobileAccessResult.deniedRole;
 
-    // Gerbang 1 — role harus employee.
-    if (_toInt(user['role_id']) != employeeRoleId) {
+    // Gerbang 1 — role harus employee/spv.
+    if (!allowedRoleIds.contains(_toInt(user['role_id']))) {
       return MobileAccessResult.deniedRole;
     }
 

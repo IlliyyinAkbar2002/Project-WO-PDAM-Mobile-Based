@@ -55,7 +55,7 @@ class MemberProgressModel extends MemberProgressEntity {
     }
 
     return MemberProgressModel(
-      userId: parseInt(map['user_id']) ?? 0,
+      userId: parseInt(map['user_id']) ?? parseInt(map['pegawai_id']) ?? parseInt(map['id']) ?? 0,
       nama: map['nama']?.toString() ?? '',
       nip: map['nip']?.toString(),
       jabatan: map['jabatan']?.toString() ?? '',

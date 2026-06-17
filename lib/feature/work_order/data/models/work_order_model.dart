@@ -39,6 +39,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.isActive,
     super.assignedToPegawaiId,
     super.statusName,
+    super.statusEnum,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -259,10 +260,39 @@ class WorkOrderModel extends WorkOrderEntity {
               : (rawIsActive.toString().toLowerCase() == 'true' ||
                     rawIsActive.toString() == '1'));
 
+    final dynamic rawStatusEnum = map['status'] ?? map['status_workorder'];
+    final String? statusEnum = rawStatusEnum is String
+        ? rawStatusEnum.trim()
+        : (rawStatusEnum is Map
+            ? (rawStatusEnum['status']?.toString().trim() ?? rawStatusEnum['name']?.toString().trim())
+            : null);
+
     final dynamic rawStatusValue = map['status'] ?? map['status_workorder'];
     final String? statusName = rawStatusValue is String
         ? (rawStatusValue.trim().isEmpty ? null : rawStatusValue.trim())
         : (rawStatusValue is Map ? rawStatusValue['status'] as String? : null);
+
+    int? resolvedStatusId = parseIdFromAny(map['status_id']) ??
+        (map['status'] is Map ? parseIdFromAny(map['status']['id']) : null) ??
+        (map['status_workorder'] is Map
+            ? parseIdFromAny(map['status_workorder']['id'])
+            : null);
+    if (resolvedStatusId == null && statusEnum != null) {
+      switch (statusEnum.trim()) {
+        case 'Pending':
+          resolvedStatusId = 12;
+          break;
+        case 'Proses':
+          resolvedStatusId = 13;
+          break;
+        case 'Selesai':
+          resolvedStatusId = 6;
+          break;
+        case 'Tutup':
+          resolvedStatusId = 17;
+          break;
+      }
+    }
 
     const startDateKeys = [
       'tanggal_mulai',
@@ -412,7 +442,7 @@ class WorkOrderModel extends WorkOrderEntity {
       creator:
           parseIdFromAny(map['created_by_user_id']) ??
           parseIdFromAny(map['pic_id']),
-      statusId: parseIdFromAny(map['status_id']),
+      statusId: resolvedStatusId,
       workOrderTypeId:
           parseIdFromAny(map['jenis_workorder_id']) ??
           parseIdFromAny(rawJenisWorkorder),
@@ -446,6 +476,7 @@ class WorkOrderModel extends WorkOrderEntity {
       isActive: isActive,
       assignedToPegawaiId: assignedToPegawaiId,
       statusName: statusName,
+      statusEnum: statusEnum,
     );
   }
 
@@ -520,6 +551,7 @@ class WorkOrderModel extends WorkOrderEntity {
       isActive: isActive,
       assignedToPegawaiId: assignedToPegawaiId,
       statusName: statusName,
+      statusEnum: statusEnum,
     );
   }
 
@@ -551,6 +583,7 @@ class WorkOrderModel extends WorkOrderEntity {
       isActive: entity.isActive,
       assignedToPegawaiId: entity.assignedToPegawaiId,
       statusName: entity.statusName,
+      statusEnum: entity.statusEnum,
     );
   }
 

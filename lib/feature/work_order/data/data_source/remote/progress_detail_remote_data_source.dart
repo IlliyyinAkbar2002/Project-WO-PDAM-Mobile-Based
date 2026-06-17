@@ -41,7 +41,7 @@ class ProgressDetailRemoteDataSource extends RemoteDatasource {
     try {
       // Use parent class's get() method which includes auth headers
       final response = await get(
-        path: '/v1/detail-progress',
+        path: '/v1/progress-detail',
         queryParameters: {'progress_workorder_id': workOrderProgressId},
       );
       final data = _extractProgressDetails(response.data);
@@ -50,7 +50,7 @@ class ProgressDetailRemoteDataSource extends RemoteDatasource {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/detail-progress'),
+          requestOptions: RequestOptions(path: '/v1/progress-detail'),
         ),
       );
     }
@@ -61,26 +61,27 @@ class ProgressDetailRemoteDataSource extends RemoteDatasource {
   ) async {
     try {
       // Use parent class's get() method which includes auth headers
-      final response = await get(path: '/v1/detail-progress/$id');
+      final response = await get(path: '/v1/progress-detail/$id');
       final data = ProgressDetailModel.fromMap(response.data);
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/detail-progress/$id'),
+          requestOptions: RequestOptions(path: '/v1/progress-detail/$id'),
         ),
       );
     }
   }
 
+  @Deprecated('Use ProgressWorkorderController review API instead')
   Future<DataState<ProgressDetailModel>> updateProgressDetail(
     ProgressDetailModel progressDetail,
   ) async {
     try {
       // Use parent class's put() method which includes auth headers
       final response = await put(
-        path: '/v1/detail-progress/${progressDetail.id}',
+        path: '/v1/progress-detail/${progressDetail.id}',
         data: progressDetail.toMap(),
       );
       final data = ProgressDetailModel.fromMap(response.data);
@@ -90,7 +91,7 @@ class ProgressDetailRemoteDataSource extends RemoteDatasource {
         DioException(
           error: e,
           requestOptions: RequestOptions(
-            path: '/v1/detail-progress/${progressDetail.id}',
+            path: '/v1/progress-detail/${progressDetail.id}',
           ),
         ),
       );

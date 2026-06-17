@@ -67,11 +67,13 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
         map['tipeProgress']['kode']?.toString(),
       );
     } else if (map['tipe_progress'] != null) {
-      final legacy = map['tipe_progress'].toString();
-      if (legacy == 'Mulai') {
+      final legacy = map['tipe_progress'].toString().toLowerCase().trim();
+      if (legacy == 'mulai') {
         tipeProgressId = TipeProgressId.mulai;
-      } else if (legacy == 'Selesai') {
+      } else if (legacy == 'selesai') {
         tipeProgressId = TipeProgressId.selesai;
+      } else if (legacy == 'inpeksi' || legacy == 'inspeksi') {
+        tipeProgressId = TipeProgressId.inspeksi;
       } else {
         tipeProgressId = TipeProgressId.progress;
       }
@@ -84,11 +86,66 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
           : int.tryParse(map['status_id'].toString());
     }
 
+    if (statusId == null) {
+      final dynamic rawLatest = map['latest_detail'] ?? map['latestDetail'];
+      Map<String, dynamic>? latestDetailMap;
+      if (rawLatest is Map) {
+        latestDetailMap = Map<String, dynamic>.from(rawLatest);
+      } else {
+        final dynamic rawDetails = map['progress_details'] ?? map['detail_progress'] ?? map['progressDetails'];
+        if (rawDetails is List && rawDetails.isNotEmpty) {
+          final last = rawDetails.last;
+          if (last is Map) {
+            latestDetailMap = Map<String, dynamic>.from(last);
+          }
+        }
+      }
+
+      if (latestDetailMap != null) {
+        final detailStatus = latestDetailMap['status']?.toString().toLowerCase();
+        if (detailStatus == 'approved') {
+          statusId = ProgressStatusId.verified; // 11
+        } else if (detailStatus == 'rejected') {
+          statusId = ProgressStatusId.revisiRequested; // 14
+        } else if (detailStatus == 'pending') {
+          statusId = ProgressStatusId.submitted; // 10
+        }
+      }
+
+      if (map['waktu_submit'] == null) {
+        statusId = ProgressStatusId.dibatalkan; // 18
+      } else if (statusId == null) {
+        if (tipeProgressId == TipeProgressId.selesai) {
+          statusId = ProgressStatusId.submitted; // 10
+        } else {
+          statusId = ProgressStatusId.verified; // 11
+        }
+      }
+    }
+
     int? submittedBy;
     if (map['submitted_by_user_id'] != null) {
       submittedBy = map['submitted_by_user_id'] is int
           ? map['submitted_by_user_id']
           : int.tryParse(map['submitted_by_user_id'].toString());
+    } else if (map['submitted_by_pegawai_id'] != null) {
+      submittedBy = map['submitted_by_pegawai_id'] is int
+          ? map['submitted_by_pegawai_id']
+          : int.tryParse(map['submitted_by_pegawai_id'].toString());
+    }
+
+    final dynamic rawDetails = map['progress_details'] ?? map['detail_progress'] ?? map['progressDetails'];
+    List<ProgressDetailModel>? parsedDetails;
+    if (rawDetails is List) {
+      parsedDetails = rawDetails
+          .whereType<Map>()
+          .map((detail) => ProgressDetailModel.fromMap(Map<String, dynamic>.from(detail)))
+          .toList();
+    } else {
+      final dynamic rawLatest = map['latest_detail'] ?? map['latestDetail'];
+      if (rawLatest is Map) {
+        parsedDetails = [ProgressDetailModel.fromMap(Map<String, dynamic>.from(rawLatest))];
+      }
     }
 
     return WorkOrderProgressModel(
@@ -109,13 +166,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       submitTime: parseUtcDateTime(map['waktu_submit']),
       createdAt: parseUtcDateTime(map['created_at']),
       updatedAt: parseUtcDateTime(map['updated_at']),
-      progressDetails: map['detail_progress'] != null
-          ? List<ProgressDetailModel>.from(
-              map['detail_progress'].map(
-                (detail) => ProgressDetailModel.fromMap(detail),
-              ),
-            )
-          : null,
+      progressDetails: parsedDetails,
       tahapan: map['tahapan'] != null
           ? (map['tahapan'] is int
                 ? map['tahapan']

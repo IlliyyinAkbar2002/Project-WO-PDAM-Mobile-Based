@@ -166,7 +166,7 @@ class _NavigationGrid extends StatelessWidget {
         onTap: () {
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
-          if (roleId != 4) {
+          if (roleId != 4 && roleId != 5) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text(

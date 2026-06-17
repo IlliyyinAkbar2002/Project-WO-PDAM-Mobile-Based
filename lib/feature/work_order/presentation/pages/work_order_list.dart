@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
@@ -273,10 +274,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         typeColor = color.success;
     }
 
-    final status = workOrder.status?.status ?? workOrder.statusName;
-    final statusColor =
-        color.status[workOrder.status?.id ?? workOrder.statusId] ??
-        color.primary[100]!;
+    final status = WorkOrderStatusHelper.getLabel(workOrder);
+    final statusColor = WorkOrderStatusHelper.getColor(workOrder, color);
 
     return Wrap(
       spacing: 4,
@@ -287,7 +286,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         // if (workOrder.departemenNama != null &&
         //     workOrder.departemenNama!.isNotEmpty)
         //   _buildChip(workOrder.departemenNama!, const Color(0xFF0EA5E9)),
-        if (status != null && status.isNotEmpty)
+        if (status.isNotEmpty && status != '-')
           _buildChip(status, statusColor),
         if (workOrder.isActive == false)
           _buildChip('Nonaktif', const Color(0xFF94A3B8)),

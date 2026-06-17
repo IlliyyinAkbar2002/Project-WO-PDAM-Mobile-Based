@@ -42,11 +42,28 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     String? search,
   ) async {
     try {
+      String? statusStr;
+      if (status != null && status.isNotEmpty) {
+        final firstId = status.first;
+        if (firstId == 12) {
+          statusStr = 'Pending';
+        } else if (firstId == 13 || firstId == 7 || firstId == 5) {
+          statusStr = 'Proses';
+        } else if (firstId == 6) {
+          statusStr = 'Selesai';
+        } else if (firstId == 17) {
+          statusStr = 'Tutup';
+        }
+      } else if (excludeStatus != null && excludeStatus.isNotEmpty) {
+        if (excludeStatus.contains(12) && excludeStatus.contains(6)) {
+          statusStr = 'Proses';
+        }
+      }
+
       final queryParameters = {
         'page': page,
         'limit': limit,
-        if (status != null) 'status': status.join(','),
-        if (excludeStatus != null) 'exclude_status': excludeStatus.join(','),
+        if (statusStr != null) 'status': statusStr,
         if (picId != null) 'pic_id': picId,
         if (userId != null) 'user_id': userId,
         if (type != null) 'type': type,
@@ -214,7 +231,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     try {
       final petugas = staffIds.asMap().entries.map((entry) {
         return {
-          'user_id': entry.value,
+          'pegawai_id': entry.value,
           'peran': entry.key == 0 ? 'koordinator' : 'anggota',
         };
       }).toList();

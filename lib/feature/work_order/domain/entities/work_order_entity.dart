@@ -29,6 +29,7 @@ class WorkOrderEntity extends Equatable {
   final bool? isActive;
   final int? assignedToPegawaiId;
   final String? statusName;
+  final String? statusEnum;
   final String? kategoriForm;
   final Map<String, dynamic>? detailKategori;
   final String? prioritas;
@@ -67,6 +68,7 @@ class WorkOrderEntity extends Equatable {
     this.isActive,
     this.assignedToPegawaiId,
     this.statusName,
+    this.statusEnum,
   });
 
   bool get isLembur => splId != null;
@@ -102,6 +104,7 @@ class WorkOrderEntity extends Equatable {
     isActive,
     assignedToPegawaiId,
     statusName,
+    statusEnum,
   ];
 
   WorkOrderEntity copyWith({
@@ -134,6 +137,7 @@ class WorkOrderEntity extends Equatable {
     bool? isActive,
     int? assignedToPegawaiId,
     String? statusName,
+    String? statusEnum,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -165,6 +169,7 @@ class WorkOrderEntity extends Equatable {
       isActive: isActive ?? this.isActive,
       assignedToPegawaiId: assignedToPegawaiId ?? this.assignedToPegawaiId,
       statusName: statusName ?? this.statusName,
+      statusEnum: statusEnum ?? this.statusEnum,
     );
   }
 }
