@@ -92,45 +92,70 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     return (name: name, npp: npp, jabatan: jabatan);
   }
 
-  List<int>? _assignableJabatanIds() {
+  /// Departemen pemohon (SPV) untuk men-scope picker anggota lembur. Anggota
+  /// WAJIB sedepartemen dengan pemohon (gate BE store). `normalizeLoginUser`
+  /// menaruh `departemen_id` di top-level; fallback ke nested `employee`.
+  int? _callerDepartemenId() {
     final user = AuthStorage.getUserSync();
     final employee = user?['employee'];
-    final dynamic rawPositionId = (employee is Map)
-        ? employee['position_id']
-        : null;
-    final int? callerJabatanId = rawPositionId is int
-        ? rawPositionId
-        : int.tryParse(rawPositionId?.toString() ?? '');
-    if (callerJabatanId == null) return null;
-    const int lookahead = 20;
-    return List<int>.generate(
-      lookahead,
-      (index) => callerJabatanId + index + 1,
-    );
+    final dynamic raw =
+        user?['departemen_id'] ??
+        (employee is Map
+            ? (employee['department_id'] ?? employee['departemen_id'])
+            : null);
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+  }
+
+  /// Hanya pegawai berjabatan Staff/Staff Senior yang valid sebagai anggota
+  /// lembur (gate BE store; nama jabatan persis 'Staff'/'Staff Senior').
+  /// Departemen sudah disaring server via `departemen_id`; jabatan disaring di
+  /// sini agar SPV/Manajer sedepartemen tidak ikut tampil. Validasi final tetap
+  /// di BE saat submit.
+  List<UserEntity> _filterEligibleMembers(List<UserEntity> users) {
+    const allowed = {'staff', 'staff senior'};
+    return users.where((u) {
+      final jabatan = u.employee?.jabatan?.trim().toLowerCase();
+      return jabatan != null && allowed.contains(jabatan);
+    }).toList();
   }
 
   Future<void> _loadWorkOrders() async {
     setState(() => _loadingWorkOrders = true);
     try {
-      // final user = AuthStorage.getUserSync();
-
       final usecase = sl<GetWorkOrdersUseCase>();
       final result = await usecase(
         WorkOrderParams(
           page: 1,
           limit: 100,
+          // status_id 12 → BE memfilter status string 'Pending'.
           status: const [WorkOrderStatusId.ditugaskanKeSpv],
         ),
       );
 
+      List<WorkOrderEntity>? data;
       if (result is DataSuccess<List<WorkOrderEntity>>) {
-        setState(() {
-          _availableWorkOrders = result.data ?? [];
-        });
+        data = result.data;
       } else if (result is PaginatedDataSuccess<List<WorkOrderEntity>>) {
-        setState(() {
-          _availableWorkOrders = result.data ?? [];
-        });
+        data = result.data;
+      }
+
+      if (data != null) {
+        // Saring ke WO milik SPV yang login & belum punya pengajuan lembur.
+        // BE store (LemburSplController@store) menolak: assigned_to != pegawai
+        // SPV (403), status != 'Pending' (422, sudah difilter server), atau
+        // lembur_spl_id sudah terisi (422). Filter assigned_to dilakukan
+        // FE-side karena WorkorderController@index mengabaikan pic_id/user_id.
+        final myPegawaiId = AuthStorage.getUserSync()?['pegawai_id'] as int?;
+        final filtered = (myPegawaiId == null)
+            ? const <WorkOrderEntity>[]
+            : data
+                  .where(
+                    (wo) =>
+                        wo.assignedToPegawaiId == myPegawaiId &&
+                        wo.splId == null,
+                  )
+                  .toList();
+        setState(() => _availableWorkOrders = filtered);
       }
     } catch (e) {
       debugPrint("Error loading work orders: $e");
@@ -151,7 +176,10 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
       final bloc = context.read<WorkOrderBloc>();
       if (!_usersRequested) {
         _usersRequested = true;
-        bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds()));
+        // Scope picker ke departemen pemohon agar BE tidak menolak anggota
+        // lintas-departemen (422). Jabatan disaring FE-side via
+        // _filterEligibleMembers (lihat listener UsersLoaded).
+        bloc.add(GetUsersEvent(departemenId: _callerDepartemenId()));
       }
     });
   }
@@ -572,7 +600,21 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         '${_tanggalLembur!.year.toString().padLeft(4, '0')}-${_tanggalLembur!.month.toString().padLeft(2, '0')}-${_tanggalLembur!.day.toString().padLeft(2, '0')}';
     final jamMulai =
         '${_jamMulai!.hour.toString().padLeft(2, '0')}:${_jamMulai!.minute.toString().padLeft(2, '0')}';
-    final memberIds = _selectedMembers
+    // KONTRAK members = pegawai_id (m_pegawai.id). UserModel.id dari
+    // /v1/pegawai/filter MEMANG pegawai_id (PegawaiController@getPegawaiByFilter
+    // mengembalikan id = pegawai.id), dan BE lembur (pegawai-centric)
+    // memvalidasi members.* sebagai exists:m_pegawai,id. JANGAN ubah ke users.id.
+    //
+    // KOORDINATOR/PIC: BE TIDAK membaca koordinator_user_id. PIC = anggota
+    // PERTAMA pada urutan insert (LemburApprovalService::attachMembers
+    // sortBy('id') = urutan insert = urutan array members). Maka koordinator
+    // terpilih diletakkan paling depan; .toSet() (LinkedHashSet) mempertahankan
+    // urutan saat dedup.
+    final orderedMembers = <UserEntity>[
+      ..._selectedMembers.where((u) => u.id == _koordinatorUserId),
+      ..._selectedMembers.where((u) => u.id != _koordinatorUserId),
+    ];
+    final memberIds = orderedMembers
         .map((u) => u.id)
         .whereType<int>()
         .toSet()
@@ -734,7 +776,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         listener: (context, state) {
           if (state is UsersLoaded) {
             setState(() {
-              _availableUsers = state.users;
+              _availableUsers = _filterEligibleMembers(state.users);
               // Drop selections that no longer exist in the latest list.
               _selectedMembers.removeWhere(
                 (u) => !_availableUsers.any((au) => au.id == u.id),

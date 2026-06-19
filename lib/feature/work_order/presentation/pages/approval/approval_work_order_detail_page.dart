@@ -48,10 +48,13 @@ class _ApprovalWorkOrderDetailPageState
 
   void _onSubmit(String action) {
     final isAccept = action == 'Accept';
+    // Kontrak BE TARGET (MergerManual) PUT /v1/lembur-spl/{id} mewajibkan
+    // `status` enum ('approved'/'rejected'), bukan `status_id`. Lihat
+    // SplModel.toMap().
     final approval = SplModel(
       id: widget.splId,
-      statusId: isAccept ? 2 : 4,
-      decision: isAccept ? 'accept' : 'reject',
+      statusCode: isAccept ? 'approved' : 'rejected',
+      // verifikator_id = users.id approver (nullable di BE).
       verificatorId: widget.userId,
     );
 
