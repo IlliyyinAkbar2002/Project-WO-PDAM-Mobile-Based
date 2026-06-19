@@ -140,7 +140,37 @@ class _AssigneeWorkOrderDetailPageState
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
+    // Muat detail WO (termasuk assignment: koordinat & lokasi) supaya titik
+    // peta bisa diteruskan ke WorkOrderReportPage. lngLat dari daftar WO kosong
+    // karena endpoint index BE tidak menyertakan assignment.
+    if (widget.workOrderId != null) {
+      workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+    }
   }
+
+  /// Titik peta WO. Prioritaskan nilai dari konstruktor (daftar WO); bila kosong
+  /// — yang terjadi pada BE terintegrasi karena index tidak memuat assignment —
+  /// ambil dari assignment hasil fetch detail.
+  LatLng? get _resolvedLngLat {
+    if (widget.lngLat != null) return widget.lngLat;
+    final assignment = _workOrder?.assignment;
+    final double? lat = assignment?.latitude ?? assignment?.location?.latitude;
+    final double? lng =
+        assignment?.longitude ?? assignment?.location?.longitude;
+    if (lat != null && lng != null) return LatLng(lat, lng);
+    return null;
+  }
+
+  String? get _resolvedLocationName =>
+      widget.locationName ?? _workOrder?.assignment?.location?.nama;
+
+  int get _resolvedRadiusMeter =>
+      _workOrder?.assignment?.location?.radiusMeter ?? widget.radiusMeter;
+
+  /// Status WO terkini. `widget.status` dibekukan saat halaman dibuka, sehingga
+  /// basi setelah staf submit "Selesai" (status BE berpindah ke pengecekan).
+  /// Utamakan `statusId` dari detail WO yang ikut ter-refresh lewat WorkOrderBloc.
+  int? get _liveStatus => _workOrder?.statusId ?? widget.status;
 
   /// Fetch progresses directly from remote data source — bypass BLoC
   /// to avoid race condition with shared WorkOrderBloc state.
@@ -292,9 +322,11 @@ class _AssigneeWorkOrderDetailPageState
               ],
             ),
           ],
-          if (hasSelesai &&
-              (widget.status == WorkOrderStatusId.pengecekan ||
-                  widget.status == WorkOrderStatusId.selesai)) ...[
+          // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
+          // ke status WO numerik (5/6): BE terintegrasi memakai status string
+          // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
+          // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
+          if (hasSelesai) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -469,14 +501,14 @@ class _AssigneeWorkOrderDetailPageState
               MaterialPageRoute(
                 builder: (_) => WorkOrderReportPage(
                   mode: progress.progressType ?? '-',
-                  status: widget.status,
+                  status: _liveStatus,
                   isAssignee: widget.isAssignee,
                   progressId: progress.id,
                   workOrderId: widget.workOrderId,
                   workOrderTypeId: widget.workOrderTypeId,
-                  lngLat: widget.lngLat,
-                  locationName: widget.locationName,
-                  radiusMeter: widget.radiusMeter,
+                  lngLat: _resolvedLngLat,
+                  locationName: _resolvedLocationName,
+                  radiusMeter: _resolvedRadiusMeter,
                   kategoriForm: widget.kategoriForm,
                   initialKategoriData: _workOrder != null
                       ? _buildKategoriFormData(_workOrder!)
@@ -657,14 +689,14 @@ class _AssigneeWorkOrderDetailPageState
           MaterialPageRoute(
             builder: (_) => WorkOrderReportPage(
               mode: reportMode,
-              status: widget.status,
+              status: _liveStatus,
               isAssignee: widget.isAssignee,
               progressId: null,
               workOrderId: widget.workOrderId,
               workOrderTypeId: widget.workOrderTypeId,
-              lngLat: widget.lngLat,
-              locationName: widget.locationName,
-              radiusMeter: widget.radiusMeter,
+              lngLat: _resolvedLngLat,
+              locationName: _resolvedLocationName,
+              radiusMeter: _resolvedRadiusMeter,
               kategoriForm: widget.kategoriForm,
               initialKategoriData: _workOrder != null
                   ? _buildKategoriFormData(_workOrder!)

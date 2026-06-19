@@ -148,13 +148,13 @@ class _LandingPageHeader extends StatelessWidget {
                           );
                           if (context.mounted) {
                             final user = AuthStorage.getUserSync();
-                            final userId = user?['id'] as int?;
+                            final pegawaiId = user?['pegawai_id'] as int?;
                             final isSpv =
                                 AuthStorage.getJabatanKodeSync() == 'SPV';
                             context.read<WorkOrderBloc>().add(
                               GetWorkOrdersEvent(
-                                userId: isSpv ? null : userId,
-                                picId: isSpv ? userId : null,
+                                userId: isSpv ? null : pegawaiId,
+                                picId: isSpv ? pegawaiId : null,
                               ),
                             );
                           }
@@ -346,12 +346,12 @@ class _LandingPageHeader extends StatelessWidget {
                   );
                   if (context.mounted) {
                     final user = AuthStorage.getUserSync();
-                    final userId = user?['id'] as int?;
+                    final pegawaiId = user?['pegawai_id'] as int?;
                     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
                     context.read<WorkOrderBloc>().add(
                       GetWorkOrdersEvent(
-                        userId: isSpv ? null : userId,
-                        picId: isSpv ? userId : null,
+                        userId: isSpv ? null : pegawaiId,
+                        picId: isSpv ? pegawaiId : null,
                       ),
                     );
                   }

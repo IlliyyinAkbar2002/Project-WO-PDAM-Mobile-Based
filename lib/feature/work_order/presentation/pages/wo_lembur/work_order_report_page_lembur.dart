@@ -376,6 +376,12 @@ class _WorkOrderReportPageLemburState
                   : _getOptionIdFromValue(detail);
             }
 
+            // kategori_data (tindakan_perbaikan, hasil_inspeksi, dll) tersimpan
+            // terpisah dari progress_detail. Tanpa merge ini, field kategori
+            // pada form Selesai (jaringan/infrastruktur/meter) tidak terisi.
+            final kategoriData =
+                firstElement.workOrderProgress?.kategoriData;
+
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
@@ -388,6 +394,9 @@ class _WorkOrderReportPageLemburState
                 } else {
                   _descriptionController.text = description;
                   _formData = formData;
+                  if (kategoriData != null) {
+                    _formData.addAll(kategoriData);
+                  }
                   _images = images;
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;

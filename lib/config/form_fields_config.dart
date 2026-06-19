@@ -183,6 +183,7 @@ class FormFieldsConfig {
           "key": "diameter_pipa",
           "label": "Diameter Pipa (inch)",
           "hint": "Contoh: 4",
+          "keyboardType": "number",
           "isReadOnly": isReadOnly,
         },
         {
@@ -294,6 +295,7 @@ class FormFieldsConfig {
           "label": "Jadwal Pemeliharaan Selanjutnya",
           "hint": "Pilih tanggal",
           "isReadOnly": isReadOnly,
+          "noPast": true,
         },
         {
           "type": "textarea",

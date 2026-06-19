@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 
 enum InputType { text, dropdown }
@@ -12,6 +13,7 @@ class CustomForm<T> extends StatefulWidget {
   final int? minLines;
   final int? maxLines;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final FocusNode? focusNode;
   final bool enabled;
   final bool readOnly;
@@ -39,6 +41,7 @@ class CustomForm<T> extends StatefulWidget {
     this.minLines,
     this.maxLines,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
     this.focusNode,
     this.enabled = true,
     this.readOnly = false,
@@ -146,6 +149,7 @@ class _CustomFormState<T> extends AppStatePage<CustomForm<T>> {
                         minLines: widget.minLines,
                         maxLines: widget.maxLines,
                         keyboardType: widget.keyboardType,
+                        inputFormatters: widget.inputFormatters,
                         controller: widget.controller,
                         validator: widget.validator,
                         onTap: widget.onTap,

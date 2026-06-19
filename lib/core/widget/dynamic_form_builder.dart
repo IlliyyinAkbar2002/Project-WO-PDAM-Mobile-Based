@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -99,12 +100,18 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
 
             switch (field["type"]) {
               case "text":
+                final bool isNumeric = field["keyboardType"] == "number";
                 return Column(
                   children: [
                     CustomForm(
                       hintText: field["hint"] ?? "",
                       labelText: field["label"] ?? "",
-                      keyboardType: TextInputType.text,
+                      keyboardType: isNumeric
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.text,
+                      inputFormatters: isNumeric
+                          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]
+                          : null,
                       controller: _controllers[field["key"]],
                       readOnly: isReadOnly || widget.readOnly,
                       onChanged: (value) {
@@ -190,7 +197,10 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                       enabled: !isDisabled && !widget.readOnly,
                       onTap: (isReadOnly)
                           ? null
-                          : () => _selectDate(field["key"]),
+                          : () => _selectDate(
+                              field["key"],
+                              noPast: field["noPast"] == true,
+                            ),
                     ),
                     const SizedBox(height: 10),
                   ],
@@ -289,14 +299,25 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
     );
   }
 
-  Future<void> _selectDate(String fieldKey) async {
+  Future<void> _selectDate(String fieldKey, {bool noPast = false}) async {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime firstDate = noPast
+        ? today
+        : DateTime(now.year - 10);
+
+    DateTime initialDate = widget.formData[fieldKey] is DateTime
+        ? widget.formData[fieldKey]
+        : now;
+    if (initialDate.isBefore(firstDate)) {
+      initialDate = firstDate;
+    }
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: widget.formData[fieldKey] is DateTime
-          ? widget.formData[fieldKey]
-          : DateTime.now(),
-      firstDate: DateTime(DateTime.now().year - 10),
-      lastDate: DateTime(DateTime.now().year + 10),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: DateTime(now.year + 10),
     );
 
     if (pickedDate != null) {

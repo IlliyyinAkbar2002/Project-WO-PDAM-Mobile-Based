@@ -375,6 +375,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   : _getOptionIdFromValue(detail);
             }
 
+            // kategori_data (tindakan_perbaikan, hasil_inspeksi, dll) tersimpan
+            // terpisah dari progress_detail. Tanpa merge ini, field kategori
+            // pada form Selesai (jaringan/infrastruktur/meter) tidak terisi.
+            final kategoriData =
+                progressDetails.first.workOrderProgress?.kategoriData;
+
             // Schedule setState setelah frame selesai untuk menghindari blocking
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -388,6 +394,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 } else {
                   _descriptionController.text = description;
                   _formData = formData;
+                  if (kategoriData != null) {
+                    _formData.addAll(kategoriData);
+                  }
                   _images = images;
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;
@@ -598,12 +607,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                                         color:
                                                             widget.mode ==
                                                                 'Selesai'
-                                                            ? (widget.status ==
-                                                                      7
-                                                                  ? color
-                                                                        .foreground[100]
-                                                                  : color
-                                                                        .primary[500])
+                                                            ? color
+                                                                  .foreground[100]
                                                             : color
                                                                   .primary[500],
                                                       ),
@@ -644,7 +649,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                           backgroundColor: color.status[2],
                                         ),
                                         onPressed: () => _onReview('accept'),
-                                        child: const Text('Terima', style: TextStyle(
+                                        child: const Text(
+                                          'Terima',
+                                          style: TextStyle(
                                             color: Color(0xFF000080),
                                           ),
                                         ),
@@ -708,11 +715,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
 
       final currentUser = AuthStorage.getUserSync();
-      final currentUserIdStr = currentUser?['id']?.toString();
-      final picIdStr = state.workOrder.assignment?.assigneeId?.toString();
+      final currentPegawaiIdStr = currentUser?['pegawai_id']?.toString();
+      final picPegawaiIdStr = state.workOrder.assignment?.assignee?.id
+          ?.toString();
 
-      if (picIdStr != null && currentUserIdStr != null) {
-        isPic = currentUserIdStr == picIdStr;
+      if (picPegawaiIdStr != null && currentPegawaiIdStr != null) {
+        isPic = currentPegawaiIdStr == picPegawaiIdStr;
       }
     }
 
@@ -918,6 +926,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           }
           if ((_formData['diameter_pipa'] ?? '').toString().trim().isEmpty) {
             AppSnackbar.showError("Diameter Pipa tidak boleh kosong.");
+            return;
+          }
+          if (double.tryParse(
+                (_formData['diameter_pipa'] ?? '').toString().trim(),
+              ) ==
+              null) {
+            AppSnackbar.showError("Diameter Pipa harus berupa angka.");
             return;
           }
           if ((_formData['panjang_pipa'] ?? '').toString().trim().isEmpty) {

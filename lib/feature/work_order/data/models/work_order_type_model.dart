@@ -15,7 +15,7 @@ class WorkOrderTypeModel extends WorkOrderTypeEntity {
     return WorkOrderTypeModel(
       id: map['id'],
       name: map['nama'] ?? 'Unknown',
-      kategoriForm: map['kategori_form'] as String?,
+      kategoriForm: (map['kategori_form'] ?? map['kategori']) as String?,
     );
   }
 

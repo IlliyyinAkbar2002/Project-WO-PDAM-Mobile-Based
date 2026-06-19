@@ -264,15 +264,17 @@ class WorkOrderModel extends WorkOrderEntity {
     final String? statusEnum = rawStatusEnum is String
         ? rawStatusEnum.trim()
         : (rawStatusEnum is Map
-            ? (rawStatusEnum['status']?.toString().trim() ?? rawStatusEnum['name']?.toString().trim())
-            : null);
+              ? (rawStatusEnum['status']?.toString().trim() ??
+                    rawStatusEnum['name']?.toString().trim())
+              : null);
 
     final dynamic rawStatusValue = map['status'] ?? map['status_workorder'];
     final String? statusName = rawStatusValue is String
         ? (rawStatusValue.trim().isEmpty ? null : rawStatusValue.trim())
         : (rawStatusValue is Map ? rawStatusValue['status'] as String? : null);
 
-    int? resolvedStatusId = parseIdFromAny(map['status_id']) ??
+    int? resolvedStatusId =
+        parseIdFromAny(map['status_id']) ??
         (map['status'] is Map ? parseIdFromAny(map['status']['id']) : null) ??
         (map['status_workorder'] is Map
             ? parseIdFromAny(map['status_workorder']['id'])
@@ -607,9 +609,18 @@ class WorkOrderModel extends WorkOrderEntity {
     Map<String, dynamic> map,
     dynamic rawJenisWorkorder,
   ) {
-    if (map['wo_jaringan'] != null) return 'jaringan';
-    if (map['wo_infrastruktur'] != null) return 'infrastruktur';
-    if (map['wo_meter'] != null) return 'meter';
+    if (map['jaringan'] != null) return 'jaringan';
+    if (map['infrastruktur'] != null) return 'infrastruktur';
+    if (map['meter'] != null) return 'meter';
+
+    if (map['kategori'] is String) {
+      final k = map['kategori'] as String;
+      if (k == 'jaringan' || k == 'infrastruktur' || k == 'meter') return k;
+    }
+    if (rawJenisWorkorder is Map && rawJenisWorkorder['kategori'] is String) {
+      final k = rawJenisWorkorder['kategori'] as String;
+      if (k == 'jaringan' || k == 'infrastruktur' || k == 'meter') return k;
+    }
 
     if (map['kategori_form'] is String) {
       return map['kategori_form'] as String;

@@ -107,6 +107,18 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       final Map<String, dynamic> payload = _extractWorkOrderPayload(
         response.data,
       );
+
+      if (payload['workorder_assignment'] == null &&
+          payload['work_order_assignment'] == null &&
+          payload['assignment'] == null) {
+        final Map<String, dynamic>? assignmentMap = await _fetchAssignmentMap(
+          id,
+        );
+        if (assignmentMap != null) {
+          payload['workorder_assignment'] = assignmentMap;
+        }
+      }
+
       final data = WorkOrderModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
@@ -117,6 +129,22 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         ),
       );
     }
+  }
+
+  
+  Future<Map<String, dynamic>?> _fetchAssignmentMap(int id) async {
+    try {
+      final response = await get(path: '/v1/workorder/$id/assignment');
+      final dynamic raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        final dynamic data = raw['data'];
+        if (data is Map) return Map<String, dynamic>.from(data);
+        if (raw.containsKey('id')) return Map<String, dynamic>.from(raw);
+      }
+    } catch (e) {
+      debugPrint('ℹ️ fetchWorkOrderDetail: assignment WO $id tidak tersedia: $e');
+    }
+    return null;
   }
 
   Future<DataState<WorkOrderModel>> createWorkOrder(
@@ -173,10 +201,6 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     WorkOrderModel workOrder,
   ) async {
     try {
-      // BE rute resmi: PUT /v1/workorder/{id} (lihat FE_adjustment_BE.md §3).
-      // Sebelumnya kita masih nge-hit `/v1/mobile/workorder/{id}` yang sudah
-      // tidak ada di routes Laravel — selalu 404. Diluruskan ke endpoint
-      // canonical-nya.
       final response = await put(
         path: '/v1/workorder/${workOrder.id}',
         data: workOrder.toMap(),

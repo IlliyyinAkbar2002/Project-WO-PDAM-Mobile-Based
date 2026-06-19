@@ -80,6 +80,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
         return Icons.fact_check_rounded;
       case NotificationKind.materialReturnSubmitted:
         return Icons.inventory_2_rounded;
+      case NotificationKind.materialReturnVerified:
+        return Icons.inventory_rounded;
+      case NotificationKind.woLemburApproved:
+        return Icons.more_time_rounded;
       case NotificationKind.unknown:
         return Icons.notifications_rounded;
     }
@@ -103,6 +107,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case NotificationKind.woCreated:
       case NotificationKind.woAssigned:
       case NotificationKind.woReadyForReview:
+      case NotificationKind.materialReturnVerified:
+      case NotificationKind.woLemburApproved:
+        // Semua bermuara ke detail WO terkait. Untuk WO lembur,
+        // _openWorkOrderDetail otomatis membuka layar lembur (isLembur).
         await _openWorkOrderDetail(context, n.data.workOrderId);
         return;
 
@@ -164,7 +172,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final user = AuthStorage.getUserSync();
       final roleId = user?['role_id'] as int?;
       final jabatanKode = AuthStorage.getJabatanKodeSync();
-      final isStaff = (roleId == 4 || roleId == 5) && jabatanKode != 'SPV';
+      // Skema MergerManual: pegawai = role_id 4 (lapangan), dibedakan via jabatan.
+      // Staff = pegawai non-SPV (Staff / Staff Senior).
+      final isStaff = roleId == 4 && jabatanKode != 'SPV';
 
       final lngLat = workOrder.assignment?.latitude != null
           ? LatLng(
