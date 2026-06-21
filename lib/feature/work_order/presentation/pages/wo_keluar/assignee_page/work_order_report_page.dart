@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -78,6 +79,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool get _isAlreadyRecorded =>
       widget.isAssignee && widget.progressId != null && !isRejected;
 
+  /// Geofence hanya digate untuk staff yang sedang menyubmit progress dan WO
+  /// punya titik lokasi. Mode review/detail (SPV) atau WO tanpa titik tidak
+  /// digate.
+  bool get _shouldGateGeofence =>
+      widget.isAssignee && widget.lngLat != null && !isDetailMode;
+
   String get _submitInProgressMessage {
     switch (widget.mode) {
       case 'Mulai':
@@ -102,6 +109,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _hasClosedAfterSubmit = false;
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
+  final GeofenceService _geofence = sl<GeofenceService>();
+
+  /// Status geofence untuk banner UX. `_withinRange` null = belum/ gagal cek.
+  bool? _withinRange;
+  double? _lastDistanceMeters;
+  bool _poorAccuracy = false;
+  String? _geoStatusError;
   int? _selectedTahapan;
 
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
@@ -219,15 +233,17 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         setState(() {
           _progressDetails = [];
           isDataLoaded = true;
-          _isCheckingDistance = false;
+          _isCheckingDistance = _shouldGateGeofence;
         });
+        if (_shouldGateGeofence) _checkDistance();
         return;
       }
 
       setState(() {
         isDataLoaded = true;
-        _isCheckingDistance = false;
+        _isCheckingDistance = _shouldGateGeofence;
       });
+      if (_shouldGateGeofence) _checkDistance();
       return;
     }
 
@@ -242,7 +258,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
     }
 
-    if (widget.mode == 'Mulai' && widget.lngLat != null && widget.isAssignee) {
+    if (_shouldGateGeofence) {
       _checkDistance();
     } else {
       setState(() {
@@ -487,7 +503,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 ? specificLabels[_selectedTahapan! - 1]
                 : "Persiapan";
 
-            return !isDataLoaded || _isCheckingDistance
+            // Spinner penuh hanya saat memuat data; pengecekan geofence
+            // ditampilkan via banner agar form tetap terlihat (mis. tombol
+            // "Periksa ulang" tidak menghilang).
+            return !isDataLoaded
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -495,7 +514,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                         const CircularProgressIndicator(),
                         const SizedBox(height: 12),
                         Text(
-                          "Pengecekan lokasi...",
+                          "Memuat data...",
                           style: textTheme.titleLarge?.copyWith(
                             color: color.primary[500],
                           ),
@@ -510,6 +529,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       child: Column(
                         children: [
                           if (widget.lngLat != null) _buildLocationMap(),
+                          if (_shouldGateGeofence) ...[
+                            const SizedBox(height: 8),
+                            _buildGeofenceStatus(),
+                          ],
                           const SizedBox(height: 16),
 
                           Padding(
@@ -1025,45 +1048,66 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         _hasClosedAfterSubmit = false;
       });
 
-      // Pastikan lokasi diambil untuk semua mode submit jika belum ada
-      if (_currentPosition == null) {
+      // === Geofence gate ===
+      // Ambil posisi SEGAR (preferFresh) agar perubahan mock GPS terbaca, lalu
+      // tolak submit bila di luar radius. Posisi disimpan untuk payload BE
+      // (latitude/longitude/accuracy) — kontrak tidak berubah.
+      if (widget.lngLat != null) {
         try {
-          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-          if (!serviceEnabled) {
-            await Geolocator.openLocationSettings();
-            throw Exception(
-              "GPS harus diaktifkan. Silakan aktifkan dan coba lagi.",
-            );
-          }
-
-          LocationPermission permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission();
-            if (permission == LocationPermission.denied) {
-              throw Exception("Akses lokasi ditolak.");
-            }
-          }
-
-          if (permission == LocationPermission.deniedForever) {
-            throw Exception(
-              "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
-            );
-          }
-
-          Position? current = await Geolocator.getLastKnownPosition();
-          current ??= await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-              timeLimit: Duration(seconds: 10),
-            ),
+          final geo = await _geofence.check(
+            targetLat: widget.lngLat!.latitude,
+            targetLng: widget.lngLat!.longitude,
+            radiusMeter: widget.radiusMeter.toDouble(),
+            preferFresh: true,
           );
-          _currentPosition = current;
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _isSubmitting = false;
-            });
+          if (!mounted) return;
+          setState(() {
+            _currentPosition = geo.position;
+            _withinRange = geo.withinRadius;
+            _lastDistanceMeters = geo.distanceMeters;
+            _poorAccuracy = geo.accuracyPoor;
+            _geoStatusError = null;
+          });
+
+          // Akurasi buruk = peringatan saja, tidak memblokir.
+          if (geo.accuracyPoor) {
+            AppSnackbar.showWarning(
+              "Akurasi GPS rendah (±${geo.position.accuracy.toStringAsFixed(0)} m). "
+              "Hasil pengecekan lokasi mungkin kurang akurat.",
+            );
           }
+
+          if (GeofenceService.enforceGeofence && !geo.withinRadius) {
+            setState(() => _isSubmitting = false);
+            AppSnackbar.showError(
+              "Anda berada di luar jangkauan lokasi WO "
+              "(±${geo.distanceMeters.toStringAsFixed(0)} m, "
+              "radius ${widget.radiusMeter} m). Submit ditolak.",
+            );
+            return;
+          }
+        } on GeofenceException catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError(e.message);
+          return;
+        } catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError("Gagal mendapatkan lokasi: ${e.toString()}");
+          return;
+        }
+      } else {
+        // Tanpa titik lokasi WO → geofence tidak bisa diterapkan. Tetap ambil
+        // posisi untuk payload (tanpa memblokir submit).
+        try {
+          final pos = await _geofence.getCurrentPosition(preferFresh: true);
+          if (!mounted) return;
+          setState(() => _currentPosition = pos);
+        } on GeofenceException catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError(e.message);
+          return;
+        } catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
           AppSnackbar.showError("Gagal mendapatkan lokasi: ${e.toString()}");
           return;
         }
@@ -1551,115 +1595,185 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     super.dispose();
   }
 
-  Future<void> _checkDistance() async {
-    // Beri jeda untuk memastikan Google Maps dari halaman sebelumnya
-    // sudah selesai melakukan heavy initialization
+  /// Pengecekan geofence untuk indikator status (banner). Tidak memblokir —
+  /// gate otoritatif ada di [_onSubmit]. [preferFresh] dipakai tombol
+  /// "Periksa ulang" agar perubahan mock GPS langsung terbaca.
+  Future<void> _checkDistance({bool preferFresh = false}) async {
+    // Beri jeda agar Google Maps dari halaman sebelumnya selesai inisialisasi.
     await Future.delayed(const Duration(milliseconds: 300));
-
     if (!mounted) return;
 
-    try {
-      final latitudeData = widget.lngLat!.latitude;
-      final longitudeData = widget.lngLat!.longitude;
+    if (widget.lngLat == null) {
+      setState(() => _isCheckingDistance = false);
+      return;
+    }
 
-      // Tambahkan timeout keseluruhan 15 detik untuk mencegah freeze
-      final result =
-          await isUserWithinRange(
-            targetLat: latitudeData,
-            targetLng: longitudeData,
-            maxDistanceInMeters: widget.radiusMeter.toDouble(),
-          ).timeout(
+    setState(() {
+      _isCheckingDistance = true;
+      _geoStatusError = null;
+    });
+
+    try {
+      final result = await _geofence
+          .check(
+            targetLat: widget.lngLat!.latitude,
+            targetLng: widget.lngLat!.longitude,
+            radiusMeter: widget.radiusMeter.toDouble(),
+            preferFresh: preferFresh,
+          )
+          .timeout(
             const Duration(seconds: 15),
-            onTimeout: () {
-              throw TimeoutException("Pengecekan lokasi timeout");
-            },
+            onTimeout: () => throw TimeoutException("Pengecekan lokasi timeout"),
           );
 
-      if (!mounted) return; // Safety check setelah async operation
-
-      setState(() {
-        _isCheckingDistance = false;
-      });
-      if (!result) {
-        AppSnackbar.showError(
-          "Lokasi Anda diluar jangkauan (radius ${widget.radiusMeter}m).",
-        );
-      } else {
-        AppSnackbar.showSuccess("Anda berada dalam jangkauan.");
-      }
-    } on TimeoutException catch (_) {
-      // Handle timeout - GPS terlalu lama
-      debugPrint(
-        "⚠️ GPS timeout - tidak dapat mendapatkan lokasi dalam waktu yang ditentukan",
-      );
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
+        _currentPosition = result.position;
+        _withinRange = result.withinRadius;
+        _lastDistanceMeters = result.distanceMeters;
+        _poorAccuracy = result.accuracyPoor;
+        _geoStatusError = null;
       });
-      AppSnackbar.showError("Tidak dapat menentukan lokasi. Coba lagi.");
+    } on GeofenceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = e.message;
+      });
+    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = "Tidak dapat menentukan lokasi. Coba lagi.";
+      });
     } catch (e) {
       debugPrint("⚠️ Error pengecekan lokasi: $e");
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = "Error: ${e.toString()}";
       });
-      AppSnackbar.showError("Error: ${e.toString()}");
     }
   }
 
-  Future<bool> isUserWithinRange({
-    required double targetLat,
-    required double targetLng,
-    required double maxDistanceInMeters, // batas jarak dari MasterLocation
-  }) async {
-    // Menggunakan Geolocator saja untuk semua operasi (menghindari konflik dengan package location)
-
-    // Cek apakah location service enabled
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Buka settings GPS (lebih reliable daripada location.requestService())
-      await Geolocator.openLocationSettings();
-      throw Exception("GPS harus diaktifkan. Silakan aktifkan dan coba lagi.");
-    }
-
-    // Cek permission menggunakan Geolocator
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception("Akses lokasi ditolak.");
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
+  /// Banner status jangkauan di bawah peta. Memberi umpan balik visual sebelum
+  /// submit; gate sesungguhnya tetap di [_onSubmit].
+  Widget _buildGeofenceStatus() {
+    if (_isCheckingDistance) {
+      return _geoStatusBox(
+        bg: color.foreground[100]!,
+        border: color.foreground[400]!,
+        icon: Icons.my_location,
+        iconColor: color.foreground[600]!,
+        title: "Memeriksa lokasi…",
+        showSpinner: true,
       );
     }
 
-    // Coba ambil lokasi terakhir yang diketahui (sangat cepat)
-    Position? current = await Geolocator.getLastKnownPosition();
+    if (_geoStatusError != null) {
+      return _geoStatusBox(
+        bg: Colors.orange.withValues(alpha: 0.1),
+        border: Colors.orange,
+        icon: Icons.gps_off,
+        iconColor: Colors.orange.shade800,
+        title: "Tidak dapat memeriksa lokasi",
+        subtitle: _geoStatusError,
+        showRecheck: true,
+      );
+    }
 
-    // Jika tidak ada, baru ambil lokasi baru dengan timeout
-    current ??= await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
+    if (_withinRange != null) {
+      final dist = _lastDistanceMeters?.toStringAsFixed(0) ?? '-';
+      final accNote = _poorAccuracy
+          ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
+          : "";
+      if (_withinRange == true) {
+        return _geoStatusBox(
+          bg: color.status[2]!.withValues(alpha: 0.12),
+          border: color.status[2]!,
+          icon: Icons.check_circle,
+          iconColor: color.status[2]!,
+          title: "Anda berada dalam jangkauan",
+          subtitle:
+              "±$dist m dari titik WO (radius ${widget.radiusMeter} m).$accNote",
+          showRecheck: true,
+        );
+      }
+      return _geoStatusBox(
+        bg: color.danger.withValues(alpha: 0.1),
+        border: color.danger,
+        icon: Icons.location_off,
+        iconColor: color.danger,
+        title: "Anda di luar jangkauan",
+        subtitle:
+            "±$dist m dari titik WO (radius ${widget.radiusMeter} m). "
+            "Submit akan ditolak.$accNote",
+        showRecheck: true,
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _geoStatusBox({
+    required Color bg,
+    required Color border,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    bool showSpinner = false,
+    bool showRecheck = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          showSpinner
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+          if (showRecheck)
+            TextButton(
+              onPressed: _isCheckingDistance
+                  ? null
+                  : () => _checkDistance(preferFresh: true),
+              child: const Text("Periksa ulang"),
+            ),
+        ],
       ),
     );
-
-    _currentPosition = current;
-
-    // Hitung jarak
-    double distance = Geolocator.distanceBetween(
-      current.latitude,
-      current.longitude,
-      targetLat,
-      targetLng,
-    );
-
-    debugPrint("📏 Jarak ke lokasi: $distance meter");
-
-    return distance <= maxDistanceInMeters;
   }
 }

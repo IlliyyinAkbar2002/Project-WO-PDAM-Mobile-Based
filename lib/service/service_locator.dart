@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/form_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
@@ -46,6 +47,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/create_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spls_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
@@ -88,6 +90,10 @@ final sl = GetIt.instance;
 Future<void> init() async {
   try {
     debugPrint("🔧 Memulai inisialisasi dependency...");
+
+    // **0️⃣ Core Services**
+    sl.registerLazySingleton<GeofenceService>(() => GeofenceService());
+    debugPrint("✅ GeofenceService terdaftar");
 
     // **1️⃣ Data Sources**
     sl.registerLazySingleton<WorkOrderRemoteDataSource>(
@@ -286,7 +292,7 @@ Future<void> init() async {
     sl.registerLazySingleton(() => GetUserDetailUsecase(sl<UserRepository>()));
 
     //spl
-    // sl.registerLazySingleton(() => GetSplsUsecase(sl<SplRepository>()));
+    sl.registerLazySingleton(() => GetSplsUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => GetSplDetailUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => UpdateSplUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => CreateSplUseCase(sl<SplRepository>()));

@@ -241,9 +241,41 @@ class _NavigationGrid extends StatelessWidget {
             return;
           }
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PengajuanLemburPage()),
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: false,
+            useSafeArea: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.black.withValues(alpha: 0.3),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            builder: (ctx) {
+              return _PengajuanLemburBottomSheet(
+                onPengajuanWorkOrderLembur: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PengajuanLemburPage(),
+                    ),
+                  );
+                },
+                onRiwayatPengajuanLembur: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const RiwayatPengajuanLemburPage(),
+                    ),
+                  );
+                },
+              );
+            },
           );
         },
       ),
@@ -405,6 +437,74 @@ class _TasksBottomSheetManajer extends StatelessWidget {
                   // _TaskMenuItem(label: 'IT Support', onTap: onItSupport),
                   // _TaskMenuItem(label: 'Kupon E-BBM', onTap: onKuponEbbm),
                   // _TaskMenuItem(label: 'SPPD', onTap: onSppd),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet shown when SPV taps on "Pengajuan Lembur" grid item.
+class _PengajuanLemburBottomSheet extends StatelessWidget {
+  final VoidCallback onPengajuanWorkOrderLembur;
+  final VoidCallback onRiwayatPengajuanLembur;
+
+  const _PengajuanLemburBottomSheet({
+    required this.onPengajuanWorkOrderLembur,
+    required this.onRiwayatPengajuanLembur,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            // Grabber handle
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: const Color(0xFFCBD5E1), // gray-300
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                children: [
+                  _TaskMenuItem(
+                    label: 'Pengajuan Workorder Lembur',
+                    onTap: onPengajuanWorkOrderLembur,
+                  ),
+                  _TaskMenuItem(
+                    label: 'Riwayat Pengajuan Lembur',
+                    onTap: onRiwayatPengajuanLembur,
+                  ),
                 ],
               ),
             ),

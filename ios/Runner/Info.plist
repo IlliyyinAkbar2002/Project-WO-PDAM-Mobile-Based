@@ -49,5 +49,7 @@
 	<true/>
 	<key>GMSApiKey</key>
 	<string>YOUR_GOOGLE_MAPS_API_KEY_HERE</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi memerlukan lokasi Anda untuk memverifikasi bahwa Anda berada di titik work order saat melaporkan progress.</string>
 </dict>
 </plist>

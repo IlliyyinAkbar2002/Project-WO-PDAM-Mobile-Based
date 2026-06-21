@@ -92,9 +92,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     return (name: name, npp: npp, jabatan: jabatan);
   }
 
-  /// Departemen pemohon (SPV) untuk men-scope picker anggota lembur. Anggota
-  /// WAJIB sedepartemen dengan pemohon (gate BE store). `normalizeLoginUser`
-  /// menaruh `departemen_id` di top-level; fallback ke nested `employee`.
   int? _callerDepartemenId() {
     final user = AuthStorage.getUserSync();
     final employee = user?['employee'];
@@ -106,11 +103,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
   }
 
-  /// Hanya pegawai berjabatan Staff/Staff Senior yang valid sebagai anggota
-  /// lembur (gate BE store; nama jabatan persis 'Staff'/'Staff Senior').
-  /// Departemen sudah disaring server via `departemen_id`; jabatan disaring di
-  /// sini agar SPV/Manajer sedepartemen tidak ikut tampil. Validasi final tetap
-  /// di BE saat submit.
   List<UserEntity> _filterEligibleMembers(List<UserEntity> users) {
     const allowed = {'staff', 'staff senior'};
     return users.where((u) {
