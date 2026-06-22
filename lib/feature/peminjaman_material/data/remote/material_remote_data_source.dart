@@ -187,6 +187,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
   Future<DataState<PeminjamanMaterialModel>> kembalikanMaterial({
     required int peminjamanId,
     required int jumlahKembali,
+    int jumlahRusak = 0,
     String? kondisiKembali,
   }) async {
     try {
@@ -194,6 +195,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
         path: '/v1/peminjaman-material/$peminjamanId/kembalikan',
         data: {
           'jumlah_kembali': jumlahKembali,
+          'jumlah_rusak': jumlahRusak,
           if (kondisiKembali != null) 'kondisi_kembali': kondisiKembali,
         },
       );

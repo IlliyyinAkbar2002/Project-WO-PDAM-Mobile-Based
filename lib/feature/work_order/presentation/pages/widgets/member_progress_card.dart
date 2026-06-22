@@ -41,6 +41,7 @@ class MemberProgressCard extends StatefulWidget {
 
 class _MemberProgressCardState extends State<MemberProgressCard> {
   bool _isExpanded = false;
+  bool _showAllProgress = false;
 
   @override
   void initState() {
@@ -192,19 +193,38 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                     ),
                   )
                 else
-                  ...widget.member.progressList.take(5).map((progress) {
-                    return _buildProgressItem(progress);
-                  }),
+                  ...(_showAllProgress
+                          ? widget.member.progressList
+                          : widget.member.progressList.take(5))
+                      .map((progress) {
+                        return _buildProgressItem(progress);
+                      }),
                 if (widget.member.progressList.length > 5)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Center(
-                      child: Text(
-                        '+ ${widget.member.progressList.length - 5} progress lainnya',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showAllProgress = !_showAllProgress;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            _showAllProgress
+                                ? 'Tampilkan lebih sedikit'
+                                : '+ ${widget.member.progressList.length - 5} progress lainnya',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
                         ),
                       ),
                     ),

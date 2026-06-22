@@ -560,7 +560,7 @@ class _PersetujuanPeminjamanBarangPageState
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Pinjam: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0}',
+                          'Pinjam: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0} • Rusak: ${request.jumlahRusak ?? 0}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -852,6 +852,11 @@ class _ApprovalDetailSheet extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInfoTile(
+                      'Jumlah Rusak',
+                      '${r.jumlahRusak ?? 0} ${r.material?.satuan ?? ""}',
                     ),
                     const SizedBox(height: 16),
                     _buildSectionLabel(

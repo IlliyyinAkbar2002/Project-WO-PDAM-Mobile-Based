@@ -10,6 +10,7 @@ class PeminjamanMaterialEntity extends Equatable {
   final int? jumlahPinjam;
   final DateTime? waktuPinjam;
   final int? jumlahKembali;
+  final int? jumlahRusak;
   final DateTime? waktuKembali;
   final String? kondisiKembali;
   final String? status;
@@ -24,6 +25,7 @@ class PeminjamanMaterialEntity extends Equatable {
     this.jumlahPinjam,
     this.waktuPinjam,
     this.jumlahKembali,
+    this.jumlahRusak,
     this.waktuKembali,
     this.kondisiKembali,
     this.status,
@@ -40,6 +42,7 @@ class PeminjamanMaterialEntity extends Equatable {
     jumlahPinjam,
     waktuPinjam,
     jumlahKembali,
+    jumlahRusak,
     waktuKembali,
     kondisiKembali,
     status,

@@ -87,6 +87,7 @@ class MaterialBloc extends Bloc<MaterialEvent, MaterialState> {
       KembalikanMaterialParams(
         peminjamanId: event.peminjamanId,
         jumlahKembali: event.jumlahKembali,
+        jumlahRusak: event.jumlahRusak,
         kondisiKembali: event.kondisiKembali,
       ),
     );

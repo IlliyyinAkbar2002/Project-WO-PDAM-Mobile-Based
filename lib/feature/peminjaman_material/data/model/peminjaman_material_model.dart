@@ -12,6 +12,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
     super.jumlahPinjam,
     super.waktuPinjam,
     super.jumlahKembali,
+    super.jumlahRusak,
     super.waktuKembali,
     super.kondisiKembali,
     super.status,
@@ -33,6 +34,9 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
           : (map['diajukan_at'] != null ? DateTime.tryParse(map['diajukan_at'].toString())?.toLocal() : null),
       jumlahKembali: map['jumlah_kembali'] != null
           ? int.tryParse(map['jumlah_kembali'].toString())
+          : null,
+      jumlahRusak: map['jumlah_rusak'] != null
+          ? int.tryParse(map['jumlah_rusak'].toString())
           : null,
       waktuKembali: map['waktu_kembali'] != null
           ? DateTime.tryParse(map['waktu_kembali'].toString())?.toLocal()
@@ -57,6 +61,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
       'jumlah_pinjam': jumlahPinjam,
       'waktu_pinjam': waktuPinjam?.toIso8601String(),
       'jumlah_kembali': jumlahKembali,
+      'jumlah_rusak': jumlahRusak,
       'waktu_kembali': waktuKembali?.toIso8601String(),
       'kondisi_kembali': kondisiKembali,
       'status': status,

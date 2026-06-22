@@ -19,6 +19,7 @@ class _FormKembaliMaterialPageState
     extends AppStatePage<FormKembaliMaterialPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _jumlahController = TextEditingController();
+  final TextEditingController _rusakController = TextEditingController(text: '0');
   final TextEditingController _kondisiController = TextEditingController();
 
   @override
@@ -33,6 +34,7 @@ class _FormKembaliMaterialPageState
   @override
   void dispose() {
     _jumlahController.dispose();
+    _rusakController.dispose();
     _kondisiController.dispose();
     super.dispose();
   }
@@ -43,6 +45,7 @@ class _FormKembaliMaterialPageState
         KembalikanMaterialEvent(
           peminjamanId: widget.peminjaman.id!,
           jumlahKembali: int.parse(_jumlahController.text),
+          jumlahRusak: int.tryParse(_rusakController.text) ?? 0,
           kondisiKembali: _kondisiController.text.isNotEmpty
               ? _kondisiController.text
               : null,
@@ -95,11 +98,31 @@ class _FormKembaliMaterialPageState
             ),
             const SizedBox(height: 16),
             TextFormField(
+              controller: _rusakController,
+              decoration: const InputDecoration(
+                labelText: 'Jumlah Rusak',
+                border: OutlineInputBorder(),
+                hintText: 'Jumlah barang yang dikembalikan dalam kondisi rusak',
+              ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return null;
+                final rusak = int.tryParse(value);
+                if (rusak == null || rusak < 0) return 'Tidak valid';
+                final jumlahKembali = int.tryParse(_jumlahController.text) ?? 0;
+                if (rusak > jumlahKembali) {
+                  return 'Maksimal sejumlah yang dikembalikan';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
               controller: _kondisiController,
               decoration: const InputDecoration(
                 labelText: 'Kondisi Kembali (Opsional)',
                 border: OutlineInputBorder(),
-                hintText: 'Cth: Baik, Rusak, Hilang sebagian',
+                hintText: 'Catatan kondisi, cth: Baik, lecet ringan',
               ),
               maxLines: 2,
             ),

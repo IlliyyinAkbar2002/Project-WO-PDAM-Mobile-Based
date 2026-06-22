@@ -40,11 +40,13 @@ class MaterialRepositoryImpl implements MaterialRepository {
   Future<DataState<PeminjamanMaterialEntity>> kembalikanMaterial({
     required int peminjamanId,
     required int jumlahKembali,
+    int jumlahRusak = 0,
     String? kondisiKembali,
   }) async {
     return await _remoteDataSource.kembalikanMaterial(
       peminjamanId: peminjamanId,
       jumlahKembali: jumlahKembali,
+      jumlahRusak: jumlahRusak,
       kondisiKembali: kondisiKembali,
     );
   }

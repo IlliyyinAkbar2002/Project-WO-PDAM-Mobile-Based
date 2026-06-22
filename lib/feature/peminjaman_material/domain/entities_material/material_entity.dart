@@ -8,6 +8,7 @@ class MaterialEntity extends Equatable {
   final String? satuan;
   final int? jumlahStok;
   final int? terpakai;
+  final int? rusak;
 
   const MaterialEntity({
     this.id,
@@ -17,9 +18,10 @@ class MaterialEntity extends Equatable {
     this.satuan,
     this.jumlahStok,
     this.terpakai,
+    this.rusak,
   });
 
-  int get stokTersedia => (jumlahStok ?? 0) - (terpakai ?? 0);
+  int get stokTersedia => (jumlahStok ?? 0) - (terpakai ?? 0) - (rusak ?? 0);
 
   @override
   List<Object?> get props => [
@@ -30,5 +32,6 @@ class MaterialEntity extends Equatable {
         satuan,
         jumlahStok,
         terpakai,
+        rusak,
       ];
 }
