@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
@@ -101,6 +102,7 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
             switch (field["type"]) {
               case "text":
                 final bool isNumeric = field["keyboardType"] == "number";
+                final bool isCopyable = field["copyable"] ?? false;
                 return Column(
                   children: [
                     CustomForm(
@@ -114,6 +116,23 @@ class _DynamicFormBuilderState extends AppStatePage<DynamicFormBuilder> {
                           : null,
                       controller: _controllers[field["key"]],
                       readOnly: isReadOnly || widget.readOnly,
+                      suffixIcon: isCopyable
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.copy,
+                                size: 20,
+                                color: Color(0xFF8797AE),
+                              ),
+                              tooltip: 'Salin',
+                              onPressed: () {
+                                final text =
+                                    _controllers[field["key"]]?.text ?? '';
+                                if (text.trim().isEmpty) return;
+                                Clipboard.setData(ClipboardData(text: text));
+                                AppSnackbar.showSuccess("Lokasi disalin");
+                              },
+                            )
+                          : null,
                       onChanged: (value) {
                         if (!isReadOnly && !widget.readOnly) {
                           widget.onFieldChanged(field["key"], value);

@@ -69,6 +69,11 @@ class PersonalDataPage extends StatelessWidget {
                             value: data.lastName,
                           ),
                           _ReadOnlyField(
+                            label: 'NIP',
+                            icon: Icons.badge_outlined,
+                            value: data.nip,
+                          ),
+                          _ReadOnlyField(
                             label: 'Date of Birth',
                             icon: Icons.calendar_today_outlined,
                             value: data.birthDate,

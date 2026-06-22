@@ -16,7 +16,7 @@ class LocationSearchModal extends StatefulWidget {
 class _LocationSearchModalState extends State<LocationSearchModal> {
   final TextEditingController _searchController = TextEditingController();
 
-  List<MasterLocationEntity> _results = MapsSeedModel.entities;
+  List<MasterLocationEntity> _results = <MasterLocationEntity>[];
   bool _isLoading = false;
   Timer? _debounce;
   String _errorMsg = '';
@@ -31,7 +31,7 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
 
     if (query.isEmpty) {
       setState(() {
-        _results = MapsSeedModel.entities;
+        _results = <MasterLocationEntity>[];
         _errorMsg = '';
       });
       return;
@@ -209,12 +209,15 @@ class _LocationSearchModalState extends State<LocationSearchModal> {
                     ),
                   )
                 : _results.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32.0),
+                      padding: const EdgeInsets.all(32.0),
                       child: Text(
-                        'No locations found',
-                        style: TextStyle(
+                        _searchController.text.trim().isEmpty
+                            ? 'Ketik atau tempel nama lokasi untuk mencari.'
+                            : 'No locations found',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
                           fontFamily: 'Arial',
                           fontSize: 16,
                           color: Color(0xFF6B7280),

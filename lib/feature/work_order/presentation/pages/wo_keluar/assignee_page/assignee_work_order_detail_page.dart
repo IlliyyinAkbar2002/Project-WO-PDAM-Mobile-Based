@@ -14,7 +14,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_kel
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
-import 'package:project_mobile_pdam/core/constants/tahapan_labels.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/tahapan_stepper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -264,7 +264,8 @@ class _AssigneeWorkOrderDetailPageState
             status: widget.status,
             enableInnerScroll: false,
           ),
-          if (_workOrder != null) _buildTahapanStepper(),
+          if (_workOrder != null)
+            TahapanStepper(workOrder: _workOrder, progresses: progresses),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -351,125 +352,6 @@ class _AssigneeWorkOrderDetailPageState
               ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTahapanStepper() {
-    int computedTahapan = 0;
-    if (_workOrder?.tahapanTertinggi != null) {
-      computedTahapan = _workOrder!.tahapanTertinggi!;
-    } else {
-      for (final p in progresses) {
-        if (!p.isDibatalkan &&
-            p.tahapan != null &&
-            p.tahapan! > computedTahapan) {
-          computedTahapan = p.tahapan!;
-        }
-      }
-    }
-
-    final labels = tahapanLabelsFor(_workOrder?.workOrderType?.name);
-
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.foreground[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Tahapan Pekerjaan',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: List.generate(4, (index) {
-              final stepTahapan = index + 1;
-              final isCompleted = computedTahapan >= stepTahapan;
-              final isCurrent =
-                  computedTahapan + 1 == stepTahapan && computedTahapan != 4;
-              // Jika selesai semua, step 4 akan isCompleted=true, isCurrent=false
-
-              final Color circleColor = isCompleted
-                  ? color.status[2]! // hijau
-                  : isCurrent
-                  ? color.primary[500]! // biru primary
-                  : color.foreground[300]!; // abu-abu
-
-              return Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: isCompleted
-                                  ? circleColor
-                                  : Colors.transparent,
-                              border: Border.all(color: circleColor, width: 2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: isCompleted
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
-                                : isCurrent
-                                ? Center(
-                                    child: Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: circleColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            labels[index],
-                            textAlign: TextAlign.center,
-                            style: textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              fontWeight: isCurrent || isCompleted
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: isCurrent || isCompleted
-                                  ? color.foreground[900]
-                                  : color.foreground[500],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (index < 3)
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 11),
-                          height: 2,
-                          color: isCompleted
-                              ? color.status[2]
-                              : color.foreground[200],
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          ),
         ],
       ),
     );

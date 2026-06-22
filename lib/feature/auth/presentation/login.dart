@@ -572,6 +572,24 @@ class _LoginPageState extends State<LoginPage> {
             return;
           }
 
+          // Respons login tidak membawa nip/tanggal lahir/alamat. Lengkapi
+          // data pegawai dari /v1/pegawai/{id} agar profil bisa menampilkannya.
+          // Best-effort: kegagalan tidak menggagalkan login.
+          final pegawaiId = user?['pegawai_id'];
+          if (pegawaiId is int) {
+            final pegawaiResult = await authDataSource.fetchPegawaiProfile(
+              pegawaiId,
+            );
+            if (pegawaiResult is DataSuccess && pegawaiResult.data != null) {
+              await AuthStorage.enrichEmployeeFromPegawai(pegawaiResult.data!);
+              debugPrint('👤 Profil pegawai dilengkapi (nip, dll).');
+            } else {
+              debugPrint('⚠️ Gagal melengkapi profil pegawai (diabaikan).');
+            }
+          }
+
+          if (!mounted) return;
+
           final message = authResponse.message ?? 'Login berhasil!';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

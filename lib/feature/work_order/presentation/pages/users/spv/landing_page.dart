@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/route_observer.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
@@ -14,16 +15,44 @@ class SpvLandingPage extends StatefulWidget {
   State<SpvLandingPage> createState() => _SpvLandingPageState();
 }
 
-class _SpvLandingPageState extends AppStatePage<SpvLandingPage> {
+class _SpvLandingPageState extends AppStatePage<SpvLandingPage>
+    with RouteAware {
   @override
   void initState() {
     super.initState();
+    _loadWorkOrders();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Kembali ke dashboard dari halaman lain: WorkOrderBloc global bisa sudah
+    // ditimpa query halaman list lain, jadi muat ulang query dashboard.
+    _loadWorkOrders();
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  void _loadWorkOrders() {
     final user = AuthStorage.getUserSync();
     final pegawaiId = user?['pegawai_id'] as int?;
     context.read<WorkOrderBloc>().add(
       GetWorkOrdersEvent(assignedToPegawaiId: pegawaiId),
     );
   }
+
   @override
   Widget buildPage(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(

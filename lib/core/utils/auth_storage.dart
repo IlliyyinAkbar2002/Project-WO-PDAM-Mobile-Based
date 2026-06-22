@@ -83,6 +83,29 @@ class AuthStorage {
     };
   }
 
+  /// Lengkapi sub-map `employee` pada user yang tersimpan dengan data pegawai
+  /// penuh dari `/v1/pegawai/{id}` (mis. `nip`, `tanggal_lahir`, `alamat`) yang
+  /// tidak ikut di respons login. Bersifat best-effort: bila belum ada user
+  /// tersimpan, tidak melakukan apa-apa.
+  static Future<void> enrichEmployeeFromPegawai(
+    Map<String, dynamic> pegawai,
+  ) async {
+    final user = _cachedUser;
+    if (user == null) return;
+
+    final employee = <String, dynamic>{
+      ...((user['employee'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{}),
+      'nip': pegawai['nip'],
+      'birth_date': pegawai['tanggal_lahir'],
+      'gender': pegawai['jenis_kelamin'],
+      'address': pegawai['alamat'],
+      'phone': pegawai['telepon'],
+    };
+
+    await saveUser({...user, 'employee': employee});
+  }
+
   static Future<void> clearAuth() async {
     _cachedToken = null;
     _cachedUser = null;

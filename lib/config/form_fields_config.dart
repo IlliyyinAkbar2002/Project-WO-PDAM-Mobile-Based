@@ -96,6 +96,7 @@ class FormFieldsConfig {
         "label": "Lokasi",
         "hint": "Nama lokasi",
         "isReadOnly": readOnlyInDetail,
+        "copyable": true,
       },
       {
         "key": "locationPicker",

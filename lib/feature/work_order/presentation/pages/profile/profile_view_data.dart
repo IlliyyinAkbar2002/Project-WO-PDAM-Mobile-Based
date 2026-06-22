@@ -20,6 +20,7 @@ class ProfileViewData {
 class PersonalDataViewData {
   final String firstName;
   final String lastName;
+  final String nip;
   final String birthDate;
   final String position;
   final String department;
@@ -31,6 +32,7 @@ class PersonalDataViewData {
   const PersonalDataViewData({
     required this.firstName,
     required this.lastName,
+    required this.nip,
     required this.birthDate,
     required this.position,
     required this.department,
@@ -45,6 +47,7 @@ class ProfileViewDataResolver {
   static const PersonalDataViewData defaultPersonalData = PersonalDataViewData(
     firstName: '-',
     lastName: '-',
+    nip: '-',
     birthDate: '-',
     position: 'Staff',
     department: '-',
@@ -83,6 +86,7 @@ class ProfileViewDataResolver {
     final roleName = resolvePositionLabel(user);
     final department = resolveDepartmentLabel(user);
     final birthDate = _formatBirthDate(employee['birth_date']);
+    final nip = resolveNip(user);
 
     return ProfileViewData(
       fullName: fullName,
@@ -92,6 +96,7 @@ class ProfileViewDataResolver {
       personalData: PersonalDataViewData(
         firstName: split.$1,
         lastName: split.$2,
+        nip: nip,
         birthDate: birthDate,
         position: roleName,
         department: department,
@@ -109,6 +114,14 @@ class ProfileViewDataResolver {
     final words = trimmed.split(RegExp(r'\s+'));
     if (words.length == 1) return (words.first, '-');
     return (words.first, words.sublist(1).join(' '));
+  }
+
+  /// NIP pegawai dari data pegawai (bukan dari user/login), '-' bila kosong.
+  static String resolveNip(Map<String, dynamic> user) {
+    final employee = user['employee'] as Map<String, dynamic>?;
+    final nip = (employee?['nip'] ?? employee?['employee_id'])?.toString();
+    if (nip != null && nip.trim().isNotEmpty) return nip.trim();
+    return '-';
   }
 
   /// Nama departemen pegawai (mis. 'Operasional'), '-' bila tidak tersedia.

@@ -7,6 +7,7 @@ import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/route_observer.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
@@ -90,6 +91,7 @@ class _AppState extends AppStatePage<App> {
       child: MaterialApp(
         theme: ThemeManager.theme,
         home: _getInitialPage(),
+        navigatorObservers: [appRouteObserver],
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.light,
       ),

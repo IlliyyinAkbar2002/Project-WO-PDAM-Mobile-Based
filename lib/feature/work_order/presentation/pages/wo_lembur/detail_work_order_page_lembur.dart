@@ -17,6 +17,7 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/mate
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/tahapan_stepper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -275,6 +276,9 @@ class _DetailWorkOrderPageLemburState
             status: widget.status,
             enableInnerScroll: false,
           ),
+
+          if (_workOrder != null)
+            TahapanStepper(workOrder: _workOrder, progresses: progresses),
 
           if (_isManager && isPendingApproval && _workOrder?.splId != null) ...[
             const SizedBox(height: 16),

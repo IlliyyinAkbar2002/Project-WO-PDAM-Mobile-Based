@@ -84,6 +84,13 @@ class MapsSeedModel {
       longitude: 112.567216,
       radiusMeter: defaultRadiusMeter,
     ),
+    MasterLocationModel(
+      id: 12,
+      nama: 'Jl. Joyoboyo, Sawunggaling, Kec. Wonokromo, Surabaya',
+      latitude: -7.29816,
+      longitude: 112.73704,
+      radiusMeter: defaultRadiusMeter,
+    ),
   ];
 
   static List<MasterLocationEntity> get entities {
