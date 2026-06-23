@@ -293,6 +293,11 @@ class _WorkOrderReportPageLemburState
               _descriptionController.text =
                   state.progress.description ?? widget.initialDescription ?? '';
 
+              final kategoriData = state.progress.kategoriData;
+              if (kategoriData != null) {
+                _formData.addAll(kategoriData);
+              }
+
               if (state.progress.tahapan != null) {
                 _selectedTahapan = state.progress.tahapan;
               } else if (_workOrderBloc.state is WorkOrderDetailLoaded) {
@@ -605,15 +610,15 @@ class _WorkOrderReportPageLemburState
                                                           ? 'Kerjakan Revisi'
                                                           : widget.mode,
                                                       style: textTheme.labelLarge?.copyWith(
+                                                        // Tombol "Selesai" ber-background
+                                                        // primary[500] (navy gelap) → teks
+                                                        // harus terang agar terbaca. Mode
+                                                        // lain ber-background terang →
+                                                        // pakai primary[500].
                                                         color:
                                                             widget.mode ==
                                                                 'Selesai'
-                                                            ? (widget.status ==
-                                                                      7
-                                                                  ? color
-                                                                        .foreground[100]
-                                                                  : color
-                                                                        .primary[500])
+                                                            ? Colors.white
                                                             : color
                                                                   .primary[500],
                                                       ),
@@ -628,15 +633,6 @@ class _WorkOrderReportPageLemburState
                                     )
                               ? Row(
                                   children: [
-                                    // Expanded(
-                                    //   child: ElevatedButton(
-                                    //     style: ElevatedButton.styleFrom(
-                                    //       backgroundColor: color.danger,
-                                    //     ),
-                                    //     onPressed: () => _onReview('tolak'),
-                                    //     child: const Text('Tolak'),
-                                    //   ),
-                                    // ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(

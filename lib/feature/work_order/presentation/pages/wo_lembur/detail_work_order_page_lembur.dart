@@ -140,7 +140,13 @@ class _DetailWorkOrderPageLemburState
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _materialRemoteDataSource = GetIt.instance<MaterialRemoteDataSource>();
-    _fetchProgresses();
+    // SPV (non-assignee) tak menampilkan Tahapan maupun entri pelaporan, jadi
+    // `progresses` tak terpakai — lewati fetch dan tandai siap langsung.
+    if (widget.isAssignee) {
+      _fetchProgresses();
+    } else {
+      _progressesLoaded = true;
+    }
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (widget.workOrderId != null) {
       workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
@@ -277,7 +283,7 @@ class _DetailWorkOrderPageLemburState
             enableInnerScroll: false,
           ),
 
-          if (_workOrder != null)
+          if (widget.isAssignee && _workOrder != null)
             TahapanStepper(workOrder: _workOrder, progresses: progresses),
 
           if (_isManager && isPendingApproval && _workOrder?.splId != null) ...[
@@ -341,94 +347,98 @@ class _DetailWorkOrderPageLemburState
             ),
           ],
 
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "Pelaporan WO Lembur",
-                  style: textTheme.displayMedium,
+          // Seksi pelaporan hanya untuk assignee/staff. SPV cukup melihat form
+          // + kartu "Progress Anggota Tim" dari embedded DetailWorkOrderPage.
+          if (widget.isAssignee) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Pelaporan WO Lembur",
+                    style: textTheme.displayMedium,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            if (!hasInspeksi && !hasMulai)
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.6,
+                  child: _buildActionButton('Inspeksi'),
+                ),
+              ),
+            if (hasInspeksi && !hasMulai)
+              Row(
+                children: [
+                  Expanded(child: _buildActionButton('Mulai')),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildSecondaryOutlinedButton(
+                      label: 'Pinjam Material',
+                      onPressed: () async {
+                        final shouldRefresh = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PeminjamanItemListPage(
+                              workOrderId: widget.workOrderId,
+                            ),
+                          ),
+                        );
+                        if (shouldRefresh == true && mounted) {
+                          _handleRefresh();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+            ...visibleProgresses.map(
+              (progressIndex) => _buildProgressEntry(progressIndex),
+            ),
+
+            if (hasMulai && !hasSelesai) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _buildActionButton('Selesai')),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildActionButton('Laporan')),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-
-          if (widget.isAssignee && !hasInspeksi && !hasMulai)
-            Center(
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.6,
-                child: _buildActionButton('Inspeksi'),
+            // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
+            // ke status WO numerik (5/6): BE terintegrasi memakai status string
+            // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
+            // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
+            if (hasSelesai) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSecondaryOutlinedButton(
+                      label: 'Kembalikan Material',
+                      onPressed: () async {
+                        final shouldRefresh = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PeminjamanItemListPage(
+                              workOrderId: widget.workOrderId,
+                            ),
+                          ),
+                        );
+                        if (shouldRefresh == true && mounted) {
+                          _handleRefresh();
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-          if (widget.isAssignee && hasInspeksi && !hasMulai)
-            Row(
-              children: [
-                Expanded(child: _buildActionButton('Mulai')),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildSecondaryOutlinedButton(
-                    label: 'Pinjam Material',
-                    onPressed: () async {
-                      final shouldRefresh = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PeminjamanItemListPage(
-                            workOrderId: widget.workOrderId,
-                          ),
-                        ),
-                      );
-                      if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-          ...visibleProgresses.map(
-            (progressIndex) => _buildProgressEntry(progressIndex),
-          ),
-
-          if (widget.isAssignee && hasMulai && !hasSelesai) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: _buildActionButton('Selesai')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildActionButton('Laporan')),
-              ],
-            ),
-          ],
-          // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
-          // ke status WO numerik (5/6): BE terintegrasi memakai status string
-          // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
-          // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
-          if (widget.isAssignee && hasSelesai) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSecondaryOutlinedButton(
-                    label: 'Kembalikan Material',
-                    onPressed: () async {
-                      final shouldRefresh = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PeminjamanItemListPage(
-                            workOrderId: widget.workOrderId,
-                          ),
-                        ),
-                      );
-                      if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
+            ],
           ],
         ],
       ),

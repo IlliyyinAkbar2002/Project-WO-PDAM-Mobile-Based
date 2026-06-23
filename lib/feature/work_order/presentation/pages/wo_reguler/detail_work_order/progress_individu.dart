@@ -12,6 +12,7 @@ class IndividualProgressSection extends StatelessWidget {
   final int radiusMeter;
   final String? workOrderTypeName;
   final int? workOrderTypeId;
+  final bool isOvertime;
 
   const IndividualProgressSection({
     super.key,
@@ -23,6 +24,7 @@ class IndividualProgressSection extends StatelessWidget {
     this.radiusMeter = 100,
     this.workOrderTypeName,
     this.workOrderTypeId,
+    this.isOvertime = false,
   });
 
   @override
@@ -77,6 +79,7 @@ class IndividualProgressSection extends StatelessWidget {
             radiusMeter: radiusMeter,
             workOrderTypeName: workOrderTypeName,
             workOrderTypeId: workOrderTypeId,
+            isOvertime: isOvertime,
           );
         }),
         const SizedBox(height: 16),

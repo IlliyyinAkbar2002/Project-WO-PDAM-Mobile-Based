@@ -590,6 +590,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
       workOrderTypeName: formData["workOrderTypeName"] as String?,
       workOrderTypeId: formData["workOrderTypeId"] as int?,
+      isOvertime: widget.isOvertime,
     );
   }
 
@@ -797,6 +798,23 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   Future<void> _validateAndAssignStaff() async {
     if (_isSubmitting || widget.workOrderId == null) return;
 
+    // Assignment hanya boleh dilakukan pada jam kerja 09:00–16:00.
+    // Pengecualian: WO berprioritas Urgent boleh di-assign kapan saja.
+    final bool isUrgent =
+        _readTrimmedString("prioritas").toLowerCase() == "urgent";
+    if (!isUrgent) {
+      final TimeOfDay now = TimeOfDay.now();
+      final int nowMinutes = now.hour * 60 + now.minute;
+      const int mulaiMenit = 9 * 60; // 09:00
+      const int selesaiMenit = 16 * 60; // 16:00
+      if (nowMinutes < mulaiMenit || nowMinutes > selesaiMenit) {
+        AppSnackbar.showError(
+          "Assignment hanya dapat dilakukan pada pukul 09:00–16:00.",
+        );
+        return;
+      }
+    }
+
     final List<UserEntity> selectedAssignees = _toUserEntityList(
       formData[_assigneeKey],
     );
@@ -855,21 +873,17 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Lokasi Belum Ditentukan'),
+          title: const Text('Lokasi Belum Ditentukan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           content: const Text(
             'Lokasi penugasan belum diatur. Apakah Anda yakin ingin melanjutkan penugasan ke staff tanpa lokasi?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.primary,
               ),
-              child: const Text('Ya, Lanjutkan'),
+              child: const Text('Mohon di set lokasi'),
             ),
           ],
         ),

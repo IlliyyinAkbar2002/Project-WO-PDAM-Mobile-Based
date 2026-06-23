@@ -3,6 +3,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_pr
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 
 /// Widget untuk menampilkan progress individual satu anggota tim.
 ///
@@ -21,6 +22,10 @@ class MemberProgressCard extends StatefulWidget {
   final String? workOrderTypeName;
   final int? workOrderTypeId;
 
+  /// Saat `true`, tap progress membuka halaman laporan lembur
+  /// (`WorkOrderReportPageLembur`) alih-alih halaman reguler.
+  final bool isOvertime;
+
   const MemberProgressCard({
     super.key,
     required this.member,
@@ -33,6 +38,7 @@ class MemberProgressCard extends StatefulWidget {
     this.radiusMeter = 100,
     this.workOrderTypeName,
     this.workOrderTypeId,
+    this.isOvertime = false,
   });
 
   @override
@@ -285,20 +291,34 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => WorkOrderReportPage(
-                  mode: progress.progressType ?? '-',
-                  status: widget.status,
-                  isAssignee: false,
-                  progressId: progress.id,
-                  workOrderId: progress.workOrderId,
-                  workOrderTypeId: widget.workOrderTypeId,
-                  lngLat: widget.lngLat,
-                  locationName: widget.locationName,
-                  radiusMeter: widget.radiusMeter,
-                  kategoriForm: widget.kategoriForm,
-                  workOrderTypeName: widget.workOrderTypeName,
-                  initialDescription: progress.description,
-                ),
+                builder: (_) => widget.isOvertime
+                    ? WorkOrderReportPageLembur(
+                        mode: progress.progressType ?? '-',
+                        status: widget.status,
+                        isAssignee: false,
+                        progressId: progress.id,
+                        workOrderId: progress.workOrderId,
+                        workOrderTypeId: widget.workOrderTypeId,
+                        lngLat: widget.lngLat,
+                        locationName: widget.locationName,
+                        radiusMeter: widget.radiusMeter,
+                        kategoriForm: widget.kategoriForm,
+                        initialDescription: progress.description,
+                      )
+                    : WorkOrderReportPage(
+                        mode: progress.progressType ?? '-',
+                        status: widget.status,
+                        isAssignee: false,
+                        progressId: progress.id,
+                        workOrderId: progress.workOrderId,
+                        workOrderTypeId: widget.workOrderTypeId,
+                        lngLat: widget.lngLat,
+                        locationName: widget.locationName,
+                        radiusMeter: widget.radiusMeter,
+                        kategoriForm: widget.kategoriForm,
+                        workOrderTypeName: widget.workOrderTypeName,
+                        initialDescription: progress.description,
+                      ),
               ),
             );
           },
