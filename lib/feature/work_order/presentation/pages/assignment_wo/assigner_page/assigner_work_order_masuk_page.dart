@@ -3,33 +3,37 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_list_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/approval/approval_work_order_list_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assigner_page/assigner_work_order_list_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/work_order_filter.dart';
 
-class AssignerWorkOrderPage extends StatefulWidget {
+class AssignerWorkOrderMasukPage extends StatefulWidget {
   final int?
   picId; // Now optional - backend handles filtering by authenticated user
-  const AssignerWorkOrderPage({super.key, this.picId});
+  const AssignerWorkOrderMasukPage({super.key, this.picId});
 
   @override
-  State<AssignerWorkOrderPage> createState() => _AssignerWorkOrderPageState();
+  State<AssignerWorkOrderMasukPage> createState() =>
+      _AssignerWorkOrderMasukPageState();
 }
 
-class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
-  int _selectedFilter = 0; // Index filter utama
+class _AssignerWorkOrderMasukPageState
+    extends AppStatePage<AssignerWorkOrderMasukPage> {
+  int _selectedFilter = 0;
+
   int? get _assignedToPegawaiId => AuthStorage.getUserSync()?['pegawai_id'];
+  // int? get _departemenId => AuthStorage.getUserSync()?['departemen_id'];
 
   final List<String> _filterLabels = [
-    'List Work Order',
-    'History Work Order',
+    'Assignment Work Order',
+    // 'Assignment History',
   ];
 
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: 'Work Order Keluar',
+        title: 'Work Order Masuk',
         actionIcon: Icons.notification_add,
         onActionPressed: () {},
       ),
@@ -54,10 +58,16 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
       return AssignerWorkOrderListPage(
         picId: widget.picId,
         assignedToPegawaiId: _assignedToPegawaiId,
-
-        excludeStatusNames: const ['Pending'],
+        // departemenId: _departemenId,
+        // WO Masuk = WO yang belum di-assign SPV (status `Pending`). WO nonaktif
+        // TETAP ditampilkan (tidak di-onlyActive) supaya SPV tahu ada WO masuk;
+        // pengamanannya: tombol "Ajukan" di-hide untuk WO nonaktif (lihat detail).
+        includeStatusNames: const ['Pending'],
         excludeStatus: const [
-          WorkOrderStatusId.ditugaskanKeSpv,
+          WorkOrderStatusId.menungguApprovalManager,
+          WorkOrderStatusId.ditugaskanKeStaff,
+          WorkOrderStatusId.inProgress,
+          WorkOrderStatusId.pengecekan,
           WorkOrderStatusId.selesai,
         ],
       );

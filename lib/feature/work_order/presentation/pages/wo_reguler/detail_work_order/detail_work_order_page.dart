@@ -24,7 +24,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_or
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/progress_individu.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/progress_individu.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
 class DetailWorkOrderPage extends StatelessWidget {
@@ -104,6 +104,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
   String? _detailErrorMessage;
+  String? _memberLoadError;
   bool _assignableUsersRequested = false;
 
   bool isDataLoaded = false;
@@ -313,6 +314,28 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
           assignees = state.users;
         }
 
+        // Capture hasil progress di LISTENER (bukan builder) supaya nilai pasti
+        // ter-commit + dijamin rebuild lewat setState. Sebelumnya capture di
+        // builder bikin render section progress bergantung pada state mana yang
+        // kebetulan "current" saat rebuild → progress kadang hilang di buka
+        // pertama (race tiga fetch yang berbagi satu bloc).
+        if (state is ProgressesLoaded) {
+          setState(() {
+            progresses = state.progresses;
+          });
+        }
+        if (state is ProgressByMemberLoaded) {
+          setState(() {
+            progressByMember = state.progressByMember;
+            _memberLoadError = null;
+          });
+        }
+        if (state is ProgressByMemberError) {
+          setState(() {
+            _memberLoadError = state.message;
+          });
+        }
+
         if (state is WorkOrderCreated &&
             _isSubmitting &&
             !_hasClosedAfterCreate) {
@@ -443,13 +466,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         _checkDataLoaded();
       },
       child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
+        // Builder murni untuk render — capture state progress ditangani di
+        // listener di atas agar tidak bergantung urutan kedatangan state.
         builder: (context, state) {
-          if (state is ProgressesLoaded) {
-            progresses = state.progresses;
-          }
-          if (state is ProgressByMemberLoaded) {
-            progressByMember = state.progressByMember;
-          }
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
               return Center(
@@ -484,7 +503,10 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                           ),
                         )
                       : null,
-                  body: (state is WorkOrderLoading && isDetailMode)
+                  // Spinner penuh hanya saat detail belum siap. Setelah form
+                  // tampil (isDataLoaded), WorkOrderLoading dari fetch progress
+                  // TIDAK boleh menutup form yang sudah ada.
+                  body: (state is WorkOrderLoading && isDetailMode && !isDataLoaded)
                       ? const Center(child: CircularProgressIndicator())
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(16.0),
@@ -529,26 +551,10 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        // Progress Individual Anggota (untuk SPV)
-        !widget.isAssignee && progressByMember != null
-            ? IndividualProgressSection(
-                progressByMember: progressByMember!,
-                status: widget.status,
-                kategoriForm: formData["kategoriForm"] as String?,
-                lngLat:
-                    (formData["latitude"] != null &&
-                        formData["longitude"] != null)
-                    ? LatLng(
-                        (formData["latitude"] as num).toDouble(),
-                        (formData["longitude"] as num).toDouble(),
-                      )
-                    : null,
-                locationName: formData["locationName"] as String?,
-                radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
-                workOrderTypeName: formData["workOrderTypeName"] as String?,
-                workOrderTypeId: formData["workOrderTypeId"] as int?,
-              )
-            : const SizedBox(),
+        // Progress Individual Anggota (untuk SPV). Keputusan tampilan
+        // (data / error+retry / kosong) diserahkan ke _buildMemberProgressSection
+        // agar kegagalan load tidak disembunyikan diam-diam.
+        !widget.isAssignee ? _buildMemberProgressSection() : const SizedBox(),
         widget.isAssignee
             ? const SizedBox()
             : _buildActionButtons(canAssignStaff: canAssignStaff),
@@ -556,6 +562,96 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     );
   }
 
+  Widget _buildMemberProgressSection() {
+    final bool hasData =
+        progressByMember != null && progressByMember!.members.isNotEmpty;
+
+    // Load gagal dan belum ada data → munculkan error + retry (jangan diam2).
+    if (_memberLoadError != null && !hasData) {
+      return _buildMemberProgressError();
+    }
+
+    // Masih loading / benar-benar belum ada anggota → tidak menampilkan apa-apa.
+    if (!hasData) {
+      return const SizedBox();
+    }
+
+    return IndividualProgressSection(
+      progressByMember: progressByMember!,
+      status: widget.status,
+      kategoriForm: formData["kategoriForm"] as String?,
+      lngLat: (formData["latitude"] != null && formData["longitude"] != null)
+          ? LatLng(
+              (formData["latitude"] as num).toDouble(),
+              (formData["longitude"] as num).toDouble(),
+            )
+          : null,
+      locationName: formData["locationName"] as String?,
+      radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
+      workOrderTypeName: formData["workOrderTypeName"] as String?,
+      workOrderTypeId: formData["workOrderTypeId"] as int?,
+    );
+  }
+
+  Widget _buildMemberProgressError() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text("Progress Anggota Tim", style: textTheme.displayMedium),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[100]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.error_outline, size: 20, color: Colors.red[400]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _memberLoadError ?? "Gagal memuat progress anggota tim.",
+                      style: TextStyle(fontSize: 13, color: Colors.red[700]),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () {
+                    context.read<WorkOrderBloc>().add(
+                      GetProgressByMemberEvent(widget.workOrderId!),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text("Muat ulang"),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  // Halaman ini menangani DUA tahap lifecycle WO dalam satu page (dibedakan
+  // oleh status, bukan oleh file terpisah):
+  //   • MODE "MASUK"  → status Pending/ditugaskanKeSpv, SPV BELUM assign.
+  //                     Tampil form + tombol Assign (canAssignStaff == true).
+  //   • MODE "KELUAR" → sudah di-assign. Read-only + "Progress Anggota Tim".
   Widget _buildActionButtons({required bool canAssignStaff}) {
     // If creating a new work order, show submit button
     if (widget.workOrderId == null) {
@@ -565,6 +661,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       );
     }
 
+    // MODE MASUK: SPV menugaskan staff (assign).
     if (canAssignStaff) {
       return ButtonInteraction(
         status: null,

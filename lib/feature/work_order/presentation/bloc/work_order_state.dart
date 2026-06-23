@@ -126,6 +126,14 @@ class ProgressByMemberLoaded extends WorkOrderState {
   ProgressByMemberLoaded(this.progressByMember);
 }
 
+/// Error spesifik untuk load progress per-anggota agar tidak tertukar dengan
+/// `WorkOrderError` generik (yang dipakai bersama oleh load detail/progress).
+class ProgressByMemberError extends WorkOrderState {
+  final String message;
+
+  ProgressByMemberError(this.message);
+}
+
 //progress detail
 class ProgressDetailsLoaded extends WorkOrderState {
   final List<ProgressDetailEntity> progressDetails;

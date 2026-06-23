@@ -8,8 +8,8 @@ import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/notification_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
 

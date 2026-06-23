@@ -15,7 +15,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/tahapan_stepper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

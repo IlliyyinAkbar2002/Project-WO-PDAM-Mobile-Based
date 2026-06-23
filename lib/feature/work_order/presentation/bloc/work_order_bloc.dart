@@ -811,11 +811,11 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         emit(ProgressByMemberLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
         debugPrint("❌ Gagal memuat progress by member: ${dataState.error}");
-        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
+        emit(ProgressByMemberError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       debugPrint("❌ Error saat mengambil progress by member: $e");
-      emit(WorkOrderError("Gagal mengambil progress anggota tim: $e"));
+      emit(ProgressByMemberError("Gagal mengambil progress anggota tim: $e"));
     }
   }
 }

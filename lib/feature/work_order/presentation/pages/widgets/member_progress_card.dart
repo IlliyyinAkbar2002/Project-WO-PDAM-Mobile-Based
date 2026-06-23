@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_progress_entity.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/work_order_report_page.dart';
 
 /// Widget untuk menampilkan progress individual satu anggota tim.
 ///
@@ -154,14 +154,18 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   ),
                   if (widget.member.progressList.isNotEmpty)
                     Expanded(
+                      // progressList dari backend terurut kronologis
+                      // (lama → baru), sama seperti urutan "Riwayat Progress"
+                      // di bawah. Jadi elemen TERAKHIR = status terkini,
+                      // bukan elemen pertama.
                       child: _buildStatItem(
                         'Status Terakhir',
-                        widget.member.progressList.first.progressType ??
+                        widget.member.progressList.last.progressType ??
                             'Progress',
-                        widget.member.progressList.first.isSelesai
+                        widget.member.progressList.last.isSelesai
                             ? Icons.check_circle
                             : Icons.sync,
-                        widget.member.progressList.first.isSelesai
+                        widget.member.progressList.last.isSelesai
                             ? Colors.green
                             : Colors.orange,
                       ),

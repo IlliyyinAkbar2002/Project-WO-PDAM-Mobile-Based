@@ -8,8 +8,8 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_orde
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_detail_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
 
 class WorkOrderList extends StatefulWidget {
