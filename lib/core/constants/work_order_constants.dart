@@ -46,6 +46,19 @@ class TipeProgressId {
   }
 }
 
+/// Tahapan pengerjaan WO (1-4) — selaras dengan TahapanWorkorder di backend.
+/// 1 Persiapan, 2 Pengerjaan, 3 Pengujian, 4 Dokumentasi.
+class TahapanWorkorder {
+  static const int persiapan = 1;
+  static const int pengerjaan = 2;
+  static const int pengujian = 3;
+  static const int dokumentasi = 4;
+
+  /// Tahap maksimum yang dapat dilaporkan lewat mode "Progress" (Laporan).
+  /// Tahap 4 (Dokumentasi) hanya boleh lewat mode "Selesai".
+  static const int maxProgress = pengujian;
+}
+
 class ProgressStatusId {
   static const int draft = 9;
   static const int submitted = 10;

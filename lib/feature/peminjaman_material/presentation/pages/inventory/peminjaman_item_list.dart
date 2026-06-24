@@ -15,7 +15,17 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/
 
 class PeminjamanItemListPage extends StatefulWidget {
   final int? workOrderId;
-  const PeminjamanItemListPage({super.key, this.workOrderId});
+
+  /// Mode pengembalian: dibuka dari tombol "Kembalikan Material" setelah WO
+  /// "Selesai". Langsung membuka tab "Peminjaman Saya" dan menyembunyikan tab
+  /// peminjaman (Daftar Stok) agar staf hanya mengembalikan material yang dipakai.
+  final bool returnMode;
+
+  const PeminjamanItemListPage({
+    super.key,
+    this.workOrderId,
+    this.returnMode = false,
+  });
 
   @override
   State<PeminjamanItemListPage> createState() => _PeminjamanItemListPageState();
@@ -44,6 +54,9 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.returnMode) {
+      _activeSegment = 1; // langsung ke "Peminjaman Saya"
+    }
     _fetchData();
     _searchController.addListener(() {
       setState(() {
@@ -111,7 +124,8 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
               return Column(
                 children: [
                   _buildHeader(context),
-                  if (widget.workOrderId != null) _buildSegmentControl(),
+                  if (widget.workOrderId != null && !widget.returnMode)
+                    _buildSegmentControl(),
                   Expanded(
                     child: _activeSegment == 0
                         ? _buildStockTab(state, isStaff)
@@ -186,7 +200,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Inventory Material',
+            widget.returnMode ? 'Pengembalian Material' : 'Inventory Material',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: const Color(0xFF101828),
               fontWeight: FontWeight.w800,

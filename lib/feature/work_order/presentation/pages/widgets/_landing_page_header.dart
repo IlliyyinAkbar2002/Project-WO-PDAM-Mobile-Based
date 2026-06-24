@@ -160,16 +160,16 @@ class _LandingPageHeader extends StatelessWidget {
                           }
                         },
                       ),
-                      _ProfileActionItem(
-                        icon: Icons.logout,
-                        label: 'Logout',
-                        iconColor: colors.danger,
-                        textColor: colors.danger,
-                        onTap: () {
-                          Navigator.of(dialogContext).pop();
-                          _handleLogout(context);
-                        },
-                      ),
+                      // _ProfileActionItem(
+                      //   icon: Icons.logout,
+                      //   label: 'Logout',
+                      //   iconColor: colors.danger,
+                      //   textColor: colors.danger,
+                      //   onTap: () {
+                      //     Navigator.of(dialogContext).pop();
+                      //     _handleLogout(context);
+                      //   },
+                      // ),
                     ],
                   ),
                 ),
@@ -370,7 +370,7 @@ class _LandingPageHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome back,',
+                      'Welcome back, $name!',
                       style: textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12,

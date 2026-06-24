@@ -46,6 +46,11 @@ class WorkOrderReportPage extends StatefulWidget {
   final String? initialDescription;
   final String? workOrderTypeName;
 
+  /// Tahap tertinggi yang sudah tersubmit pada WO ini, dihitung pemanggil dari
+  /// daftar progress (andal). Dipakai untuk memandu pilihan tahapan di selector.
+  /// `null`/0 = tidak diketahui → selector tidak membatasi (BE tetap menjaga).
+  final int? currentTahapanTertinggi;
+
   const WorkOrderReportPage({
     super.key,
     required this.mode,
@@ -61,6 +66,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.initialKategoriData,
     this.initialDescription,
     this.workOrderTypeName,
+    this.currentTahapanTertinggi,
   });
 
   @override
@@ -729,13 +735,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   Widget _buildTahapanSelector() {
     String? jenisPekerjaan = widget.workOrderTypeName;
-    int tahapanTertinggi = 1;
     bool isPic = true;
 
     final state = _workOrderBloc.state;
     if (state is WorkOrderDetailLoaded) {
       jenisPekerjaan ??= state.workOrder.workOrderType?.name;
-      tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
 
       final currentUser = AuthStorage.getUserSync();
       final currentPegawaiIdStr = currentUser?['pegawai_id']?.toString();
@@ -747,17 +751,63 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       }
     }
 
+    // Tahap tertinggi yang sudah tersubmit. Sumber utama: param dari pemanggil
+    // (dihitung dari daftar progress — andal). Fallback ke entity bila ada.
+    // Detail WO dari BE TIDAK mengembalikan `tahapan_tertinggi`, jadi entity
+    // biasanya null; karenanya param dari detail page yang jadi acuan.
+    final int? entityTahapan = state is WorkOrderDetailLoaded
+        ? state.workOrder.tahapanTertinggi
+        : null;
+    final int tahapanTertinggi = widget.currentTahapanTertinggi ?? entityTahapan ?? 0;
+    // Bila tahap tidak diketahui (0), selector tidak membatasi pilihan — biarkan
+    // BE (rejectIfTahapanInvalid) yang menolak urutan yang salah.
+    final bool knowTahapan = tahapanTertinggi > 0;
+
     List<int> validTahapan = [1, 2, 3, 4];
     if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
       validTahapan = [1];
     } else if (widget.mode == 'Progress') {
-      validTahapan = [2, 3];
+      validTahapan = [TahapanWorkorder.pengerjaan, TahapanWorkorder.pengujian];
     } else if (widget.mode == 'Selesai') {
-      validTahapan = [4];
+      validTahapan = [TahapanWorkorder.dokumentasi];
     }
 
-    if (_selectedTahapan != null && !validTahapan.contains(_selectedTahapan)) {
-      _selectedTahapan = validTahapan.first;
+    // Tahap berikut yang boleh dimajukan PIC: maju satu langkah, maksimal 3
+    // (Pengujian). Tahap 4 (Dokumentasi) hanya lewat mode "Selesai".
+    final int nextStage = (tahapanTertinggi + 1).clamp(
+      1,
+      TahapanWorkorder.maxProgress,
+    );
+
+    // Aturan enable/disable opsi tahapan (hanya saat tahap diketahui):
+    // - Mode selain Progress: pertahankan perilaku lama (hanya 1 opsi valid).
+    // - Mode Progress + PIC: hanya boleh lapor tahap berjalan atau maju satu
+    //   langkah (cegah lompat & mundur — Bug 1 & 2).
+    // - Mode Progress + non-PIC: tetap tidak boleh memajukan tahap.
+    bool isStageDisabled(int val) {
+      if (!knowTahapan) return false;
+      if (widget.mode != 'Progress') {
+        return !isPic && val > tahapanTertinggi;
+      }
+      if (isPic) {
+        return val < tahapanTertinggi || val > nextStage;
+      }
+      return val > tahapanTertinggi;
+    }
+
+    // Default aman: untuk Progress arahkan ke tahap berikut yang valid;
+    // selain itu opsi pertama. Reset bila pilihan saat ini tidak valid/disabled.
+    int defaultTahapan = validTahapan.first;
+    if (widget.mode == 'Progress' && knowTahapan) {
+      final int desired = isPic ? nextStage : tahapanTertinggi;
+      defaultTahapan = validTahapan.contains(desired)
+          ? desired
+          : validTahapan.first;
+    }
+    if (_selectedTahapan == null ||
+        !validTahapan.contains(_selectedTahapan) ||
+        isStageDisabled(_selectedTahapan!)) {
+      _selectedTahapan = defaultTahapan;
     }
 
     return Container(
@@ -772,6 +822,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Tahapan Pekerjaan", style: textTheme.titleMedium),
+          if (widget.mode == 'Progress') ...[
+            const SizedBox(height: 4),
+            Text(
+              knowTahapan
+                  ? "Tahap berjalan: $tahapanTertinggi - ${kTahapanGeneric[(tahapanTertinggi - 1).clamp(0, 3)]}. "
+                        "Tahapan harus berurutan; tidak bisa melompati atau mengulang tahap yang sudah lewat."
+                  : "Tahapan harus berurutan; tidak bisa melompati atau mengulang tahap yang sudah lewat.",
+              style: textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            ),
+          ],
           if (!isPic) ...[
             const SizedBox(height: 4),
             Text(
@@ -789,7 +849,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             hint: const Text('Pilih tahapan... (Opsional)'),
             items: validTahapan.map((val) {
               final index = val - 1;
-              final isDisabled = !isPic && val > tahapanTertinggi;
+              final isDisabled = isStageDisabled(val);
               return DropdownMenuItem<int>(
                 value: val,
                 enabled: !isDisabled,
@@ -919,6 +979,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       );
       return;
     }
+    // Urutan tahapan (skip/mundur/Selesai sebelum Pengujian) ditegakkan oleh BE
+    // `ProgressWorkorderController::rejectIfTahapanInvalid` — error 422-nya
+    // tampil via snackbar. Selector di atas sudah mencegah pilihan tak valid
+    // saat tahap diketahui; tombol "Selesai" juga digate di detail page.
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
         AppSnackbar.showError("Deskripsi tidak boleh kosong.");

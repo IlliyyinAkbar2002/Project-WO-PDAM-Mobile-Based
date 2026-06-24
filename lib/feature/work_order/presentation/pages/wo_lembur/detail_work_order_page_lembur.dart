@@ -427,6 +427,7 @@ class _DetailWorkOrderPageLemburState
                           MaterialPageRoute(
                             builder: (_) => PeminjamanItemListPage(
                               workOrderId: widget.workOrderId,
+                              returnMode: true,
                             ),
                           ),
                         );

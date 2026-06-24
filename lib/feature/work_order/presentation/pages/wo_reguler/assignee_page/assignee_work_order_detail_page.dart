@@ -340,6 +340,7 @@ class _AssigneeWorkOrderDetailPageState
                         MaterialPageRoute(
                           builder: (_) => PeminjamanItemListPage(
                             workOrderId: widget.workOrderId,
+                            returnMode: true,
                           ),
                         ),
                       );
@@ -543,6 +544,48 @@ class _AssigneeWorkOrderDetailPageState
     }
   }
 
+  /// Tahap tertinggi yang sudah tersubmit (acuan urutan tahapan). Dihitung dari
+  /// daftar [progresses] — sama seperti [TahapanStepper]. Detail WO dari BE
+  /// tidak mengembalikan `tahapan_tertinggi`, jadi `_workOrder.tahapanTertinggi`
+  /// umumnya null; gunakan progress sebagai sumber yang andal.
+  int _highestSubmittedTahapan() {
+    final entityVal = _workOrder?.tahapanTertinggi;
+    if (entityVal != null) return entityVal;
+    int computed = 0;
+    for (final p in progresses) {
+      if (!p.isDibatalkan && p.tahapan != null && p.tahapan! > computed) {
+        computed = p.tahapan!;
+      }
+    }
+    return computed;
+  }
+
+  Future<void> _showTahapanIncompleteReminder() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Tahapan Belum Selesai',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Selesaikan tahap Pengujian terlebih dahulu sebelum menyelesaikan '
+          'work order. Tahapan harus dikerjakan berurutan.',
+          style: TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(String mode, {bool disabled = false}) {
     // Map mode 'Laporan' ke tipeProgressId 2 (Progress) di WorkOrderReportPage
     final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
@@ -566,6 +609,14 @@ class _AssigneeWorkOrderDetailPageState
           }
         }
 
+        // Pencegatan tombol "Selesai": tahap Pengujian (3) harus tercapai dulu
+        // agar WO tidak diselesaikan dengan melompati tahapan (Bug 3).
+        if (mode == 'Selesai' &&
+            _highestSubmittedTahapan() < TahapanWorkorder.pengujian) {
+          await _showTahapanIncompleteReminder();
+          return;
+        }
+
         final bool? shouldRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
@@ -584,6 +635,7 @@ class _AssigneeWorkOrderDetailPageState
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
               workOrderTypeName: _workOrder?.workOrderType?.name,
+              currentTahapanTertinggi: _highestSubmittedTahapan(),
             ),
           ),
         );
