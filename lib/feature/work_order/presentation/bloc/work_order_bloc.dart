@@ -198,6 +198,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               onlyActive: event.onlyActive,
               includeStatusNames: event.includeStatusNames,
               excludeStatusNames: event.excludeStatusNames,
+              excludeLembur: event.excludeLembur,
             ),
           ),
         );
@@ -220,6 +221,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     bool? onlyActive,
     List<String>? includeStatusNames,
     List<String>? excludeStatusNames,
+    bool? excludeLembur,
   }) {
     final include = includeStatusNames
         ?.map((s) => s.toLowerCase())
@@ -231,12 +233,14 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     if (assignedToPegawaiId == null &&
         departemenId == null &&
         onlyActive != true &&
+        excludeLembur != true &&
         (include == null || include.isEmpty) &&
         (exclude == null || exclude.isEmpty)) {
       return workOrders;
     }
     return workOrders.where((wo) {
       if (onlyActive == true && wo.isActive == false) return false;
+      if (excludeLembur == true && wo.isLembur) return false;
       if (assignedToPegawaiId != null &&
           wo.assignedToPegawaiId != assignedToPegawaiId) {
         return false;
@@ -284,6 +288,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         onlyActive: event.onlyActive,
         includeStatusNames: event.includeStatusNames,
         excludeStatusNames: event.excludeStatusNames,
+        excludeLembur: event.excludeLembur,
       );
       final updatedList = List<WorkOrderEntity>.from(
         (state as WorkOrderLoaded).workOrders,
@@ -465,6 +470,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               onlyActive: event.onlyActive,
               includeStatusNames: event.includeStatusNames,
               excludeStatusNames: event.excludeStatusNames,
+              excludeLembur: event.excludeLembur,
             ),
           ),
         );

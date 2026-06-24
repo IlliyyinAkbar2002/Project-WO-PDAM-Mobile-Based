@@ -18,6 +18,10 @@ class AssignerWorkOrderListPage extends StatefulWidget {
   final List<String>? includeStatusNames;
   final List<String>? excludeStatusNames;
 
+  /// Bila true, WO yang sudah diajukan lembur disembunyikan (FE-side).
+  /// Dipakai WO Masuk supaya hanya WO reguler yang tampil.
+  final bool excludeLembur;
+
   const AssignerWorkOrderListPage({
     super.key,
     this.picId,
@@ -28,6 +32,7 @@ class AssignerWorkOrderListPage extends StatefulWidget {
     this.onlyActive = false,
     this.includeStatusNames,
     this.excludeStatusNames,
+    this.excludeLembur = false,
   });
 
   @override
@@ -75,6 +80,7 @@ class _AssignerWorkOrderListPageState
         onlyActive: widget.onlyActive ? true : null,
         includeStatusNames: widget.includeStatusNames,
         excludeStatusNames: widget.excludeStatusNames,
+        excludeLembur: widget.excludeLembur ? true : null,
       ),
     );
   }
@@ -150,6 +156,7 @@ class _AssignerWorkOrderListPageState
               onlyActive: widget.onlyActive,
               includeStatusNames: widget.includeStatusNames,
               excludeStatusNames: widget.excludeStatusNames,
+              excludeLembur: widget.excludeLembur,
             ),
           ),
         ],
@@ -178,6 +185,7 @@ class _AssignerWorkOrderListPageState
                 onlyActive: widget.onlyActive ? true : null,
                 includeStatusNames: widget.includeStatusNames,
                 excludeStatusNames: widget.excludeStatusNames,
+                excludeLembur: widget.excludeLembur ? true : null,
               ),
             );
           });

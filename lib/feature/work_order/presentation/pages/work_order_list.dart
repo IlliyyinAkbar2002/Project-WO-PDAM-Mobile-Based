@@ -25,6 +25,10 @@ class WorkOrderList extends StatefulWidget {
   final List<String>? includeStatusNames;
   final List<String>? excludeStatusNames;
 
+  /// Bila true, WO yang sudah diajukan lembur (`splId != null`) disembunyikan.
+  /// Dipakai WO Masuk supaya hanya WO reguler yang tampil.
+  final bool excludeLembur;
+
   const WorkOrderList({
     super.key,
     this.status,
@@ -38,6 +42,7 @@ class WorkOrderList extends StatefulWidget {
     this.onlyActive = false,
     this.includeStatusNames,
     this.excludeStatusNames,
+    this.excludeLembur = false,
   });
 
   @override
@@ -68,6 +73,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         onlyActive: widget.onlyActive ? true : null,
         includeStatusNames: widget.includeStatusNames,
         excludeStatusNames: widget.excludeStatusNames,
+        excludeLembur: widget.excludeLembur ? true : null,
       ),
     );
   }
@@ -89,6 +95,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           onlyActive: widget.onlyActive ? true : null,
           includeStatusNames: widget.includeStatusNames,
           excludeStatusNames: widget.excludeStatusNames,
+          excludeLembur: widget.excludeLembur ? true : null,
         ),
       );
     }

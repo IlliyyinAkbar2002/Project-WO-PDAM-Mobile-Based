@@ -36,6 +36,10 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
   /// untuk WO Keluar). Null = tidak memfilter.
   final List<String>? excludeStatusNames;
 
+  /// Bila true, WO yang sudah punya pengajuan lembur (`splId != null`)
+  /// disembunyikan (FE-side). Dipakai WO Masuk supaya hanya WO reguler tampil.
+  final bool? excludeLembur;
+
   GetWorkOrdersEvent({
     this.status,
     this.excludeStatus,
@@ -51,6 +55,7 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
     this.onlyActive,
     this.includeStatusNames,
     this.excludeStatusNames,
+    this.excludeLembur,
   });
 }
 
@@ -70,6 +75,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
   final bool? onlyActive;
   final List<String>? includeStatusNames;
   final List<String>? excludeStatusNames;
+  final bool? excludeLembur;
 
   LoadMoreWorkOrdersEvent(
     this.page,
@@ -87,6 +93,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
     this.onlyActive,
     this.includeStatusNames,
     this.excludeStatusNames,
+    this.excludeLembur,
   });
 }
 
@@ -105,6 +112,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
   final bool? onlyActive;
   final List<String>? includeStatusNames;
   final List<String>? excludeStatusNames;
+  final bool? excludeLembur;
 
   SearchWorkOrdersEvent(
     this.query, {
@@ -121,6 +129,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
     this.onlyActive,
     this.includeStatusNames,
     this.excludeStatusNames,
+    this.excludeLembur,
   });
 }
 

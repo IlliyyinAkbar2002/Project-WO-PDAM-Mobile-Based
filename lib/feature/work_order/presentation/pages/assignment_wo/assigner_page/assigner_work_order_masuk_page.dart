@@ -63,6 +63,10 @@ class _AssignerWorkOrderMasukPageState
         // TETAP ditampilkan (tidak di-onlyActive) supaya SPV tahu ada WO masuk;
         // pengamanannya: tombol "Ajukan" di-hide untuk WO nonaktif (lihat detail).
         includeStatusNames: const ['Pending'],
+        // WO yang sudah diajukan lembur (`lembur_spl_id` terisi) pindah jalur ke
+        // "Riwayat Pengajuan Lembur" → jangan tampilkan lagi di sini meski
+        // status-nya masih 'Pending' sampai di-approve superadmin.
+        excludeLembur: true,
         excludeStatus: const [
           WorkOrderStatusId.menungguApprovalManager,
           WorkOrderStatusId.ditugaskanKeStaff,

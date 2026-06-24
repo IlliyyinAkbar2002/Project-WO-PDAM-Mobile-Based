@@ -560,7 +560,7 @@ class _PersetujuanPeminjamanBarangPageState
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Pinjam: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0} • Rusak: ${request.jumlahRusak ?? 0}',
+                          'Pakai: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0} • Rusak: ${request.jumlahRusak ?? 0}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -840,7 +840,7 @@ class _ApprovalDetailSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _buildInfoTile(
-                            'Jumlah Pinjam',
+                            'Jumlah Pakai',
                             '${r.jumlahPinjam} ${r.material?.satuan ?? ""}',
                           ),
                         ),
