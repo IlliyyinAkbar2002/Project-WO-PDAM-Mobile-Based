@@ -679,7 +679,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
 
   Widget _buildBorrowedCard(PeminjamanMaterialEntity item, bool isStaff) {
     final matName =
-        item.material?.namaMaterial ?? 'Material #${item.materialId}';
+        item.material?.namaMaterial ?? 'Material #${item.materialKode}';
     final matCat = item.material?.kategori ?? 'Umum';
     final matSatuan = item.material?.satuan ?? '';
     final isBorrowed = item.status == 'DIPINJAM';

@@ -5,7 +5,6 @@ import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
-
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
@@ -482,7 +481,7 @@ class _PersetujuanPeminjamanBarangPageState
 
   Widget _buildRequestCard(PeminjamanMaterialEntity request) {
     final matName =
-        request.material?.namaMaterial ?? 'Material #${request.materialId}';
+        request.material?.namaMaterial ?? 'Material #${request.materialKode}';
     final requesterName = request.user?.employee?.name ?? 'Staff';
     final submittedTime = request.waktuKembali ?? DateTime.now();
 
@@ -676,7 +675,7 @@ class _ApprovalDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = request;
-    final matName = r.material?.namaMaterial ?? 'Material #${r.materialId}';
+    final matName = r.material?.namaMaterial ?? 'Material #${r.materialKode}';
     final submittedTime = r.waktuKembali ?? r.waktuPinjam ?? DateTime.now();
 
     return DraggableScrollableSheet(

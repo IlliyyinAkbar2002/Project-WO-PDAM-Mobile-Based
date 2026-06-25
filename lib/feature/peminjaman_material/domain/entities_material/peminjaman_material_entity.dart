@@ -5,7 +5,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_enti
 class PeminjamanMaterialEntity extends Equatable {
   final int? id;
   final int? workorderId;
-  final int? materialId;
+  final String? materialKode;
   final int? userId;
   final int? jumlahPinjam;
   final DateTime? waktuPinjam;
@@ -20,7 +20,7 @@ class PeminjamanMaterialEntity extends Equatable {
   const PeminjamanMaterialEntity({
     this.id,
     this.workorderId,
-    this.materialId,
+    this.materialKode,
     this.userId,
     this.jumlahPinjam,
     this.waktuPinjam,
@@ -37,7 +37,7 @@ class PeminjamanMaterialEntity extends Equatable {
   List<Object?> get props => [
     id,
     workorderId,
-    materialId,
+    materialKode,
     userId,
     jumlahPinjam,
     waktuPinjam,

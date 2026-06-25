@@ -40,15 +40,16 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
     final qty = int.tryParse(_jumlahController.text.trim()) ?? 0;
     final note = _catatanController.text.trim();
 
-    final materialKodeInt =
-        int.tryParse(widget.material.kodeMaterial ?? '') ??
-        widget.material.id ??
-        0;
+    final materialKode = widget.material.kodeMaterial ?? '';
+    if (materialKode.isEmpty) {
+      AppSnackbar.showError('Kode material tidak valid.');
+      return;
+    }
 
     context.read<MaterialBloc>().add(
       PinjamMaterialEvent(
         workOrderId: widget.workOrderId,
-        materialId: materialKodeInt,
+        materialKode: materialKode,
         jumlahPinjam: qty,
         catatan: note.isNotEmpty ? note : null,
       ),

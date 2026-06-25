@@ -9,7 +9,7 @@ abstract class MaterialRepository {
   );
   Future<DataState<PeminjamanMaterialEntity>> pinjamMaterial({
     required int workOrderId,
-    required int materialId,
+    required String materialKode,
     required int jumlahPinjam,
     String? catatan,
   });

@@ -149,7 +149,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
 
   Future<DataState<PeminjamanMaterialModel>> pinjamMaterial({
     required int workOrderId,
-    required int materialId,
+    required String materialKode,
     required int jumlahPinjam,
     String? catatan,
   }) async {
@@ -157,7 +157,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
       final response = await post(
         path: '/v1/workorder/$workOrderId/peminjaman-material',
         data: {
-          'material_kode': materialId,
+          'material_kode': materialKode,
           'jumlah_pinjam': jumlahPinjam,
           if (catatan != null) 'catatan': catatan,
         },
