@@ -474,6 +474,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
             final bool canShowResubmitButton =
                 !isSelesaiResubmit || isSeniorStaff;
+            final bool isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+            final bool isWorkOrderClosed =
+                widget.status == WorkOrderStatusId.selesai;
 
             String? jenisPekerjaan = widget.workOrderTypeName;
             if (jenisPekerjaan == null && widget.workOrderTypeId != null) {
@@ -647,20 +650,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                               ? const SizedBox()
                               : widget.mode == 'Selesai' &&
                                     !widget.isAssignee &&
+                                    isSpv &&
+                                    !isWorkOrderClosed &&
                                     ProgressStatusId.isSubmitted(
                                       _progressStatusId,
                                     )
                               ? Row(
                                   children: [
-                                    // Expanded(
-                                    //   child: ElevatedButton(
-                                    //     style: ElevatedButton.styleFrom(
-                                    //       backgroundColor: color.danger,
-                                    //     ),
-                                    //     onPressed: () => _onReview('tolak'),
-                                    //     child: const Text('Tolak'),
-                                    //   ),
-                                    // ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(

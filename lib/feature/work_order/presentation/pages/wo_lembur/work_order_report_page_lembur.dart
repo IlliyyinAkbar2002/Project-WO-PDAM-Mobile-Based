@@ -479,6 +479,9 @@ class _WorkOrderReportPageLemburState
                 AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
             final bool canShowResubmitButton =
                 !isSelesaiResubmit || isSeniorStaff;
+            final bool isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+            final bool isWorkOrderClosed =
+                widget.status == WorkOrderStatusId.selesai;
 
             String? jenisPekerjaan;
             if (widget.workOrderTypeId != null) {
@@ -654,6 +657,8 @@ class _WorkOrderReportPageLemburState
                               ? const SizedBox()
                               : widget.mode == 'Selesai' &&
                                     !widget.isAssignee &&
+                                    isSpv &&
+                                    !isWorkOrderClosed &&
                                     ProgressStatusId.isSubmitted(
                                       _progressStatusId,
                                     )

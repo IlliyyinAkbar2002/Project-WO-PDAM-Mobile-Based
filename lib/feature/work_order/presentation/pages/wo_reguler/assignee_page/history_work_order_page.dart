@@ -123,6 +123,7 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
           ),
           Expanded(
             child: WorkOrderList(
+              isAssignee: true,
               status: const [
                 WorkOrderStatusId.selesai,
                 WorkOrderStatusId.menungguApprovalManager,
