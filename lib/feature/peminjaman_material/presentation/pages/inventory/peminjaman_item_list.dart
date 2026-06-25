@@ -772,7 +772,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
               ),
             ],
           ),
-          if (isStaff && isBorrowed) ...[
+          if (isStaff && isBorrowed && widget.returnMode) ...[
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF3F4F6)),
             const SizedBox(height: 12),

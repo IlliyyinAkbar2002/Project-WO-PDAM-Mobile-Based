@@ -30,8 +30,6 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Work Order Keluar',
-        actionIcon: Icons.notification_add,
-        onActionPressed: () {},
       ),
       body: Column(
         children: [

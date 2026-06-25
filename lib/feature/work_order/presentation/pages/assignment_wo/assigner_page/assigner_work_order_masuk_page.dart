@@ -34,8 +34,6 @@ class _AssignerWorkOrderMasukPageState
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Work Order Masuk',
-        actionIcon: Icons.notification_add,
-        onActionPressed: () {},
       ),
       body: Column(
         children: [
