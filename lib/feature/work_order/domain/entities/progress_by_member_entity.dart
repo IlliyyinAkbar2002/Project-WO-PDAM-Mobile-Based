@@ -18,11 +18,17 @@ class ProgressByMemberEntity extends Equatable {
   /// List semua anggota tim dengan progress masing-masing
   final List<MemberProgressEntity> members;
 
+  /// Total laporan seluruh anggota tim (agregat). Disediakan backend; jika
+  /// belum tersedia, dihitung di model sebagai fallback (jumlah progress
+  /// seluruh anggota).
+  final int totalLaporanTim;
+
   const ProgressByMemberEntity({
     required this.workorderId,
     required this.workorderName,
     required this.estimasiHari,
     required this.members,
+    this.totalLaporanTim = 0,
   });
 
   /// Cari PIC dari list anggota
@@ -40,6 +46,7 @@ class ProgressByMemberEntity extends Equatable {
         workorderName,
         estimasiHari,
         members,
+        totalLaporanTim,
       ];
 
   ProgressByMemberEntity copyWith({
@@ -47,12 +54,14 @@ class ProgressByMemberEntity extends Equatable {
     String? workorderName,
     int? estimasiHari,
     List<MemberProgressEntity>? members,
+    int? totalLaporanTim,
   }) {
     return ProgressByMemberEntity(
       workorderId: workorderId ?? this.workorderId,
       workorderName: workorderName ?? this.workorderName,
       estimasiHari: estimasiHari ?? this.estimasiHari,
       members: members ?? this.members,
+      totalLaporanTim: totalLaporanTim ?? this.totalLaporanTim,
     );
   }
 }

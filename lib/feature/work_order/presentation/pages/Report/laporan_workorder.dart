@@ -8,6 +8,7 @@ import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
+import 'package:project_mobile_pdam/feature/work_order/data/models/laporan_workorder_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/laporan_workorder_cubit.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
@@ -25,6 +26,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
   final ExportDelegate exportDelegate = ExportDelegate();
   late LaporanWorkorderCubit _cubit;
   late String _printTime;
+  LaporanReportModel? _report;
 
   @override
   void initState() {
@@ -34,6 +36,8 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
       'dd MMMM yyyy, HH:mm',
       'id_ID',
     ).format(DateTime.now());
+    final id = widget.payload['workorder_id'];
+    if (id is int) _cubit.loadReport(id);
   }
 
   // void _submitReport() {
@@ -267,35 +271,98 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
   }
 
 
-  Widget _buildPdfDocument() {
-    final p = widget.payload;
+  String _dash(String? value) =>
+      (value == null || value.trim().isEmpty) ? '-' : value.trim();
 
-    final nomorLaporan = p['nomor_laporan']?.toString() ?? '-';
-    final workorderId = p['workorder_id']?.toString() ?? '-';
-    final isLembur = p['is_lembur'] == true;
-    final judulLaporan = isLembur
+  String _fmtDate(DateTime? d) =>
+      d == null ? '-' : DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(d);
+
+  /// Daftar petugas dengan penanda PIC.
+  Widget _memberList(List<LaporanReportMember> members) {
+    if (members.isEmpty) return _snapshotBlock('-');
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (int i = 0; i < members.length; i++)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: i == members.length - 1
+                      ? BorderSide.none
+                      : BorderSide(color: Colors.grey.shade300, width: 0.5),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _dash(members[i].nama),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'NIP: ${_dash(members[i].nip)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (members[i].isPic)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green.shade300),
+                      ),
+                      child: Text(
+                        'PIC',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.green.shade700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPdfDocument(LaporanReportModel report) {
+    final nomorLaporan = report.nomorLaporan;
+    final workorderId = report.workorderId?.toString() ?? '-';
+    final judulLaporan = report.isLembur
         ? 'LAPORAN SELESAI WORK ORDER LEMBUR'
         : 'LAPORAN SELESAI WORK ORDER';
     final tanggal = DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.now());
     final waktu = "${DateFormat('HH:mm', 'id_ID').format(DateTime.now())} WIB";
-
-    // Petugas snapshot
-    final petugasSnap = p['petugas_snapshot'];
-    Map<String, dynamic> petugasMap = {};
-    if (petugasSnap is Map) {
-      petugasMap = Map<String, dynamic>.from(petugasSnap);
-    } else if (petugasSnap is List && petugasSnap.isNotEmpty) {
-      final first = petugasSnap.first;
-      if (first is Map) {
-        petugasMap = Map<String, dynamic>.from(first);
-      }
-    }
-    final namaPetugas = petugasMap['nama']?.toString() ?? '-';
-    final nip = petugasMap['nip']?.toString() ?? '-';
-    final unit =
-        petugasMap['unit']?.toString() ??
-        petugasMap['departemen']?.toString() ??
-        '-';
+    final namaPic = _dash(report.pic?.nama);
 
     return Container(
       color: Colors.white,
@@ -353,28 +420,42 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
           _sectionLabel('Identitas Dokumen'),
           _dataGrid([
             _FieldItem('Work Order ID', workorderId),
+            _FieldItem('Kode Pengaduan', _dash(report.kodePengaduan)),
             _FieldItem('Tanggal Laporan', tanggal),
-            _FieldItem('Status', 'Selesai'),
+            _FieldItem('Status', _dash(report.status)),
             _FieldItem('Waktu Submit', waktu),
+          ]),
+
+          // ── LOKASI & WAKTU ──────────────────────────
+          _sectionLabel('Lokasi & Waktu Pengerjaan'),
+          _dataGrid([
+            _FieldItem('Tanggal Mulai', _fmtDate(report.tanggalMulai)),
+            _FieldItem('Tanggal Selesai', _fmtDate(report.tanggalSelesai)),
+            _FieldItem('Lokasi', _dash(report.lokasi)),
           ]),
 
           // ── HASIL PEKERJAAN ─────────────────────────
           _sectionLabel('Data Hasil Pekerjaan'),
-          _snapshotBlock(p['hasil_akhir_snapshot']),
+          _snapshotBlock(_dash(report.hasilAkhir)),
 
-          // ── INFORMASI PETUGAS ───────────────────────
-          _sectionLabel('Informasi Petugas'),
+          // ── PENANGGUNG JAWAB & PETUGAS ──────────────
+          _sectionLabel('Penanggung Jawab & Petugas'),
           _dataGrid([
-            _FieldItem('Nama Petugas', namaPetugas),
-            _FieldItem('NIP', nip),
-            _FieldItem('Unit / Bagian', unit),
+            _FieldItem('SPV (Penanggung Jawab)', _dash(report.spvNama)),
+            _FieldItem('NIP SPV', _dash(report.spvNip)),
           ]),
+          const SizedBox(height: 8),
+          _memberList(report.members),
+
+          // ── CATATAN SPV ─────────────────────────────
+          _sectionLabel('Catatan SPV'),
+          _snapshotBlock(_dash(report.catatanSpv)),
 
           // ── TANDA TANGAN ────────────────────────────
           _sectionLabel('Tanda Tangan'),
           Row(
             children: [
-              Expanded(child: _signBox('Petugas Pelaksana', namaPetugas)),
+              Expanded(child: _signBox('Petugas Pelaksana', namaPic)),
               const SizedBox(width: 12),
               Expanded(child: _signBox('Manager EPB', '( ________________ )')),
             ],
@@ -418,7 +499,7 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
         appBar: AppBar(
           title: const Text('Laporan Work Order'),
           actions: [
-            if (isSpv)
+            if (isSpv && _report != null)
               IconButton(
                 icon: const Icon(Icons.picture_as_pdf),
                 tooltip: 'Export PDF',
@@ -527,75 +608,54 @@ class _LaporanWorkorderPageState extends AppStatePage<LaporanWorkorderPage> {
         ),
         body: BlocConsumer<LaporanWorkorderCubit, LaporanWorkorderState>(
           listener: (context, state) {
-            if (state is LaporanWorkorderSuccess) {
-              AppSnackbar.showSuccess('Laporan berhasil disubmit');
-              Navigator.of(context).pop(true);
-            } else if (state is LaporanWorkorderFailed) {
+            if (state is LaporanReportLoaded) {
+              setState(() => _report = state.report);
+            } else if (state is LaporanReportError) {
               AppSnackbar.showError(state.message);
             }
           },
           builder: (context, state) {
-            return Column(
-              children: [
-                // ── Scrollable PDF Preview ─────────────
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: ExportFrame(
-                      frameId: 'laporan_workorder_frame',
-                      exportDelegate: exportDelegate,
-                      child: _buildPdfDocument(),
+            if (state is LaporanReportError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        final id = widget.payload['workorder_id'];
+                        if (id is int) _cubit.loadReport(id);
+                      },
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
                 ),
+              );
+            }
 
-                // ── Submit Button ──────────────────────
-                // Container(
-                //   padding: const EdgeInsets.all(16),
-                //   decoration: BoxDecoration(
-                //     color: Colors.white,
-                //     boxShadow: [
-                //       BoxShadow(
-                //         color: Colors.black.withValues(alpha: 0.05),
-                //         blurRadius: 10,
-                //         offset: const Offset(0, -5),
-                //       ),
-                //     ],
-                //   ),
-                //   child: SizedBox(
-                //     width: double.infinity,
-                //     height: 48,
-                //     child: ElevatedButton(
-                //       style: ElevatedButton.styleFrom(
-                //         backgroundColor: Colors.blueAccent,
-                //         shape: RoundedRectangleBorder(
-                //           borderRadius: BorderRadius.circular(8),
-                //         ),
-                //       ),
-                //       onPressed: state is LaporanWorkorderLoading
-                //           ? null
-                //           : _submitReport,
-                //       child: state is LaporanWorkorderLoading
-                //           ? const SizedBox(
-                //               height: 24,
-                //               width: 24,
-                //               child: CircularProgressIndicator(
-                //                 color: Colors.white,
-                //                 strokeWidth: 2.5,
-                //               ),
-                //             )
-                //           : const Text(
-                //               'Submit Laporan',
-                //               style: TextStyle(
-                //                 fontSize: 16,
-                //                 fontWeight: FontWeight.bold,
-                //                 color: Colors.white,
-                //               ),
-                //             ),
-                //     ),
-                //   ),
-                // ),
-              ],
+            final report = _report;
+            if (report == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ExportFrame(
+                frameId: 'laporan_workorder_frame',
+                exportDelegate: exportDelegate,
+                child: _buildPdfDocument(report),
+              ),
             );
           },
         ),

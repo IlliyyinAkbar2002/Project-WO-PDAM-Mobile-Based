@@ -202,38 +202,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Statistics Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatItem(
-                      'Total Laporan',
-                      '${widget.member.progressList.length}',
-                      Icons.assignment,
-                      Colors.blue,
-                    ),
-                  ),
-                  // Status Terakhir hanya ditampilkan untuk PIC (leader);
-                  // untuk anggota lapangan cukup Total Laporan saja.
-                  if (widget.isLeader && widget.member.progressList.isNotEmpty)
-                    Expanded(
-                      child: _buildStatItem(
-                        'Status Terakhir',
-                        widget.member.progressList.last.progressType ??
-                            'Progress',
-                        widget.member.progressList.last.isSelesai
-                            ? Icons.check_circle
-                            : Icons.sync,
-                        widget.member.progressList.last.isSelesai
-                            ? Colors.green
-                            : Colors.orange,
-                      ),
-                    ),
-                ],
-              ),
-
               // Expanded Section: Progress List
               if (_isExpanded) ...[
                 const SizedBox(height: 16),
@@ -326,35 +294,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: value.length > 3 ? 14 : 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
   }
 
   Widget _buildProgressItem(dynamic progress) {

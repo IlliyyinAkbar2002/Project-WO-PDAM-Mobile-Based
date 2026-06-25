@@ -23,6 +23,7 @@ class WorkOrderEntity extends Equatable {
   final StatusEntity? status;
   final int? progresPersen;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
   final int? tahapanTertinggi;
   // final int? departemenId;
   // final String? departemenNama;
@@ -57,6 +58,7 @@ class WorkOrderEntity extends Equatable {
     this.status,
     this.progresPersen,
     this.createdAt,
+    this.updatedAt,
     this.kategoriForm,
     this.detailKategori,
     this.prioritas,
@@ -93,6 +95,7 @@ class WorkOrderEntity extends Equatable {
     status,
     progresPersen,
     createdAt,
+    updatedAt,
     kategoriForm,
     detailKategori,
     prioritas,
@@ -126,6 +129,7 @@ class WorkOrderEntity extends Equatable {
     StatusEntity? status,
     int? progresPersen,
     DateTime? createdAt,
+    DateTime? updatedAt,
     String? kategoriForm,
     Map<String, dynamic>? detailKategori,
     String? prioritas,
@@ -158,6 +162,7 @@ class WorkOrderEntity extends Equatable {
       status: status ?? this.status,
       progresPersen: progresPersen ?? this.progresPersen,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       kategoriForm: kategoriForm ?? this.kategoriForm,
       detailKategori: detailKategori ?? this.detailKategori,
       prioritas: prioritas ?? this.prioritas,

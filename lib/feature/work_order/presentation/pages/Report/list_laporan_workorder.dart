@@ -257,21 +257,11 @@ class _ListLaporanWorkorderPageState
   }
 
   void _navigateToDetail(WorkOrderEntity wo) {
-    // Get assignee details from assignment if available
-    final assigneeName = wo.assignment?.assignee?.employee?.name ?? '-';
-    final assigneeNip = wo.assignment?.assignee?.employee?.nip ?? '-';
-    final assigneeUnit = wo.assignment?.assignee?.employee?.departemen ?? '-';
-
+    // Detail laporan (kode pengaduan, lokasi, petugas, catatan SPV, dll.)
+    // dimuat di dalam halaman lewat endpoint workorder/history/{id}.
     final payload = <String, dynamic>{
       'workorder_id': wo.id,
       'is_lembur': wo.isLembur,
-      'nomor_laporan': 'LP-${wo.id}',
-      'hasil_akhir_snapshot': wo.title,
-      'petugas_snapshot': {
-        'nama': assigneeName,
-        'nip': assigneeNip,
-        'unit': assigneeUnit,
-      },
     };
 
     Navigator.push(
@@ -292,9 +282,13 @@ class _LaporanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // Tanggal selesai: pakai updated_at (waktu status→Selesai, sumber dari
+    // endpoint index) yang sepadan dengan laporan.tanggal_terbit di detail.
+    // Fallback ke startDateTime bila kelak data sudah membawa assignment.
     String dateStr = '-';
-    if (workOrder.startDateTime != null) {
-      final d = workOrder.startDateTime!;
+    final completedAt = workOrder.updatedAt ?? workOrder.startDateTime;
+    if (completedAt != null) {
+      final d = completedAt;
       dateStr =
           '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     }

@@ -82,9 +82,20 @@ class IndividualProgressSection extends StatelessWidget {
     final pic = progressByMember.pic;
 
     if (pic == null) {
-      return progressByMember.members
-          .map((member) => _buildCard(member, isLeader: false))
-          .toList();
+      return [
+        ...progressByMember.members
+            .map((member) => _buildCard(member, isLeader: false)),
+        // Tanpa PIC: tampilkan total laporan tim saja (tanpa Status Terakhir).
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: _buildStatItem(
+            'Total Laporan Tim',
+            '${progressByMember.totalLaporanTim}',
+            Icons.assignment,
+            Colors.blue,
+          ),
+        ),
+      ];
     }
 
     final anggota =
@@ -124,10 +135,74 @@ class IndividualProgressSection extends StatelessWidget {
                 ),
               ),
             ],
+            // Footer ringkasan tim: total laporan seluruh anggota + status
+            // terakhir milik PIC (PIC yang menjalankan tahapan).
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            _buildTeamFooter(pic),
           ],
         ),
       ),
     ];
+  }
+
+  /// Footer ringkasan di dalam container "Tim Lapangan": total laporan tim
+  /// (agregat seluruh anggota) dan status terakhir PIC.
+  Widget _buildTeamFooter(MemberProgressEntity pic) {
+    final lastProgress =
+        pic.progressList.isNotEmpty ? pic.progressList.last : null;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatItem(
+            'Total Laporan Tim',
+            '${progressByMember.totalLaporanTim}',
+            Icons.assignment,
+            Colors.blue,
+          ),
+        ),
+        if (lastProgress != null)
+          Expanded(
+            child: _buildStatItem(
+              'Status Terakhir',
+              lastProgress.progressType ?? 'Progress',
+              lastProgress.isSelesai ? Icons.check_circle : Icons.sync,
+              lastProgress.isSelesai ? Colors.green : Colors.orange,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: value.length > 3 ? 14 : 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 
   Widget _buildSectionLabel({IconData? icon, required String text}) {

@@ -9,6 +9,7 @@ class ProgressByMemberModel extends ProgressByMemberEntity {
     required super.workorderName,
     required super.estimasiHari,
     required super.members,
+    super.totalLaporanTim,
   });
 
   factory ProgressByMemberModel.fromJson(String source) =>
@@ -38,11 +39,19 @@ class ProgressByMemberModel extends ProgressByMemberEntity {
       return [];
     }
 
+    final members = parseMembersList(map['members']);
+
+    // Total laporan tim: pakai nilai agregat dari backend bila tersedia,
+    // jika belum (BE lama) fallback ke jumlah progress seluruh anggota.
+    int sumMemberReports() =>
+        members.fold<int>(0, (sum, m) => sum + m.progressList.length);
+
     return ProgressByMemberModel(
       workorderId: parseInt(map['workorder_id']) ?? 0,
       workorderName: map['workorder_name']?.toString() ?? '',
       estimasiHari: parseInt(map['estimasi_hari']) ?? 0,
-      members: parseMembersList(map['members']),
+      members: members,
+      totalLaporanTim: parseInt(map['total_laporan']) ?? sumMemberReports(),
     );
   }
 
@@ -51,6 +60,7 @@ class ProgressByMemberModel extends ProgressByMemberEntity {
       'workorder_id': workorderId,
       'workorder_name': workorderName,
       'estimasi_hari': estimasiHari,
+      'total_laporan': totalLaporanTim,
       'members': members
           .map((member) => MemberProgressModel.fromEntity(member).toMap())
           .toList(),
@@ -63,6 +73,7 @@ class ProgressByMemberModel extends ProgressByMemberEntity {
       workorderName: workorderName,
       estimasiHari: estimasiHari,
       members: members,
+      totalLaporanTim: totalLaporanTim,
     );
   }
 
@@ -72,6 +83,7 @@ class ProgressByMemberModel extends ProgressByMemberEntity {
       workorderName: entity.workorderName,
       estimasiHari: entity.estimasiHari,
       members: entity.members,
+      totalLaporanTim: entity.totalLaporanTim,
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/l
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/laporan_workorder_repository_impl.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/laporan_workorder_repository.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/create_laporan_workorder_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_laporan_report_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_lembur_remote_data.dart';
@@ -271,6 +272,10 @@ Future<void> init() async {
       () => CreateLaporanWorkorderUseCase(sl<LaporanWorkorderRepository>()),
     );
 
+    sl.registerLazySingleton(
+      () => GetLaporanReportUseCase(sl<LaporanWorkorderRepository>()),
+    );
+
     //work order type
     sl.registerLazySingleton(
       () => GetWorkOrderTypesUsecase(sl<WorkOrderTypeRepository>()),
@@ -354,7 +359,10 @@ Future<void> init() async {
 
     // **5️⃣ Bloc**
     sl.registerFactory(
-      () => LaporanWorkorderCubit(sl<CreateLaporanWorkorderUseCase>()),
+      () => LaporanWorkorderCubit(
+        sl<CreateLaporanWorkorderUseCase>(),
+        sl<GetLaporanReportUseCase>(),
+      ),
     );
     sl.registerFactory(
       () => NotificationBloc(
