@@ -309,9 +309,6 @@ class _WorkOrderReportPageLemburState
           if (state is LemburProgressDetailLoaded) {
             setState(() {
               _progressStatusId = state.progress.statusId;
-              if (ProgressStatusId.isRevisiRequested(state.progress.statusId)) {
-                _revisionNote = state.progress.description ?? '';
-              }
               _descriptionController.text =
                   state.progress.description ?? widget.initialDescription ?? '';
 
@@ -1360,9 +1357,9 @@ class _WorkOrderReportPageLemburState
         String? latestNote;
         for (final item in list.reversed) {
           final note =
+              item['alasan_revisi']?.toString() ??
               item['catatan']?.toString() ??
               item['keterangan']?.toString() ??
-              item['alasan_penolakan']?.toString() ??
               item['approval_notes']?.toString();
           if (note != null && note.trim().isNotEmpty) {
             latestNote = note.trim();

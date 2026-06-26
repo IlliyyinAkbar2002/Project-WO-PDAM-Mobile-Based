@@ -105,7 +105,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
         final detailStatus = latestDetailMap['status']?.toString().toLowerCase();
         if (detailStatus == 'approved') {
           statusId = ProgressStatusId.verified; // 11
-        } else if (detailStatus == 'rejected') {
+        } else if (detailStatus == 'rejected' || detailStatus == 'revisi') {
           statusId = ProgressStatusId.revisiRequested; // 14
         } else if (detailStatus == 'pending') {
           statusId = ProgressStatusId.submitted; // 10

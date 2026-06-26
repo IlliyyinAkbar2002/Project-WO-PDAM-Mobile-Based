@@ -8,6 +8,19 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/data/model/pemin
 class MaterialRemoteDataSource extends RemoteDatasource {
   MaterialRemoteDataSource() : super();
 
+  /// Normalisasi body response jadi List. Toleran terhadap response `show`
+  /// yang secara semantik bisa berupa objek tunggal (`{data: {...}}`), bukan
+  /// hanya array (`{data: [...]}` / `[...]`), supaya parsing tidak throw.
+  List<dynamic> _extractList(dynamic responseData) {
+    if (responseData is List) return responseData;
+    if (responseData is Map && responseData.containsKey('data')) {
+      final data = responseData['data'];
+      if (data is List) return data;
+      if (data is Map) return [data];
+    }
+    return const [];
+  }
+
   Future<DataState<List<MaterialModel>>> getMasterMaterials() async {
     try {
       final response = await get(path: '/v1/material');
@@ -68,15 +81,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
             path: '/v1/workorder/$woId/peminjaman-material',
           );
 
-          final dynamic responsePemData = responsePem.data;
-          final List<dynamic> pemList;
-          if (responsePemData is Map && responsePemData.containsKey('data')) {
-            pemList = responsePemData['data'] as List;
-          } else if (responsePemData is List) {
-            pemList = responsePemData;
-          } else {
-            pemList = [];
-          }
+          final pemList = _extractList(responsePem.data);
 
           for (final pem in pemList) {
             final model = PeminjamanMaterialModel.fromMap(
@@ -117,17 +122,7 @@ class MaterialRemoteDataSource extends RemoteDatasource {
       final response = await get(
         path: '/v1/workorder/$workOrderId/peminjaman-material',
       );
-      final dynamic responseData = response.data;
-      final List<dynamic> dataList;
-      if (responseData is Map && responseData.containsKey('data')) {
-        dataList = responseData['data'] as List;
-      } else if (responseData is List) {
-        dataList = responseData;
-      } else {
-        throw Exception(
-          'Invalid response format: expected List or Map containing data key',
-        );
-      }
+      final dataList = _extractList(response.data);
       final result = dataList
           .map(
             (e) =>
