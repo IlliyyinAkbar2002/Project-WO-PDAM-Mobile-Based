@@ -663,7 +663,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.danger,
                                         ),
-                                        onPressed: _showRevisionDialog,
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : _showRevisionDialog,
                                         child: const Text('Revisi'),
                                       ),
                                     ),
@@ -673,13 +675,28 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
                                         ),
-                                        onPressed: () => _onReview('accept'),
-                                        child: const Text(
-                                          'Terima',
-                                          style: TextStyle(
-                                            color: Color(0xFF000080),
-                                          ),
-                                        ),
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : () => _onReview('accept'),
+                                        child: _isSubmitting
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Color(0xFF000080)),
+                                                    ),
+                                              )
+                                            : const Text(
+                                                'Terima',
+                                                style: TextStyle(
+                                                  color: Color(0xFF000080),
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ],
@@ -951,9 +968,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Laporan sudah tercatat dan tidak dapat diubah. '
-              'Untuk mengirim ulang, batalkan laporan ini terlebih dahulu '
-              'dari halaman daftar progress.',
+              'Laporan sudah tercatat dan tidak dapat diubah.',
               style: textTheme.bodyMedium?.copyWith(
                 color: color.foreground[800],
               ),
@@ -971,7 +986,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
     if (_isAlreadyRecorded) {
       AppSnackbar.showWarning(
-        'Laporan sudah tercatat. Batalkan terlebih dahulu sebelum mengubah.',
+        'Laporan sudah tercatat dan tidak dapat diubah.',
       );
       return;
     }
@@ -1350,6 +1365,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onReview(String action) {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
     final reviewModel = WorkOrderProgressModel(
       id: widget.progressId,
       description: _descriptionController.text.trim().isEmpty
@@ -1361,6 +1378,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onReviewWithNote(String action, String note) {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
     final reviewModel = WorkOrderProgressModel(
       id: widget.progressId,
       description: note,
@@ -1402,8 +1421,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   void _showRevisionDialog() {
     final noteController = TextEditingController();
-    XFile? selectedFile;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1448,64 +1465,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // File Picker
-                    InkWell(
-                      onTap: () async {
-                        final picker = ImagePicker();
-                        final file = await picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 80,
-                        );
-                        if (file != null) {
-                          setStateDialog(() {
-                            selectedFile = file;
-                          });
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: color.foreground[400]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.upload, color: color.foreground[600]),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                selectedFile != null
-                                    ? selectedFile!.name
-                                    : 'Pilih File',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: color.foreground[700]),
-                              ),
-                            ),
-                            if (selectedFile != null)
-                              GestureDetector(
-                                onTap: () {
-                                  setStateDialog(() {
-                                    selectedFile = null;
-                                  });
-                                },
-                                child: Icon(
-                                  Icons.clear,
-                                  color: color.foreground[500],
-                                  size: 18,
-                                ),
-                              )
-                            else
-                              Text(
-                                '...',
-                                style: TextStyle(color: color.foreground[500]),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [

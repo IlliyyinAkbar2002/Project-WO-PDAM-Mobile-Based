@@ -26,7 +26,7 @@ class TahapanStepper extends StatelessWidget {
     }
     int computed = 0;
     for (final p in progresses) {
-      if (!p.isDibatalkan && p.tahapan != null && p.tahapan! > computed) {
+      if (p.tahapan != null && p.tahapan! > computed) {
         computed = p.tahapan!;
       }
     }

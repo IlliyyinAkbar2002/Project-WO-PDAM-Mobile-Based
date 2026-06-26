@@ -135,20 +135,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
     }
   }
 
-  Future<DataState<void>> cancelProgress(int progressId) async {
-    try {
-      await post(path: '/v1/progress-workorder/$progressId/cancel');
-      return const DataSuccess(null);
-    } catch (e) {
-      final dioError = _toDioException(
-        e,
-        '/v1/progress-workorder/$progressId/cancel',
-      );
-      _logDioError('cancelProgress', dioError);
-      return DataFailed(dioError);
-    }
-  }
-
   Future<DataState<WorkOrderProgressModel>> getWorkOrderProgressDetail(
     int id,
   ) async {

@@ -15,9 +15,6 @@ abstract class WorkOrderLemburRepository {
     WorkOrderProgressModel progress,
   );
 
-  /// Membatalkan (cancel) submit progress (hanya bisa <=5 menit)
-  Future<DataState<void>> cancelProgress(int progressId);
-
   Future<DataState<List<dynamic>>> getProgressDetailsHistory(
     int progressWorkorderId,
   );

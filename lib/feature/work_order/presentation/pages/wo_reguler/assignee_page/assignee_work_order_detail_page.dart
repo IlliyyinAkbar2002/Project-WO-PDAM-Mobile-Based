@@ -244,9 +244,7 @@ class _AssigneeWorkOrderDetailPageState
       return const Center(child: CircularProgressIndicator());
     }
 
-    final List<WorkOrderProgressEntity> visibleProgresses = progresses
-        .where((p) => !p.isDibatalkan)
-        .toList();
+    final List<WorkOrderProgressEntity> visibleProgresses = progresses;
 
     final bool hasInspeksi = visibleProgresses.any((item) => item.isInspeksi);
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
@@ -406,88 +404,8 @@ class _AssigneeWorkOrderDetailPageState
             }
           },
         ),
-        if (progress.canCancel)
-          Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
       ],
     );
-  }
-
-  Widget _buildCancelButton(WorkOrderProgressEntity progress) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _confirmCancel(progress),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.danger.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.danger, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.undo, size: 14, color: color.danger),
-              const SizedBox(width: 4),
-              Text(
-                'Batalkan',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color.danger,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    final String message =
-        'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan Laporan?'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Tidak'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: color.danger),
-            child: const Text('Ya, Batalkan'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    await _executeCancelProgress(progress);
-  }
-
-  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
-    if (progress.id == null) return;
-    final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
-    if (!mounted) return;
-    if (result is DataSuccess) {
-      final String successMsg = 'Laporan berhasil dibatalkan.';
-      AppSnackbar.showSuccess(successMsg);
-      _handleRefresh();
-    } else {
-      final errorMsg = result.error?.response?.data is Map
-          ? (result.error!.response!.data['message'] ??
-                'Gagal membatalkan laporan.')
-          : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
-      AppSnackbar.showError(errorMsg.toString());
-    }
   }
 
   Future<bool> _needsPinjamMaterialFirst() async {
@@ -553,7 +471,7 @@ class _AssigneeWorkOrderDetailPageState
     if (entityVal != null) return entityVal;
     int computed = 0;
     for (final p in progresses) {
-      if (!p.isDibatalkan && p.tahapan != null && p.tahapan! > computed) {
+      if (p.tahapan != null && p.tahapan! > computed) {
         computed = p.tahapan!;
       }
     }

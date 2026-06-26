@@ -35,7 +35,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
     on<StartLemburProgressEvent>(_onStartLemburProgress);
     on<UpdateLemburProgressEvent>(_onUpdateLemburProgress);
     on<ResubmitLemburProgressEvent>(_onResubmitLemburProgress);
-    on<CancelLemburProgressEvent>(_onCancelLemburProgress);
     on<GetLemburProgressByMemberEvent>(_onGetLemburProgressByMember);
     on<GetLemburProgressDetailsHistoryEvent>(
       _onGetLemburProgressDetailsHistory,
@@ -175,25 +174,6 @@ class LemburBloc extends Bloc<LemburEvent, LemburState> {
       }
     } catch (e) {
       emit(LemburError("Gagal resubmit progres lembur: $e"));
-    }
-  }
-
-  Future<void> _onCancelLemburProgress(
-    CancelLemburProgressEvent event,
-    Emitter<LemburState> emit,
-  ) async {
-    emit(LemburLoading());
-    try {
-      final dataState = await workOrderLemburRepository.cancelProgress(
-        event.progressId,
-      );
-      if (dataState is DataSuccess) {
-        emit(LemburCancelProgressSuccess());
-      } else if (dataState is DataFailed) {
-        emit(LemburError(_friendlyErrorMessage(dataState.error)));
-      }
-    } catch (e) {
-      emit(LemburError("Gagal membatalkan progres: $e"));
     }
   }
 

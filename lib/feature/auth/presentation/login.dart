@@ -397,46 +397,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget _buildRegisterLink() {
-  //   return Center(
-  //     child: GestureDetector(
-  //       behavior: HitTestBehavior.opaque,
-  //       onTap: () {
-  //         Navigator.push(
-  //           context,
-  //           MaterialPageRoute(builder: (context) => const RegisterPage()),
-  //         );
-  //       },
-  //       child: const Padding(
-  //         padding: EdgeInsets.symmetric(vertical: 4),
-  //         child: Text.rich(
-  //           TextSpan(
-  //             style: TextStyle(
-  //               fontSize: 13,
-  //               color: _LoginTokens.textSecondary,
-  //               fontWeight: FontWeight.w500,
-  //               height: 1.5,
-  //             ),
-  //             children: [
-  //               TextSpan(text: 'Belum punya akun?  '),
-  //               TextSpan(
-  //                 text: 'Daftar Sekarang',
-  //                 style: TextStyle(
-  //                   color: _LoginTokens.accentGreen,
-  //                   fontWeight: FontWeight.bold,
-  //                   fontSize: 16,
-  //                   height: 1.5,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           textAlign: TextAlign.center,
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
   /// Footer: glass pill button untuk Test Koneksi + copyright uppercase
   Widget _buildFooter() {
     return Column(
@@ -481,7 +441,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Test Koneksi API',
+                        'Test Koneksi Ngrok',
                         style: TextStyle(
                           color: _LoginTokens.footerTeal,
                           fontSize: 13,

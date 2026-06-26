@@ -64,13 +64,11 @@ class ProgressStatusId {
   static const int submitted = 10;
   static const int verified = 11;
   static const int revisiRequested = 14; // Status when SPV rejects progress
-  static const int dibatalkan = 18;
 
   static bool isDraft(int? id) => id == draft;
   static bool isSubmitted(int? id) => id == submitted;
   static bool isVerified(int? id) => id == verified;
   static bool isRevisiRequested(int? id) => id == revisiRequested;
-  static bool isDibatalkan(int? id) => id == dibatalkan;
 }
 
 /// Kode master action dari TKT-01 (stabil, tidak tergantung id numerik).

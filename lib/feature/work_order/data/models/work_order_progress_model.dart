@@ -112,9 +112,7 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
         }
       }
 
-      if (map['waktu_submit'] == null) {
-        statusId = ProgressStatusId.dibatalkan; // 18
-      } else if (statusId == null) {
+      if (statusId == null) {
         if (tipeProgressId == TipeProgressId.selesai) {
           statusId = ProgressStatusId.submitted; // 10
         } else {
