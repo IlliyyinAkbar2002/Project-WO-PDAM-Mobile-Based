@@ -91,6 +91,20 @@ class MapsSeedModel {
       longitude: 112.73704,
       radiusMeter: defaultRadiusMeter,
     ),
+    MasterLocationModel(
+      id: 13,
+      nama: 'Telkom University Surabaya, Jl. Ketintang No. 156, Surabaya',
+      latitude: -7.29816,
+      longitude: 112.73704,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 14,
+      nama: 'PDAM Surya Sembada Kota Surabaya, Jl. Prof. Dr. Moestopo No. 2, Surabaya',
+      latitude: -7.29816,
+      longitude: 112.73704,
+      radiusMeter: defaultRadiusMeter,
+    ),
   ];
 
   static List<MasterLocationEntity> get entities {

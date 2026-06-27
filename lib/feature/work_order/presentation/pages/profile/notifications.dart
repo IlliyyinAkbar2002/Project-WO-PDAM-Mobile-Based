@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
@@ -182,7 +183,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
               workOrder.assignment!.longitude!,
             )
           : null;
-      final radiusMeter = workOrder.assignment?.location?.radiusMeter ?? 100;
+      final radiusMeter =
+          workOrder.assignment?.location?.radiusMeter ??
+          MapsSeedModel.defaultRadiusMeter;
       final locationName = workOrder.assignment?.location?.nama;
       final workOrderTypeId =
           workOrder.workOrderTypeId ?? workOrder.workOrderType?.id;

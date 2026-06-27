@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
@@ -66,7 +67,8 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.radiusMeter =
+        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
   });
 
   @override

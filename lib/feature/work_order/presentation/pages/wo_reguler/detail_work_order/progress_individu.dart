@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/member_progress_card.dart';
@@ -22,7 +23,7 @@ class IndividualProgressSection extends StatelessWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100,
+    this.radiusMeter = MapsSeedModel.defaultRadiusMeter,
     this.workOrderTypeName,
     this.workOrderTypeId,
     this.isOvertime = false,

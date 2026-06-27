@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 
 class MasterLocationModel extends MasterLocationEntity {
@@ -21,7 +22,7 @@ class MasterLocationModel extends MasterLocationEntity {
       nama: map['nama'] ?? '',
       latitude: _toDouble(map['latitude']),
       longitude: _toDouble(map['longitude']),
-      radiusMeter: _toInt(map['radius_meter']),
+      radiusMeter: _resolveRadius(map['radius_meter']),
     );
   }
 
@@ -66,5 +67,12 @@ class MasterLocationModel extends MasterLocationEntity {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
+  }
+
+  /// Radius dari BE; jatuh ke [MapsSeedModel.defaultRadiusMeter] bila
+  /// null/kosong/0 agar geofence tidak menolak submit secara keliru.
+  static int _resolveRadius(dynamic value) {
+    final parsed = _toInt(value);
+    return parsed > 0 ? parsed : MapsSeedModel.defaultRadiusMeter;
   }
 }

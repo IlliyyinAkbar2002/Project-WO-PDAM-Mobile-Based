@@ -10,6 +10,7 @@ import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
@@ -61,7 +62,8 @@ class WorkOrderReportPage extends StatefulWidget {
     this.workOrderTypeId,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.radiusMeter =
+        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
     this.kategoriForm,
     this.initialKategoriData,
     this.initialDescription,

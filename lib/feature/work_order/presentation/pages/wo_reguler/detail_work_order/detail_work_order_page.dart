@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
@@ -587,7 +588,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
             )
           : null,
       locationName: formData["locationName"] as String?,
-      radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
+      radiusMeter:
+          (formData["radiusMeter"] as int?) ?? MapsSeedModel.defaultRadiusMeter,
       workOrderTypeName: formData["workOrderTypeName"] as String?,
       workOrderTypeId: formData["workOrderTypeId"] as int?,
       isOvertime: widget.isOvertime,
@@ -781,7 +783,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                 nama: locationName,
                 latitude: latitude ?? 0,
                 longitude: longitude ?? 0,
-                radiusMeter: _toInt(formData["radiusMeter"]) ?? 1000,
+                radiusMeter:
+                    _toInt(formData["radiusMeter"]) ??
+                    MapsSeedModel.defaultRadiusMeter,
               )
             : null,
       ),

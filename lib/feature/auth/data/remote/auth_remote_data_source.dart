@@ -80,7 +80,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
   Future<DataState<String>> forgotPassword({required String email}) async {
     try {
       final response = await post(
-        path: '/v1/auth/forgot-password',
+        path: '/v1/auth/check-email',
         data: {'email': email},
       );
 
@@ -97,7 +97,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/auth/forgot-password'),
+          requestOptions: RequestOptions(path: '/v1/auth/check-email'),
         ),
       );
     }
@@ -112,7 +112,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
   }) async {
     try {
       final response = await post(
-        path: '/v1/auth/reset-password',
+        path: '/v1/auth/new-password',
         data: {'email': email, 'new_password': newPassword},
       );
 
@@ -129,7 +129,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/auth/reset-password'),
+          requestOptions: RequestOptions(path: '/v1/auth/new-password'),
         ),
       );
     }
