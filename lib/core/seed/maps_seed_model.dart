@@ -94,15 +94,15 @@ class MapsSeedModel {
     MasterLocationModel(
       id: 13,
       nama: 'Telkom University Surabaya, Jl. Ketintang No. 156, Surabaya',
-      latitude: -7.29816,
-      longitude: 112.73704,
+      latitude: -7.312211,
+      longitude: 112.728954,
       radiusMeter: defaultRadiusMeter,
     ),
     MasterLocationModel(
       id: 14,
       nama: 'PDAM Surya Sembada Kota Surabaya, Jl. Prof. Dr. Moestopo No. 2, Surabaya',
-      latitude: -7.29816,
-      longitude: 112.73704,
+      latitude: -7.265670,
+      longitude: 112.751480,
       radiusMeter: defaultRadiusMeter,
     ),
   ];
