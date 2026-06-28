@@ -132,7 +132,13 @@ class FormFieldsConfig {
         "key": "picId",
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
+        // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff).
         "options": assigneeOptions
+            .where(
+              (e) =>
+                  (e.employee?.jabatan ?? '').trim().toLowerCase() ==
+                  'staff senior',
+            )
             .map(
               (e) => {
                 "value": e.id,

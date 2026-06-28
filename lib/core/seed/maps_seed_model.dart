@@ -116,7 +116,7 @@ class MapsSeedModel {
   }
 
   static List<MasterLocationEntity> search(String query) {
-    final normalizedQuery = _normalize(query);
+    final normalizedQuery = normalize(query);
 
     if (normalizedQuery.isEmpty) {
       return entities;
@@ -132,10 +132,13 @@ class MapsSeedModel {
   }
 
   static String _searchableText(MasterLocationEntity location) {
-    return _normalize(location.nama);
+    return normalize(location.nama);
   }
 
-  static String _normalize(String value) {
+  /// Normalisasi teks lokasi (lowercase, samakan "jalan"->"jl", "nomor"->"no",
+  /// buang tanda baca, rapikan spasi). Dipakai oleh pencarian seed dan oleh
+  /// guard pencocokan lokasi penugasan vs lokasi pengaduan.
+  static String normalize(String value) {
     return value
         .toLowerCase()
         .replaceAll(RegExp(r'\bjalan\b'), 'jl')

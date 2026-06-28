@@ -424,6 +424,10 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                   state.workOrder.lokasiText ??
                   state.workOrder.assignment?.location?.nama ??
                   "",
+              "lokasiPengaduan":
+                  state.workOrder.lokasiText ??
+                  state.workOrder.assignment?.location?.nama ??
+                  "",
               "latitude":
                   state.workOrder.assignment?.latitude ??
                   state.workOrder.assignment?.location?.latitude,
@@ -894,6 +898,24 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       );
 
       if (confirmed != true) {
+        return;
+      }
+    }
+
+    // Lokasi penugasan yang dipilih SPV harus sama dengan lokasi pengaduan.
+    // Bandingkan nama lokasi pilihan vs lokasi asli pengaduan (dinormalisasi
+    // dengan normalizer yang sama dengan pencarian lokasi).
+    final String chosenLocationName = _readTrimmedString("locationName");
+    final String pengaduanLokasi = _readTrimmedString("lokasiPengaduan");
+    if (chosenLocationName.isNotEmpty && pengaduanLokasi.isNotEmpty) {
+      final bool sameLocation =
+          MapsSeedModel.normalize(chosenLocationName) ==
+          MapsSeedModel.normalize(pengaduanLokasi);
+      if (!sameLocation) {
+        AppSnackbar.showError(
+          "Lokasi penugasan harus sama dengan lokasi pengaduan "
+          "($pengaduanLokasi).",
+        );
         return;
       }
     }
