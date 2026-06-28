@@ -94,9 +94,20 @@ class WorkOrderProgressModel extends WorkOrderProgressEntity {
       } else {
         final dynamic rawDetails = map['progress_details'] ?? map['detail_progress'] ?? map['progressDetails'];
         if (rawDetails is List && rawDetails.isNotEmpty) {
-          final last = rawDetails.last;
-          if (last is Map) {
-            latestDetailMap = Map<String, dynamic>.from(last);
+          final detailMaps = rawDetails.whereType<Map>().toList();
+          if (detailMaps.isNotEmpty) {
+            Map? newest;
+            int newestId = -1;
+            for (final m in detailMaps) {
+              final id = m['id'] is int
+                  ? m['id'] as int
+                  : int.tryParse('${m['id']}') ?? -1;
+              if (id > newestId) {
+                newestId = id;
+                newest = m;
+              }
+            }
+            latestDetailMap = Map<String, dynamic>.from(newest ?? detailMaps.last);
           }
         }
       }

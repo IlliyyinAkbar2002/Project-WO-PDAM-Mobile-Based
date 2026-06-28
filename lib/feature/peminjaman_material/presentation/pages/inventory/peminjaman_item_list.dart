@@ -261,59 +261,59 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildChipTab('All'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('Perpipaan'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('Fitting'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('SR'),
-                ],
-              ),
-            ),
+            // const SizedBox(height: 12),
+            // SizedBox(
+            //   height: 40,
+            //   child: ListView(
+            //     scrollDirection: Axis.horizontal,
+            //     children: [
+            //       _buildChipTab('All'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('Perpipaan'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('Fitting'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('SR'),
+            //     ],
+            //   ),
+            // ),
           ],
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFD1D5DC)),
+          // const SizedBox(height: 10),
+          // const Divider(height: 1, color: Color(0xFFD1D5DC)),
         ],
       ),
     );
   }
 
-  Widget _buildChipTab(String category) {
-    final isActive = _selectedCategory == category;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedCategory = category;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF155DFC) : Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isActive ? Colors.transparent : const Color(0xFFE5E7EB),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            category,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isActive ? Colors.white : const Color(0xFF4A5565),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildChipTab(String category) {
+  //   final isActive = _selectedCategory == category;
+  //   return GestureDetector(
+  //     onTap: () {
+  //       setState(() {
+  //         _selectedCategory = category;
+  //       });
+  //     },
+  //     child: Container(
+  //       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+  //       decoration: BoxDecoration(
+  //         color: isActive ? const Color(0xFF155DFC) : Colors.white,
+  //         borderRadius: BorderRadius.circular(999),
+  //         border: Border.all(
+  //           color: isActive ? Colors.transparent : const Color(0xFFE5E7EB),
+  //         ),
+  //       ),
+  //       child: Center(
+  //         child: Text(
+  //           category,
+  //           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+  //             color: isActive ? Colors.white : const Color(0xFF4A5565),
+  //             fontWeight: FontWeight.w700,
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildSegmentControl() {
     return Container(
