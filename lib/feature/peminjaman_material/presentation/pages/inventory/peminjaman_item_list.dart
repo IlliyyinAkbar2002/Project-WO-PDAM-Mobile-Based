@@ -200,7 +200,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            widget.returnMode ? 'Pengembalian Material' : 'Inventory Material',
+            widget.returnMode ? 'Pengembalian Material' : 'Inventori Material',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: const Color(0xFF101828),
               fontWeight: FontWeight.w800,
@@ -545,7 +545,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Kode: ${m.kodeMaterial} • Satuan: ${m.satuan}',
+                        'Kode: ${m.kodeMaterial}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF6A7282),
                         ),
@@ -561,7 +561,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '$available ${m.satuan ?? ""} tersedia',
+                            '$available tersedia',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: const Color(0xFF4A5565),
@@ -610,7 +610,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                   ).then((_) => _fetchData());
                 },
                 child: const Text(
-                  'Request to Borrow',
+                  'Permohonan Pinjaman',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -681,7 +681,6 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
     final matName =
         item.material?.namaMaterial ?? 'Material #${item.materialKode}';
     final matCat = item.material?.kategori ?? 'Umum';
-    final matSatuan = item.material?.satuan ?? '';
     final isBorrowed = item.status == 'DIPINJAM';
 
     return Container(
@@ -749,7 +748,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Jumlah: ${item.jumlahPinjam} $matSatuan',
+                            'Jumlah: ${item.jumlahPinjam}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF374151),
@@ -757,7 +756,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                           ),
                           if (item.jumlahKembali != null)
                             Text(
-                              'Kembali: ${item.jumlahKembali} $matSatuan',
+                              'Kembali: ${item.jumlahKembali}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF059669),

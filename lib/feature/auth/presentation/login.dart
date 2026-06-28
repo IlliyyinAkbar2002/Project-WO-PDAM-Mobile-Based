@@ -513,10 +513,10 @@ class _LoginPageState extends State<LoginPage> {
           final user = AuthStorage.getUserSync();
           final access = MobileAccess.evaluate(user);
 
-          debugPrint('🎭 Role ID: ${user?['role_id']}');
-          debugPrint('🏢 Departemen ID: ${user?['departemen_id']}');
-          debugPrint('👔 Jabatan Kode: ${AuthStorage.getJabatanKodeSync()}');
-          debugPrint('🚪 Hasil akses: $access');
+          debugPrint('Role ID: ${user?['role_id']}');
+          debugPrint('Departemen ID: ${user?['departemen_id']}');
+          debugPrint('Jabatan Kode: ${AuthStorage.getJabatanKodeSync()}');
+          debugPrint('Hasil akses: $access');
 
           if (access != MobileAccessResult.allowed) {
             await AuthStorage.clearAuth();
@@ -542,9 +542,9 @@ class _LoginPageState extends State<LoginPage> {
             );
             if (pegawaiResult is DataSuccess && pegawaiResult.data != null) {
               await AuthStorage.enrichEmployeeFromPegawai(pegawaiResult.data!);
-              debugPrint('👤 Profil pegawai dilengkapi (nip, dll).');
+              debugPrint('Profil pegawai dilengkapi (nip, dll).');
             } else {
-              debugPrint('⚠️ Gagal melengkapi profil pegawai (diabaikan).');
+              debugPrint('Gagal melengkapi profil pegawai (diabaikan).');
             }
           }
 
@@ -649,24 +649,24 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      debugPrint('🧪 Testing connection to API server...');
+      debugPrint('Testing connection to API server...');
       final response = await dio.get('${AppConfig.backendDomain}/api/ping');
 
-      debugPrint('✅ Connection successful!');
-      debugPrint('📥 Response: ${response.data}');
+      debugPrint('Connection successful!');
+      debugPrint('Response: ${response.data}');
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Koneksi berhasil!\nStatus: ${response.statusCode}'),
+          content: Text('Koneksi berhasil!\nStatus: ${response.statusCode}'),
           backgroundColor: const Color(0xFF16A34A),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
       );
     } on DioException catch (e) {
-      debugPrint('❌ Connection test failed!');
+      debugPrint('Connection test failed!');
       debugPrint('Type: ${e.type}');
       debugPrint('Message: ${e.message}');
 

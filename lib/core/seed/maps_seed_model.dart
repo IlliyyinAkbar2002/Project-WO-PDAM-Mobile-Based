@@ -4,7 +4,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_lo
 class MapsSeedModel {
   const MapsSeedModel._();
 
-  static const int defaultRadiusMeter = 3000;
+  static const int defaultRadiusMeter = 1000;
 
   static const List<MasterLocationModel> masterLocations = [
     MasterLocationModel(

@@ -119,7 +119,7 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                 ),
                 const Expanded(
                   child: Text(
-                    'Borrow Material',
+                    'Peminjaman Material',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
@@ -184,7 +184,7 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Jumlah Pinjam (${m.satuan ?? ""})'),
+                      _buildLabel('Jumlah Pinjam'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _jumlahController,

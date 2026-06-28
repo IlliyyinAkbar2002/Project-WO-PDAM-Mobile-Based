@@ -92,11 +92,11 @@ Future<void> init() async {
   try {
     debugPrint("🔧 Memulai inisialisasi dependency...");
 
-    // **0️⃣ Core Services**
+    // **Core Services**
     sl.registerLazySingleton<GeofenceService>(() => GeofenceService());
     debugPrint("✅ GeofenceService terdaftar");
 
-    // **1️⃣ Data Sources**
+    // **Data Sources**
     sl.registerLazySingleton<WorkOrderRemoteDataSource>(
       () => WorkOrderRemoteDataSource(),
     );
@@ -159,7 +159,7 @@ Future<void> init() async {
     );
     debugPrint("✅ WorkOrderLemburRemoteDataSource terdaftar");
 
-    // **2️⃣ Repository**
+    // **Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
       () => WorkOrderRepositoryImpl(sl<WorkOrderRemoteDataSource>()),
     );
@@ -245,7 +245,7 @@ Future<void> init() async {
     );
     debugPrint("✅ WorkOrderLemburRepository terdaftar");
 
-    // **4️⃣ Use Cases**
+    // **Use Cases**
     sl.registerLazySingleton(
       () => GetWorkOrdersUseCase(sl<WorkOrderRepository>()),
     );
@@ -357,7 +357,7 @@ Future<void> init() async {
 
     debugPrint("✅ Semua use case terdaftar");
 
-    // **5️⃣ Bloc**
+    // **Bloc**
     sl.registerFactory(
       () => LaporanWorkorderCubit(
         sl<CreateLaporanWorkorderUseCase>(),
@@ -445,10 +445,10 @@ Future<void> init() async {
     );
     debugPrint("✅ LemburBloc terdaftar");
 
-    debugPrint("🎉 Semua dependency berhasil diinisialisasi!");
+    debugPrint("Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {
-    debugPrint("❌ Gagal menginisialisasi dependency: $e");
+    debugPrint("Gagal menginisialisasi dependency: $e");
     debugPrint("Stacktrace: $stacktrace");
-    rethrow; // ⚠️ Rethrow agar main.dart tahu ada error
+    rethrow; // Rethrow agar main.dart tahu ada error
   }
 }

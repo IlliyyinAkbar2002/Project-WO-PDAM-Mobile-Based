@@ -194,7 +194,7 @@ class _NavigationGrid extends StatelessWidget {
             builder: (ctx) {
               if (isSpv) {
                 return _OurAssetsBottomSheet(
-                  title: 'Melihat stok barang',
+                  title: 'Melihat stok material',
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.push(
@@ -208,7 +208,7 @@ class _NavigationGrid extends StatelessWidget {
               }
 
               return _OurAssetsBottomSheet(
-                title: 'Melihat stok barang',
+                title: 'Melihat stok material',
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(

@@ -6,8 +6,8 @@ class WorkOrderStatusHelper {
   // Label per status (key selalu lowercase).
   static const Map<String, String> _labels = {
     'pending': 'Pending',
-    'proses': 'Dikerjakan',
-    'in progress': 'Dikerjakan',
+    'proses': 'proses',
+    'in progress': 'proses',
     'selesai': 'Selesai',
     'tutup': 'Ditutup',
     'ditolak': 'Ditolak',
