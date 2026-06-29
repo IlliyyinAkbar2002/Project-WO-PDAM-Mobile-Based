@@ -483,6 +483,9 @@ class _DetailWorkOrderPageLemburState
                       ? _buildKategoriFormData(_workOrder!)
                       : null,
                   initialDescription: progress.description,
+                  scheduledStart:
+                      _workOrder?.assignment?.startDateTime ??
+                      _workOrder?.startDateTime,
                   currentTahapanTertinggi: _highestSubmittedTahapan(),
                 ),
               ),
@@ -566,6 +569,33 @@ class _DetailWorkOrderPageLemburState
     return computed;
   }
 
+  Future<void> _showBelumWaktunyaReminder(DateTime scheduledStart) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Belum Waktunya',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Work order ini dijadwalkan mulai pada '
+          '${_formatEndDateTime(scheduledStart)}. '
+          'Anda belum dapat memulainya sekarang.',
+          style: const TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showTahapanIncompleteReminder() async {
     await showDialog<void>(
       context: context,
@@ -603,6 +633,26 @@ class _DetailWorkOrderPageLemburState
       }
       _isNavigatingToReport = true;
       try {
+        // Pencegatan "belum waktunya": WO lembur tidak boleh dimulai sebelum
+        // jadwal (assignment.tanggal_mulai). Hanya untuk aksi yang MEMULAI
+        // kerja (Mulai/Inspeksi); Progress/Selesai sudah terlanjur mulai.
+        if (mode == 'Mulai' || mode == 'Inspeksi') {
+          final DateTime? rawStart =
+              _workOrder?.assignment?.startDateTime ??
+              _workOrder?.startDateTime;
+          if (rawStart != null) {
+            // startDateTime di-parse tanpa toLocal() (lihat work_order_model),
+            // bisa ber-flag UTC → normalisasi dulu sebelum dibandingkan.
+            final DateTime scheduledStart = rawStart.isUtc
+                ? rawStart.toLocal()
+                : rawStart;
+            if (DateTime.now().isBefore(scheduledStart)) {
+              await _showBelumWaktunyaReminder(scheduledStart);
+              return;
+            }
+          }
+        }
+
         if (mode == 'Mulai') {
           final bool needPinjam = await _needsPinjamMaterialFirst();
           if (!mounted) return;
@@ -637,6 +687,9 @@ class _DetailWorkOrderPageLemburState
               initialKategoriData: _workOrder != null
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
+              scheduledStart:
+                  _workOrder?.assignment?.startDateTime ??
+                  _workOrder?.startDateTime,
               currentTahapanTertinggi: _highestSubmittedTahapan(),
             ),
           ),

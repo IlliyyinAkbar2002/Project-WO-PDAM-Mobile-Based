@@ -47,6 +47,10 @@ class WorkOrderReportPage extends StatefulWidget {
   final String? initialDescription;
   final String? workOrderTypeName;
 
+  /// Prioritas WO (mis. 'urgent'). Dipakai untuk pengecualian cutoff jam upload
+  /// laporan: WO Urgent boleh upload kapan saja, selain itu dibatasi ≤ 16:00.
+  final String? prioritas;
+
   /// Tahap tertinggi yang sudah tersubmit pada WO ini, dihitung pemanggil dari
   /// daftar progress (andal). Dipakai untuk memandu pilihan tahapan di selector.
   /// `null`/0 = tidak diketahui → selector tidak membatasi (BE tetap menjaga).
@@ -68,6 +72,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.initialKategoriData,
     this.initialDescription,
     this.workOrderTypeName,
+    this.prioritas,
     this.currentTahapanTertinggi,
   });
 
@@ -991,6 +996,20 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         'Laporan sudah tercatat dan tidak dapat diubah.',
       );
       return;
+    }
+    // Cutoff jam upload laporan WO reguler: di atas 16:00 tidak boleh upload,
+    // kecuali prioritas Urgent. Mengikuti pola gate assignment 09:00–16:00 di
+    // detail_work_order_page.dart. WO lembur tidak melewati halaman ini.
+    final bool isUrgent = (widget.prioritas ?? '').toLowerCase() == 'urgent';
+    if (!isUrgent) {
+      final TimeOfDay now = TimeOfDay.now();
+      const int batasMenit = 16 * 60; // 16:00
+      if (now.hour * 60 + now.minute > batasMenit) {
+        AppSnackbar.showError(
+          'Upload laporan hanya dapat dilakukan sampai pukul 16:00.',
+        );
+        return;
+      }
     }
     // Urutan tahapan (skip/mundur/Selesai sebelum Pengujian) ditegakkan oleh BE
     // `ProgressWorkorderController::rejectIfTahapanInvalid` — error 422-nya

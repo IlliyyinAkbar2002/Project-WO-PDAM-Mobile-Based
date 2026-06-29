@@ -290,7 +290,10 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
       spacing: 4,
       runSpacing: 4,
       children: [
-        if (workOrder.isLembur) _buildChip('Lembur', Colors.orange.shade700),
+        _buildChip(
+          workOrder.isLembur ? 'Lembur' : 'Normal',
+          workOrder.isLembur ? Colors.orange.shade700 : const Color(0xFF64748B),
+        ),
         _buildChip(typeLabel, typeColor),
         // if (workOrder.departemenNama != null &&
         //     workOrder.departemenNama!.isNotEmpty)

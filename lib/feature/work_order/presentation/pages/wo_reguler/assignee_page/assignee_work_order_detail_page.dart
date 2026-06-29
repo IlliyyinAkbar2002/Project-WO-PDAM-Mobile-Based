@@ -555,6 +555,7 @@ class _AssigneeWorkOrderDetailPageState
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
               workOrderTypeName: _workOrder?.workOrderType?.name,
+              prioritas: _workOrder?.prioritas,
               currentTahapanTertinggi: _highestSubmittedTahapan(),
             ),
           ),

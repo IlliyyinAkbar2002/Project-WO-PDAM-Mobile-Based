@@ -49,6 +49,11 @@ class WorkOrderReportPageLembur extends StatefulWidget {
   final Map<String, dynamic>? initialKategoriData;
   final String? initialDescription;
 
+  /// Jadwal mulai WO lembur (assignment.tanggal_mulai). Dipakai untuk cutoff:
+  /// laporan lembur hanya boleh diupload sampai pukul 00:00 (tengah malam)
+  /// setelah tanggal jadwal mulai. `null` = cutoff dilewati (BE tetap menjaga).
+  final DateTime? scheduledStart;
+
   /// Tahap tertinggi yang sudah tersubmit pada WO ini, dihitung pemanggil dari
   /// daftar progress (andal). Dipakai untuk memandu pilihan tahapan di selector.
   /// `null`/0 = tidak diketahui → selector tidak membatasi (BE tetap menjaga).
@@ -69,6 +74,7 @@ class WorkOrderReportPageLembur extends StatefulWidget {
     this.kategoriForm,
     this.initialKategoriData,
     this.initialDescription,
+    this.scheduledStart,
     this.currentTahapanTertinggi,
   });
 
@@ -979,6 +985,25 @@ class _WorkOrderReportPageLemburState
         'Laporan sudah tercatat dan tidak dapat diubah.',
       );
       return;
+    }
+    // Cutoff lembur: laporan hanya boleh diupload sampai pukul 00:00 (tengah
+    // malam) setelah tanggal jadwal mulai. Lewat tengah malam → ditolak.
+    final DateTime? rawStart = widget.scheduledStart;
+    if (rawStart != null) {
+      // scheduledStart bisa ber-flag UTC (parse tanpa toLocal) → normalisasi.
+      final DateTime start = rawStart.isUtc ? rawStart.toLocal() : rawStart;
+      final DateTime cutoff = DateTime(
+        start.year,
+        start.month,
+        start.day,
+      ).add(const Duration(days: 1)); // 00:00 hari berikutnya
+      if (!DateTime.now().isBefore(cutoff)) {
+        AppSnackbar.showError(
+          'Batas upload laporan lembur adalah pukul 00:00 (tengah malam). '
+          'Waktu sudah terlewat.',
+        );
+        return;
+      }
     }
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
