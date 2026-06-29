@@ -6,14 +6,16 @@ import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/spl_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spls_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/pengajuan_lembur/view_riwayat_pengajuan_lembur.dart';
 import 'package:project_mobile_pdam/service/service_locator.dart';
 
 /// Daftar riwayat pengajuan lembur milik SPV yang login.
 ///
 /// BE `GET /v1/lembur-spl` mengembalikan SEMUA pengajuan (tidak difilter ke
 /// pemohon), maka penyaringan "milik saya" dilakukan FE-side via
-/// `pemohonId == users.id`. Item ber-status `approved` disembunyikan karena
-/// saat disetujui langsung menjadi assignment WO lembur ke staff.
+/// `pemohonId == users.id`. Semua status (`pending`/`approved`/`rejected`)
+/// ditampilkan agar pemohon dapat memantau proses pengajuannya, termasuk yang
+/// sudah disetujui.
 class RiwayatPengajuanLemburPage extends StatefulWidget {
   const RiwayatPengajuanLemburPage({super.key});
 
@@ -43,7 +45,8 @@ class _RiwayatPengajuanLemburPageState
     final start = DateTime(range.start.year, range.start.month, range.start.day);
     final end = DateTime(range.end.year, range.end.month, range.end.day);
     return _items.where((spl) {
-      final d = spl.tanggalLembur;
+      // Selaras dengan tampilan: pakai tanggal lokal (BE mengirim UTC).
+      final d = spl.tanggalLembur?.toLocal();
       if (d == null) return false;
       final day = DateTime(d.year, d.month, d.day);
       return !day.isBefore(start) && !day.isAfter(end);
@@ -71,12 +74,7 @@ class _RiwayatPengajuanLemburPageState
         final myUserId = AuthStorage.getUserSync()?['id'] as int?;
         final all = result.data ?? const <SplEntity>[];
         final filtered = all
-            .where(
-              (spl) =>
-                  myUserId != null &&
-                  spl.pemohonId == myUserId &&
-                  (spl.statusCode?.toLowerCase() != 'approved'),
-            )
+            .where((spl) => myUserId != null && spl.pemohonId == myUserId)
             .toList();
         if (mounted) setState(() => _items = filtered);
       } else if (result is DataFailed<List<SplEntity>>) {
@@ -91,9 +89,23 @@ class _RiwayatPengajuanLemburPageState
     }
   }
 
+  Future<void> _openDetail(SplEntity spl) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ViewRiwayatPengajuanLemburPage(spl: spl),
+      ),
+    );
+    // Segarkan daftar saat kembali (status bisa berubah di sisi BE).
+    await _load();
+  }
+
   String _formatDate(DateTime? date) {
     if (date == null) return '-';
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    // BE menserialisasi tanggal sebagai UTC (akhiran 'Z'); konversi ke zona
+    // perangkat agar tanggal tampil sesuai data asli (mis. WIB).
+    final d = date.toLocal();
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
   @override
@@ -269,6 +281,7 @@ class _RiwayatPengajuanLemburPageState
         itemBuilder: (_, index) => _SplCard(
           spl: items[index],
           formatDate: _formatDate,
+          onTap: () => _openDetail(items[index]),
         ),
       ),
     );
@@ -278,29 +291,40 @@ class _RiwayatPengajuanLemburPageState
 class _SplCard extends StatelessWidget {
   final SplEntity spl;
   final String Function(DateTime?) formatDate;
+  final VoidCallback onTap;
 
-  const _SplCard({required this.spl, required this.formatDate});
+  const _SplCard({
+    required this.spl,
+    required this.formatDate,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final status = (spl.statusCode ?? 'pending').toLowerCase();
     final isRejected = status == 'rejected';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -375,7 +399,9 @@ class _SplCard extends StatelessWidget {
               ),
             ),
           ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -393,6 +419,11 @@ class _StatusChip extends StatelessWidget {
     late final String label;
 
     switch (status) {
+      case 'approved':
+        bg = const Color(0xFFDCFCE7);
+        fg = const Color(0xFF15803D);
+        label = 'Disetujui';
+        break;
       case 'rejected':
         bg = const Color(0xFFFEE2E2);
         fg = const Color(0xFFB91C1C);
