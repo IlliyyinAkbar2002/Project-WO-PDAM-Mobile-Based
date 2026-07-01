@@ -5,6 +5,7 @@ import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/config/theme/app_theme.dart';
 import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/core/utils/app_navigator.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/route_observer.dart';
@@ -90,6 +91,7 @@ class _AppState extends AppStatePage<App> {
       ],
       child: MaterialApp(
         theme: ThemeManager.theme,
+        navigatorKey: AppNavigator.key,
         home: _getInitialPage(),
         navigatorObservers: [appRouteObserver],
         debugShowCheckedModeBanner: false,
