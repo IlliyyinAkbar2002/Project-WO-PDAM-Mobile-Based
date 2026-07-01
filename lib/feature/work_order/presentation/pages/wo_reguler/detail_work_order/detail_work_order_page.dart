@@ -954,6 +954,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       lokasi: lokasiText.isEmpty ? null : lokasiText,
       latitude: assignLatitude,
       longitude: assignLongitude,
+      radiusMeter: _toInt(formData["radiusMeter"]),
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       estimasiSelesai: estimasiSelesai,

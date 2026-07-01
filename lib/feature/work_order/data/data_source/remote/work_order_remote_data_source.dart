@@ -248,6 +248,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     double? longitude,
     String? lokasi,
     double? accuracy,
+    int? radiusMeter,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     DateTime? estimasiSelesai,
@@ -283,6 +284,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (accuracy != null) 'accuracy': accuracy,
+        if (radiusMeter != null) 'radius_meter': radiusMeter,
         if (tanggalMulai != null) 'tanggal_mulai': formatDateTime(tanggalMulai),
         if (tanggalSelesai != null)
           'tanggal_selesai': formatDateTime(tanggalSelesai),

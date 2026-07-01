@@ -31,29 +31,8 @@ class GeofenceCheck {
   });
 }
 
-/// Akses GPS terpusat untuk fitur geofencing work order.
-///
-/// Satu-satunya tempat aplikasi meminta izin & membaca posisi perangkat, agar
-/// logika tidak terduplikasi di widget. TIDAK menolak posisi hasil mock GPS —
-/// mock harus tetap terbaca untuk keperluan demo (memperagakan kondisi di
-/// dalam vs di luar radius tanpa pergi ke lokasi fisik).
 class GeofenceService {
-  /// Master switch enforcement geofence. Default AKTIF.
-  ///
-  /// Set `false` untuk mematikan penolakan submit dengan cepat saat darurat
-  /// (mis. hari demo). Posisi tetap diambil & dikirim ke backend; hanya gate
-  /// "di luar radius → tolak" yang dilewati.
   static const bool enforceGeofence = true;
-
-  /// Ambil posisi GPS sekarang.
-  ///
-  /// Melempar [GeofenceException] bila layanan lokasi mati atau izin ditolak.
-  ///
-  /// - [preferFresh] `false` (default): coba `getLastKnownPosition()` dulu agar
-  ///   cepat (untuk indikator status saat halaman dibuka), fallback ke posisi
-  ///   baru bila tidak ada.
-  /// - [preferFresh] `true`: selalu ambil posisi baru (untuk gate submit, agar
-  ///   perubahan mock GPS langsung terbaca dan tidak memakai cache basi).
   Future<Position> getCurrentPosition({bool preferFresh = false}) async {
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -83,9 +62,15 @@ class GeofenceService {
     );
 
     if (!preferFresh) {
-      // Lokasi terakhir yang diketahui (sangat cepat) bila tersedia.
+      // Lokasi terakhir yang diketahui (sangat cepat) bila tersedia dan cukup
+      // baru — fix basi (lama tidak update) bisa membuat jarak tampak jauh
+      // meski pengguna sudah berada di lokasi yang benar.
       final Position? last = await Geolocator.getLastKnownPosition();
-      if (last != null) return last;
+      if (last != null &&
+          DateTime.now().difference(last.timestamp) <=
+              const Duration(seconds: 30)) {
+        return last;
+      }
     }
 
     return Geolocator.getCurrentPosition(locationSettings: settings);
