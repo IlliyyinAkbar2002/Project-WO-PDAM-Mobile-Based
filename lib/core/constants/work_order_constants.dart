@@ -71,15 +71,6 @@ class ProgressStatusId {
   static bool isRevisiRequested(int? id) => id == revisiRequested;
 }
 
-/// Kode master action dari TKT-01 (stabil, tidak tergantung id numerik).
-/// Nilainya match dengan kolom `m_action.kode`.
-class WorkOrderActionKode {
-  static const String penugasan = 'PENUGASAN';
-  static const String freeze = 'FREEZE';
-  static const String resume = 'RESUME';
-  static const String extend = 'EXTEND';
-}
-
 class WorkOrderStatusId {
   static const int pengecekan = 5;
   static const int selesai = 6;
