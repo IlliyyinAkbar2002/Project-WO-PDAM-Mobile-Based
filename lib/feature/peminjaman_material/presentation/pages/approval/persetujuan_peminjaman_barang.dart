@@ -559,7 +559,7 @@ class _PersetujuanPeminjamanBarangPageState
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Pakai: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0} • Rusak: ${request.jumlahRusak ?? 0}',
+                          'Pinjam: ${request.jumlahPinjam} • Terpasang: ${request.jumlahTerpasang ?? '-'} • Rusak: ${request.jumlahRusak ?? 0}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -839,7 +839,7 @@ class _ApprovalDetailSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _buildInfoTile(
-                            'Jumlah Pakai',
+                            'Jumlah Pinjam',
                             '${r.jumlahPinjam} ${r.material?.satuan ?? ""}',
                           ),
                         ),
@@ -853,9 +853,22 @@ class _ApprovalDetailSheet extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _buildInfoTile(
-                      'Jumlah Rusak',
-                      '${r.jumlahRusak ?? 0} ${r.material?.satuan ?? ""}',
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoTile(
+                            'Jumlah Terpasang',
+                            '${r.jumlahTerpasang ?? '-'} ${r.material?.satuan ?? ""}',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildInfoTile(
+                            'Jumlah Rusak',
+                            '${r.jumlahRusak ?? 0} ${r.material?.satuan ?? ""}',
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _buildSectionLabel(

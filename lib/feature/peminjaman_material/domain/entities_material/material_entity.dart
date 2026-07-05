@@ -21,6 +21,12 @@ class MaterialEntity extends Equatable {
     this.rusak,
   });
 
+  /// Stok yang bisa dipinjam. Identik dengan `tersedia` dari BE.
+  ///
+  /// PENTING (jangan double-count): `terpakai` dari BE SUDAH termasuk
+  /// `jumlah_terpasang` (material yang dikonsumsi/tidak dikembalikan) selain
+  /// pinjaman aktif. Jadi formula ini sudah benar apa adanya — JANGAN kurangi
+  /// `terpasang` lagi di sini.
   int get stokTersedia => (jumlahStok ?? 0) - (terpakai ?? 0) - (rusak ?? 0);
 
   @override

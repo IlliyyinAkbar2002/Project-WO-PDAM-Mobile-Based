@@ -11,6 +11,11 @@ class PeminjamanMaterialEntity extends Equatable {
   final DateTime? waktuPinjam;
   final int? jumlahKembali;
   final int? jumlahRusak;
+
+  /// Jumlah material yang terpasang/dikonsumsi permanen (= jumlah_pinjam −
+  /// jumlah_kembali). Nullable: `null` saat status `DIPINJAM` dan setelah
+  /// verifikasi `REJECTED`; terisi mulai `PENDING_KEMBALI` dan `DIKEMBALIKAN`.
+  final int? jumlahTerpasang;
   final DateTime? waktuKembali;
   final String? kondisiKembali;
   final String? status;
@@ -26,6 +31,7 @@ class PeminjamanMaterialEntity extends Equatable {
     this.waktuPinjam,
     this.jumlahKembali,
     this.jumlahRusak,
+    this.jumlahTerpasang,
     this.waktuKembali,
     this.kondisiKembali,
     this.status,
@@ -43,6 +49,7 @@ class PeminjamanMaterialEntity extends Equatable {
     waktuPinjam,
     jumlahKembali,
     jumlahRusak,
+    jumlahTerpasang,
     waktuKembali,
     kondisiKembali,
     status,

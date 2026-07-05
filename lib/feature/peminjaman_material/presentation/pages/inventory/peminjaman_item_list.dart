@@ -754,15 +754,32 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                               color: Color(0xFF374151),
                             ),
                           ),
-                          if (item.jumlahKembali != null)
-                            Text(
-                              'Kembali: ${item.jumlahKembali}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF059669),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (item.jumlahTerpasang != null) ...[
+                                Text(
+                                  'Terpasang: ${item.jumlahTerpasang}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFEA580C),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (item.jumlahKembali != null)
+                                  const SizedBox(width: 10),
+                              ],
+                              if (item.jumlahKembali != null)
+                                Text(
+                                  'Kembali: ${item.jumlahKembali}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF059669),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
