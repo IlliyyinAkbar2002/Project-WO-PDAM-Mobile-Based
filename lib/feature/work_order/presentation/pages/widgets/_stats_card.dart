@@ -244,25 +244,25 @@ class _StatsCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: liveBg,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'Live',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: navy,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
+                  // Container(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     horizontal: 8,
+                  //     vertical: 3,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: liveBg,
+                  //     borderRadius: BorderRadius.circular(999),
+                  //   ),
+                  //   child: Text(
+                  //     'Live',
+                  //     style: textTheme.labelSmall?.copyWith(
+                  //       color: navy,
+                  //       fontSize: 11,
+                  //       fontWeight: FontWeight.w500,
+                  //       height: 1.5,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -283,7 +283,8 @@ class _StatsCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Expanded(
+                    Offstage(
+                      offstage: true,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

@@ -255,10 +255,14 @@ class FormFieldsConfig {
           "isReadOnly": isReadOnly,
         },
         {
-          "type": "text",
+          "type": "dropdown",
           "key": "kondisi_meter_awal",
           "label": "Kondisi Meter Awal",
           "hint": "Contoh: Normal",
+          "options": [
+            {"value": "Normal", "label": "Normal"},
+            {"value": "Rusak", "label": "Rusak"},
+          ],
           "isReadOnly": isReadOnly,
         },
       ];
