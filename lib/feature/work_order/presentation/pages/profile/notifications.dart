@@ -12,7 +12,7 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notific
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_detail_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
-import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/approval_pengembalian_peminjaman_asset.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});

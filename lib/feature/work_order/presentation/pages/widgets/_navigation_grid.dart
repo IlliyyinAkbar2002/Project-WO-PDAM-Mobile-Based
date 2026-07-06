@@ -166,7 +166,7 @@ class _NavigationGrid extends StatelessWidget {
         onTap: () {
           final user = AuthStorage.getUserSync();
           final roleId = user?['role_id'] as int?;
-          if (roleId != 4 && roleId != 5) {
+          if (roleId != 4) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text(
@@ -177,7 +177,6 @@ class _NavigationGrid extends StatelessWidget {
             );
             return;
           }
-          final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
           showModalBottomSheet(
             context: context,
@@ -192,21 +191,6 @@ class _NavigationGrid extends StatelessWidget {
               ),
             ),
             builder: (ctx) {
-              if (isSpv) {
-                return _OurAssetsBottomSheet(
-                  title: 'Melihat stok material',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PeminjamanItemListPage(),
-                      ),
-                    );
-                  },
-                );
-              }
-
               return _OurAssetsBottomSheet(
                 title: 'Melihat stok material',
                 onTap: () {

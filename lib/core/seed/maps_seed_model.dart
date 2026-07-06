@@ -105,6 +105,13 @@ class MapsSeedModel {
       longitude: 112.751480,
       radiusMeter: defaultRadiusMeter,
     ),
+    MasterLocationModel(
+      id: 15,
+      nama: 'Jl. Raya Menganti Kramat No.102, Wiyung, Surabaya',
+      latitude: -7.3128298,
+      longitude: 112.7039418,
+      radiusMeter: defaultRadiusMeter,
+    ),
   ];
 
   static List<MasterLocationEntity> get entities {

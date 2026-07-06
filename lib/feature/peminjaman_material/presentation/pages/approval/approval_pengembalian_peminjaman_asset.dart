@@ -74,7 +74,7 @@ class _PersetujuanPeminjamanBarangPageState
     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
     Widget target;
-    if ((roleId == 4 || roleId == 5) && isSpv) {
+    if (roleId == 4 && isSpv) {
       target = const SpvLandingPage();
     } else {
       target = const StaffLandingPage();
