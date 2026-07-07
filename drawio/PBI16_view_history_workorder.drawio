@@ -1,0 +1,191 @@
+<mxfile host="65bd71144e">
+    <diagram id="PBI16_view_history_workorder" name="PBI16_view_history_workorder">
+        <mxGraphModel dx="1578" dy="1168" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="2500" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Activity Diagram - PBI16: View History Work Order (PDAM Surya Sembada Mobile)&lt;br&gt;&lt;span style=&quot;font-weight:normal;font-size:12px;&quot;&gt;Berlaku untuk Employee: SPV, Staff Senior, dan Staff (alur sama, kriteria default dan tujuan detail menyesuaikan peran)&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontFamily=Arial;" parent="1" vertex="1">
+                    <mxGeometry width="2060" height="60" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="lane1" value="User" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry y="80" width="480" height="2380" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane2" value="Sistem (Aplikasi Mobile)" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="80" width="700" height="2380" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane3" value="Backend" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="1180" y="80" width="500" height="2380" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="225" y="130" width="30" height="30" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_open" value="Membuka menu &quot;Work Order&quot;, lalu memilih tab riwayat&lt;br&gt;(&quot;Riwayat&quot; bagi Staff/Staff Senior, &quot;History Work Order&quot; bagi SPV)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="200" width="380" height="120" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_criteria" value="Menentukan kriteria riwayat default sesuai peran pengguna:&lt;br&gt;• Staff/Staff Senior → status Selesai, Menunggu Approval Manager, Ditolak Manager&lt;br&gt;• SPV → status Selesai, dibatasi pada Work Order yang di-PIC-kan kepadanya" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="200" width="620" height="160" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="note_role" value="Catatan hak akses (AC1):&lt;br&gt;Data yang tampil otomatis dibatasi sesuai identitas dan peran pengguna yang sedang login (Staff/Staff Senior hanya melihat WO miliknya sendiri; SPV hanya WO yang di-PIC-kan kepadanya). Filter tanggal/status di bawah hanya mempersempit hasil ini, bukan mengganti batasan hak akses." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#F9A825;fontFamily=Arial;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;size=16;" parent="1" vertex="1">
+                    <mxGeometry x="1720" y="200" width="340" height="200" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_send" value="Mengirim permintaan daftar riwayat Work Order ke Backend&lt;br&gt;(GET /v1/workorder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="400" width="620" height="100" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_receive" value="Menerima permintaan daftar riwayat Work Order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="540" width="420" height="90" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_dec" value="Permintaan valid dan terautentikasi?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontFamily=Arial;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1230" y="670" width="300" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_err" value="Mengembalikan respons gagal&lt;br&gt;(401/403)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;fontFamily=Arial;fontSize=11;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="820" width="190" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="be_query" value="Mengambil data Work Order dari database sesuai kriteria (status/rentang tanggal/kata kunci) dan hak akses pengguna (PIC/assigned_to/departemen)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=11;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1440" y="820" width="200" height="120" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_return" value="Mengembalikan daftar riwayat Work Order beserta tanggal dan status terkini tiap entri&lt;br&gt;(atau daftar kosong)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="980" width="420" height="120" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_dec" value="Permintaan berhasil?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontFamily=Arial;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="1140" width="300" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_err" value="Menampilkan pesan gagal beserta tombol &quot;Coba Lagi&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;fontFamily=Arial;fontSize=11;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="540" y="1290" width="270" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="s_show" value="Menampilkan daftar riwayat Work Order (atau &quot;Belum ada data&quot; bila kosong); setiap entri memuat chip status dan tanggal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=11;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="850" y="1290" width="290" height="140" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_lihat" value="Melihat daftar riwayat Work Order — setiap entri menampilkan tanggal dan status terkini" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1460" width="380" height="120" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_dec" value="Ingin mencari atau menyaring riwayat tertentu?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontFamily=Arial;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="90" y="1610" width="300" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_filter" value="Memasukkan kata kunci pencarian, dan/atau memilih rentang tanggal / status pada dialog filter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1750" width="380" height="140" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_refilter" value="Menyusun ulang kriteria (kata kunci/status/rentang tanggal) sesuai pilihan pengguna, lalu mengirim permintaan baru ke Backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="1750" width="620" height="140" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_pilih" value="Memilih salah satu entri riwayat Work Order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1930" width="380" height="100" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_detail" value="Membuka halaman detail Work Order sesuai jenisnya (Reguler atau Lembur)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="2060" width="540" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_detail" value="Melihat halaman detail Work Order yang dipilih (lengkap dengan progress/tahapan yang sudah dan sedang berjalan)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="2210" width="380" height="140" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="endgroup" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="230" y="2390" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_outer" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" parent="endgroup" vertex="1">
+                    <mxGeometry width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_inner" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="endgroup" vertex="1">
+                    <mxGeometry x="7" y="7" width="16" height="16" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="start" target="u_open" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_open" target="s_criteria" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_criteria" target="s_send" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_send" target="be_receive" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="be_receive" target="be_dec" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="be_dec" target="be_err" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="be_dec" target="be_query" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="be_err" target="be_return" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="be_query" target="be_return" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="be_return" target="s_dec" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" value="Gagal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_dec" target="s_err" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" value="Berhasil" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_dec" target="s_show" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" value="coba lagi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#C62828;endArrow=block;fontFamily=Arial;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="s_err" target="s_send" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1160" y="1340"/>
+                            <mxPoint x="1160" y="450"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_show" target="u_lihat" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_lihat" target="u_dec" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e16" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_dec" target="u_filter" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e17" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_dec" target="u_pilih" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_filter" target="s_refilter" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" value="kirim ulang" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_refilter" target="be_receive" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1170" y="1820"/>
+                            <mxPoint x="1170" y="585"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_pilih" target="s_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_detail" target="u_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_detail" target="endgroup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="nc1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeColor=#9E9E9E;" parent="1" source="note_role" target="s_criteria" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

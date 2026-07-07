@@ -1,0 +1,108 @@
+<mxfile host="65bd71144e">
+    <diagram id="PB2_Logout" name="PB2_Logout">
+        <mxGraphModel dx="1182" dy="1038" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1350" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Activity Diagram - Logout (PDAM Surya Sembada Mobile)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontFamily=Arial;" parent="1" vertex="1">
+                    <mxGeometry x="20" width="1660" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane1" value="User (SPV / Staff Senior / Staff)" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="50" width="500" height="1250" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane2" value="Sistem" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="50" width="600" height="1250" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_close_logout" value="Menutup dialog konfirmasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="330" y="490" width="220" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_reqlogout" value="Mengirim permintaan logout ke Backend&lt;br&gt;(POST /v1/auth/logout)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="300" y="600" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane2" source="n_close_logout" target="n_reqlogout" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="" style="group" parent="lane2" vertex="1" connectable="0">
+                    <mxGeometry x="300" y="1120" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_outer" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" parent="2" vertex="1">
+                    <mxGeometry width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_inner" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="2" vertex="1">
+                    <mxGeometry x="10" y="10" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane3" value="Backend" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="1120" y="50" width="560" height="1250" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="255" y="110" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_tap" value="Menekan tombol/menu &quot;Logout&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="180" width="240" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1" value="Memilih tombol pada dialog?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontFamily=Arial;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="400" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_dialog" value="Menampilkan dialog konfirmasi&lt;br&gt;&quot;Apakah Anda yakin ingin logout?&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="280" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_close_cancel" value="Menutup dialog,&lt;br&gt;tetap di halaman sebelumnya" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="540" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_clear" value="Menghapus sesi login lokal&lt;br&gt;(token &amp; data pengguna)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="960" width="280" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_redirect" value="Mengarahkan ke halaman Login&lt;br&gt;(hapus seluruh riwayat navigasi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="1050" width="300" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_revoke" value="Menghapus token akses aktif&lt;br&gt;(currentAccessToken()-&amp;gt;delete())" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="750" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_resp" value="Mengirim respons&lt;br&gt;&quot;Logout berhasil&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1290" y="860" width="240" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="start" target="n_tap" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_tap" target="n_dialog" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_dialog" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="Batal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="d1" target="n_close_cancel" edge="1">
+                    <mxGeometry x="0.6316" relative="1" as="geometry">
+                        <mxPoint y="-1" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e5" value="Logout" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="d1" target="n_close_logout" edge="1">
+                    <mxGeometry x="0.7879" relative="1" as="geometry">
+                        <mxPoint y="-1" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e6b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_reqlogout" target="n_revoke" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6c" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_revoke" target="n_resp" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_resp" target="n_clear" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_clear" target="n_redirect" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_close_cancel" target="end_outer" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="660" y="1190"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_redirect" target="end_outer" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

@@ -1,0 +1,133 @@
+<mxfile host="65bd71144e">
+    <diagram id="PBI22_read_riwayat_pengajuan_lembur" name="PBI22_read_riwayat_pengajuan_lembur">
+        <mxGraphModel dx="1578" dy="1168" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2150" pageHeight="2000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+
+                <mxCell id="title" value="Activity Diagram - Riwayat Pengajuan Lembur oleh SPV (PDAM Surya Sembada Mobile)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontFamily=Arial;" parent="1" vertex="1">
+                    <mxGeometry width="2150" height="60" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="lane1" value="User" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry y="80" width="480" height="1870" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane2" value="Sistem" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="80" width="700" height="1870" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane3" value="Backend" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="1180" y="80" width="550" height="1870" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="225" y="130" width="30" height="30" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_buka" value="Membuka menu &quot;Riwayat Pengajuan Lembur&quot;&lt;br&gt;(khusus akun SPV, dari menu Pengajuan Lembur)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="200" width="380" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_send" value="Meminta data riwayat pengajuan lembur dari Backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="340" width="620" height="90" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_return" value="Mengambil seluruh data pengajuan lembur yang tersimpan,&lt;br&gt;lalu mengirimkannya ke aplikasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="460" width="470" height="130" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_filter" value="Menyaring data yang diterima agar hanya menampilkan&lt;br&gt;pengajuan lembur milik SPV yang sedang login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="620" width="620" height="130" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="note_scope" value="Catatan cakupan data (AC1):&lt;br&gt;Backend mengembalikan seluruh pengajuan lembur tanpa&lt;br&gt;membedakan pemohon. Sistem pada aplikasi mobile yang&lt;br&gt;menyaring agar SPV hanya melihat riwayat pengajuannya&lt;br&gt;sendiri." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#F9A825;fontFamily=Arial;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;size=16;" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="620" width="340" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="nc1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeColor=#9E9E9E;" parent="1" source="s_filter" target="note_scope" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_show" value="Menampilkan daftar riwayat pengajuan lembur milik SPV&lt;br&gt;(atau &quot;Belum ada pengajuan lembur&quot; bila kosong);&lt;br&gt;setiap riwayat menampilkan judul pekerjaan, tanggal lembur,&lt;br&gt;dan status (Pending/Disetujui/Ditolak), termasuk alasan&lt;br&gt;penolakan singkat bila status Ditolak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="780" width="620" height="180" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_lihat" value="Melihat daftar riwayat pengajuan lembur miliknya&lt;br&gt;beserta status masing-masing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="990" width="380" height="120" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_pilih" value="Memilih salah satu riwayat pengajuan lembur&lt;br&gt;untuk dilihat lebih lanjut" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1140" width="380" height="100" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_send_detail" value="Meminta detail lengkap pengajuan lembur&lt;br&gt;yang dipilih dari Backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="1270" width="620" height="100" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="be_detail" value="Mengambil detail lengkap pengajuan lembur beserta&lt;br&gt;daftar peserta, lalu mengirimkannya ke aplikasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="1220" y="1400" width="470" height="130" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="s_show_detail" value="Menampilkan halaman detail pengajuan lembur secara&lt;br&gt;lengkap, mencakup informasi pengajuan, status proses,&lt;br&gt;dan daftar peserta" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="1560" width="620" height="150" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="note_detail" value="Cakupan detail lengkap (AC3):&lt;br&gt;- Informasi Pengajuan: jenis pekerjaan, tanggal lembur,&lt;br&gt;&amp;nbsp;&amp;nbsp;jam mulai, estimasi jam, alasan lembur&lt;br&gt;- Status Proses: status saat ini, waktu pengajuan, waktu&lt;br&gt;&amp;nbsp;&amp;nbsp;verifikasi, dan alasan ditolak (bila status Ditolak)&lt;br&gt;- Peserta Lembur: daftar anggota tim beserta&lt;br&gt;&amp;nbsp;&amp;nbsp;Koordinator (PIC)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#F9A825;fontFamily=Arial;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;size=16;" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="1560" width="340" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="nc2" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeColor=#9E9E9E;" parent="1" source="s_show_detail" target="note_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="u_detail" value="Melihat detail lengkap pengajuan lembur yang dipilih" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;fontSize=12;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1740" width="380" height="110" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="endgroup" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="225" y="1880" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_outer" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" parent="endgroup" vertex="1">
+                    <mxGeometry width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_inner" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="endgroup" vertex="1">
+                    <mxGeometry x="7" y="7" width="16" height="16" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="start" target="u_buka" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_buka" target="s_send" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_send" target="be_return" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="be_return" target="s_filter" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_filter" target="s_show" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_show" target="u_lihat" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_lihat" target="u_pilih" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_pilih" target="s_send_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_send_detail" target="be_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="be_detail" target="s_show_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="s_show_detail" target="u_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="u_detail" target="endgroup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

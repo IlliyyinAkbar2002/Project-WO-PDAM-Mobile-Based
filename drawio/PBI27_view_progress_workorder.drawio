@@ -1,0 +1,156 @@
+<mxfile host="65bd71144e">
+    <diagram id="PBI27_view_progress_workorder" name="PBI27_view_progress_workorder">
+        <mxGraphModel dx="1208" dy="623" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1950" pageHeight="1650" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Activity Diagram - View Progress Work Order (PDAM Surya Sembada Mobile)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontFamily=Arial;" parent="1" vertex="1">
+                    <mxGeometry width="1900" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane1" value="SPV" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry y="50" width="460" height="1780" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="lane1" vertex="1">
+                    <mxGeometry x="200" y="90" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_open" value="Membuka daftar Work Order (WO Masuk / WO&lt;br&gt;Keluar) sesuai perannya sebagai SPV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane1" vertex="1">
+                    <mxGeometry x="40" y="160" width="380" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_pilih" value="Memilih salah satu Work Order dari daftar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane1" vertex="1">
+                    <mxGeometry x="40" y="460" width="380" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_lihat" value="Melihat persentase progress, status tiap&lt;br&gt;tahapan, dan progress tiap anggota tim&lt;br&gt;(PIC &amp; staff lapangan)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane1" vertex="1">
+                    <mxGeometry x="40" y="930" width="380" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_tap_riwayat" value="Menekan salah satu riwayat progress&lt;br&gt;anggota untuk melihat detail laporannya&lt;br&gt;(opsional)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane1" vertex="1">
+                    <mxGeometry x="40" y="1160" width="380" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_kembali" value="Kembali ke daftar Work Order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane1" vertex="1">
+                    <mxGeometry x="40" y="1340" width="380" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane1" source="start" target="n_open" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane1" source="n_lihat" target="n_tap_riwayat" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane2" value="Sistem (Aplikasi Mobile)" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="50" width="900" height="1780" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_get_list" value="Meminta daftar Work Order ke Backend&lt;br&gt;sesuai hak akses SPV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="320" y="165" width="400" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_show_list" value="Menampilkan daftar WO — tiap kartu&lt;br&gt;memuat chip jenis, status, dan&lt;br&gt;persentase progress" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="480" y="300" width="400" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_get_detail" value="Meminta detail Work Order, riwayat&lt;br&gt;progress, dan progress per anggota tim&lt;br&gt;ke Backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="480" y="480" width="400" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_member_ok" value="Progress per anggota berhasil&lt;br&gt;dimuat?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontFamily=Arial;" parent="lane2" vertex="1">
+                    <mxGeometry x="490" y="650" width="380" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_err_member" value="Menampilkan pesan error beserta&lt;br&gt;tombol &quot;Muat ulang&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="40" y="670" width="360" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_show_progress" value="Menampilkan progress tim: PIC (terbuka&lt;br&gt;default) &amp; anggota lapangan, masing-masing&lt;br&gt;dengan riwayat tahapan (ikon proses/selesai&lt;br&gt;+ waktu submit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="480" y="840" width="400" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_show_detail_laporan" value="Menampilkan detail laporan (deskripsi,&lt;br&gt;dokumentasi, lokasi) dari tahapan yang&lt;br&gt;dipilih" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="480" y="1060" width="400" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_refresh_list" value="Memuat ulang daftar WO saat SPV&lt;br&gt;kembali (memastikan status &amp; persentase&lt;br&gt;terbaru)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane2" vertex="1">
+                    <mxGeometry x="480" y="1220" width="400" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="note_realtime" value="Catatan &quot;real-time&quot;:&lt;br&gt;Tidak ada push/websocket untuk progress. Data terbaru&lt;br&gt;didapat lewat re-fetch (buka daftar, kembali dari detail,&lt;br&gt;atau tombol &quot;Muat ulang&quot;). Persentase dihitung Backend&lt;br&gt;on-the-fly dari tahapan tertinggi tersubmit, sehingga&lt;br&gt;otomatis ter-update di fetch berikutnya." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#F9A825;fontFamily=Arial;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;size=16;" parent="lane2" vertex="1">
+                    <mxGeometry x="100" y="1490" width="400" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="endgroup" value="" style="group" parent="lane2" vertex="1" connectable="0">
+                    <mxGeometry x="660" y="1550" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_outer" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;" parent="endgroup" vertex="1">
+                    <mxGeometry width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="end_inner" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" parent="endgroup" vertex="1">
+                    <mxGeometry x="10" y="10" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l2_1" value="tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane2" source="d_member_ok" target="n_err_member" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l2_2" value="ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane2" source="d_member_ok" target="n_show_progress" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l2_3" value="Muat ulang" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#C62828;endArrow=block;fontFamily=Arial;" parent="lane2" source="n_err_member" target="n_get_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="220" y="540"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_l2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane2" source="n_refresh_list" target="endgroup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l2_note" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeColor=#9E9E9E;" parent="lane2" source="n_refresh_list" target="note_realtime" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane3" value="Backend" style="swimlane;horizontal=1;whiteSpace=wrap;html=1;startSize=40;fillColor=#FAFAFA;strokeColor=#90A4AE;fontFamily=Arial;fontStyle=1;fontSize=14;verticalAlign=middle;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="1400" y="50" width="500" height="1780" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_hitung_persen" value="Menghitung persentase progress&lt;br&gt;on-the-fly dari tahapan tertinggi yang&lt;br&gt;tersubmit (atau 100% bila status WO&lt;br&gt;&quot;Selesai&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane3" vertex="1">
+                    <mxGeometry x="50" y="160" width="400" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_kirim_list" value="Mengirim data Work Order&lt;br&gt;(GET /v1/workorder) beserta&lt;br&gt;persentase progress terbaru" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane3" vertex="1">
+                    <mxGeometry x="50" y="330" width="400" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="n_kirim_detail" value="Mengirim detail WO&lt;br&gt;(GET /v1/workorder/:id), daftar progress&lt;br&gt;(GET /v1/progress-workorder), dan&lt;br&gt;progress per anggota&lt;br&gt;(GET /v1/progress-workorder/by-member/:id)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontFamily=Arial;arcSize=20;" parent="lane3" vertex="1">
+                    <mxGeometry x="50" y="480" width="400" height="190" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_l3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="lane3" source="n_hitung_persen" target="n_kirim_list" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_open" target="n_get_list" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_get_list" target="n_hitung_persen" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_kirim_list" target="n_show_list" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_show_list" target="n_pilih" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_pilih" target="n_get_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_get_detail" target="n_kirim_detail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_kirim_detail" target="d_member_ok" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1640" y="770"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_c8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_show_progress" target="n_lihat" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_tap_riwayat" target="n_show_detail_laporan" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_c10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_show_detail_laporan" target="n_kembali" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="910" y="1165"/>
+                            <mxPoint x="910" y="1350"/>
+                            <mxPoint x="230" y="1350"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_c11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#455A64;endArrow=block;fontFamily=Arial;" parent="1" source="n_kembali" target="n_refresh_list" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
