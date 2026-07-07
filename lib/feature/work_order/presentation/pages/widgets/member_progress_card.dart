@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_progress_entity.dart';
 import 'package:intl/intl.dart';
@@ -367,7 +368,7 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        progress.progressType ?? 'Progress',
+                        _progressLabel(progress),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -397,6 +398,14 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
         ),
       ),
     );
+  }
+
+  /// Label riwayat = tipe + order (pembeda unik) digabung nama tahapan bila ada.
+  /// Contoh: "Progress 3 · Pengerjaan". Nama tahapan dari kolom `tahapan`.
+  String _progressLabel(dynamic progress) {
+    final String base = progress.progressType ?? 'Progress';
+    final String? tahapanName = TahapanWorkorder.label(progress.tahapan);
+    return tahapanName != null ? '$base · $tahapanName' : base;
   }
 
   Color _getProgressTypeColor(int? tipeProgressId) {

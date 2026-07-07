@@ -24,9 +24,9 @@ class PersonalDataViewData {
   final String birthDate;
   final String position;
   final String department;
-  final String country;
-  final String state;
-  final String city;
+  // final String country;
+  // final String state;
+  // final String city;
   final String address;
 
   const PersonalDataViewData({
@@ -36,9 +36,9 @@ class PersonalDataViewData {
     required this.birthDate,
     required this.position,
     required this.department,
-    required this.country,
-    required this.state,
-    required this.city,
+    // required this.country,
+    // required this.state,
+    // required this.city,
     required this.address,
   });
 }
@@ -51,9 +51,6 @@ class ProfileViewDataResolver {
     birthDate: '-',
     position: 'Staff',
     department: '-',
-    country: '-',
-    state: '-',
-    city: '-',
     address: '-',
   );
 
@@ -100,9 +97,9 @@ class ProfileViewDataResolver {
         birthDate: birthDate,
         position: roleName,
         department: department,
-        country: address == '-' ? '-' : 'Indonesia',
-        state: address == '-' ? '-' : 'DKI Jakarta',
-        city: address == '-' ? '-' : 'Jakarta Selatan',
+        // country: address == '-' ? '-' : 'Indonesia',
+        // state: address == '-' ? '-' : 'DKI Jakarta',
+        // city: address == '-' ? '-' : 'Jakarta Selatan',
         address: address,
       ),
     );

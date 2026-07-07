@@ -237,18 +237,18 @@ class _ProfileTopSection extends StatelessWidget {
                     icon: Icons.arrow_back_ios_new_rounded,
                     onTap: onBackTap,
                   ),
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'My Profile',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // const Expanded(
+                  //   child: Center(
+                  //     child: Text(
+                  //       'My Profile',
+                  //       style: TextStyle(
+                  //         color: Colors.white,
+                  //         fontSize: 18,
+                  //         fontWeight: FontWeight.w600,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                   const SizedBox(width: 32),
                 ],
               ),
@@ -261,18 +261,18 @@ class _ProfileTopSection extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB6C2EE),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    size: 72,
-                    color: Colors.white,
-                  ),
+                  width: 50,
+                  height: 50,
+                  // decoration: BoxDecoration(
+                  //   color: const Color(0xFFB6C2EE),
+                  //   borderRadius: BorderRadius.circular(12),
+                  //   border: Border.all(color: Colors.white, width: 2),
+                  // ),
+                  // child: const Icon(
+                  //   Icons.person,
+                  //   size: 72,
+                  //   color: Colors.white,
+                  // ),
                 ),
                 const SizedBox(height: 10),
                 Row(

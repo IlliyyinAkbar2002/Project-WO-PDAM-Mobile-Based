@@ -480,6 +480,33 @@ class _AssigneeWorkOrderDetailPageState
     return computed;
   }
 
+  Future<void> _showBelumWaktunyaReminder(DateTime scheduledStart) async {
+    final String tanggal = DateFormat('dd/MM/yyyy').format(scheduledStart);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Belum Waktunya',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Work order ini dijadwalkan mulai pada $tanggal. '
+          'Anda belum dapat memulainya sebelum tanggal tersebut.',
+          style: const TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showTahapanIncompleteReminder() async {
     await showDialog<void>(
       context: context,
@@ -518,6 +545,30 @@ class _AssigneeWorkOrderDetailPageState
       }
       _isNavigatingToReport = true;
       try {
+        if (mode == 'Mulai' || mode == 'Inspeksi') {
+          final DateTime? rawStart =
+              _workOrder?.assignment?.startDateTime ??
+              _workOrder?.startDateTime;
+          if (rawStart != null) {
+            // startDateTime bisa ber-flag UTC → normalisasi dulu sebelum
+            // dibandingkan (lihat work_order_model).
+            final DateTime scheduledStart = rawStart.isUtc
+                ? rawStart.toLocal()
+                : rawStart;
+            final DateTime now = DateTime.now();
+            final DateTime startDay = DateTime(
+              scheduledStart.year,
+              scheduledStart.month,
+              scheduledStart.day,
+            );
+            final DateTime todayDay = DateTime(now.year, now.month, now.day);
+            if (todayDay.isBefore(startDay)) {
+              await _showBelumWaktunyaReminder(scheduledStart);
+              return;
+            }
+          }
+        }
+
         // Pencegatan tombol "Mulai": bila belum ada peminjaman material untuk
         // WO ini, arahkan staff untuk meminjam material lebih dulu.
         if (mode == 'Mulai') {

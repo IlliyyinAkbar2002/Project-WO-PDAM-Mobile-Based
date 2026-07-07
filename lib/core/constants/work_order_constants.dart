@@ -57,6 +57,22 @@ class TahapanWorkorder {
   /// Tahap maksimum yang dapat dilaporkan lewat mode "Progress" (Laporan).
   /// Tahap 4 (Dokumentasi) hanya boleh lewat mode "Selesai".
   static const int maxProgress = pengujian;
+
+  /// Nama tahapan untuk ditampilkan (dari kolom `tahapan`). Null bila di luar 1-4.
+  static String? label(int? tahapan) {
+    switch (tahapan) {
+      case persiapan:
+        return 'Persiapan';
+      case pengerjaan:
+        return 'Pengerjaan';
+      case pengujian:
+        return 'Pengujian';
+      case dokumentasi:
+        return 'Dokumentasi';
+      default:
+        return null;
+    }
+  }
 }
 
 class ProgressStatusId {

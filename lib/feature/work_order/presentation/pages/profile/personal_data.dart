@@ -56,8 +56,8 @@ class PersonalDataPage extends StatelessWidget {
                       subtitle: 'Details about my personal data',
                       child: Column(
                         children: [
-                          const _PhotoPreview(),
-                          const SizedBox(height: 14),
+                          // const _PhotoPreview(),
+                          // const SizedBox(height: 14),
                           _ReadOnlyField(
                             label: 'First Name',
                             icon: Icons.person_outline,
@@ -97,21 +97,6 @@ class PersonalDataPage extends StatelessWidget {
                       subtitle: 'Your current domicile',
                       child: Column(
                         children: [
-                          _ReadOnlyField(
-                            label: 'Country',
-                            icon: Icons.location_on_outlined,
-                            value: data.country,
-                          ),
-                          _ReadOnlyField(
-                            label: 'State',
-                            icon: Icons.location_on_outlined,
-                            value: data.state,
-                          ),
-                          _ReadOnlyField(
-                            label: 'City',
-                            icon: Icons.location_on_outlined,
-                            value: data.city,
-                          ),
                           _ReadOnlyField(
                             label: 'Full Address',
                             icon: Icons.home_outlined,
@@ -225,67 +210,67 @@ class _SectionContainer extends StatelessWidget {
   }
 }
 
-class _PhotoPreview extends StatelessWidget {
-  const _PhotoPreview();
+// class _PhotoPreview extends StatelessWidget {
+//   const _PhotoPreview();
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: const Color(0xFFB6C2EE),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 62),
-            ),
-            Positioned(
-              top: -8,
-              right: -8,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xff2d499b),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.sync,
-                  size: 14,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Upload Photo',
-          style: TextStyle(
-            color: PersonalDataPage._labelColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 2),
-        const Text(
-          'Format should be in .jpeg .png atleast\n800x800px and less than 5MB',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: PersonalDataPage._subtitleColor,
-            fontSize: 10,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Stack(
+//           clipBehavior: Clip.none,
+//           children: [
+//             Container(
+//               width: 100,
+//               height: 100,
+//               decoration: BoxDecoration(
+//                 color: const Color(0xFFB6C2EE),
+//                 borderRadius: BorderRadius.circular(12),
+//               ),
+//               child: const Icon(Icons.person, color: Colors.white, size: 62),
+//             ),
+//             // Positioned(
+//             //   top: -8,
+//             //   right: -8,
+//             //   child: Container(
+//             //     width: 28,
+//             //     height: 28,
+//             //     decoration: const BoxDecoration(
+//             //       color: Color(0xff2d499b),
+//             //       shape: BoxShape.circle,
+//             //     ),
+//             //     child: const Icon(
+//             //       Icons.sync,
+//             //       size: 14,
+//             //       color: Colors.white,
+//             //     ),
+//             //   ),
+//             // ),
+//           ],
+//         ),
+//         const SizedBox(height: 6),
+//         // const Text(
+//         //   'Upload Photo',
+//         //   style: TextStyle(
+//         //     color: PersonalDataPage._labelColor,
+//         //     fontSize: 12,
+//         //     fontWeight: FontWeight.w500,
+//         //   ),
+//         // ),
+//         // const SizedBox(height: 2),
+//         // const Text(
+//         //   'Format should be in .jpeg .png atleast\n800x800px and less than 5MB',
+//         //   textAlign: TextAlign.center,
+//         //   style: TextStyle(
+//         //     color: PersonalDataPage._subtitleColor,
+//         //     fontSize: 10,
+//         //     fontWeight: FontWeight.w400,
+//         //   ),
+//         // ),
+//       ],
+//     );
+//   }
+// }
 
 class _ReadOnlyField extends StatelessWidget {
   final String label;
