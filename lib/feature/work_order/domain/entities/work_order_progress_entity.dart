@@ -63,14 +63,6 @@ class WorkOrderProgressEntity extends Equatable {
   bool get isSubmitted => ProgressStatusId.isSubmitted(statusId);
   bool get isVerified => ProgressStatusId.isVerified(statusId);
   bool get isRevisiRequested => ProgressStatusId.isRevisiRequested(statusId);
-  bool get isDibatalkan => ProgressStatusId.isDibatalkan(statusId);
-
-  bool get canCancel {
-    if (!isSubmitted) return false;
-    if (submitTime == null) return false;
-    final elapsed = DateTime.now().toUtc().difference(submitTime!);
-    return elapsed.inMinutes < 5;
-  }
 
   @override
   List<Object?> get props => [

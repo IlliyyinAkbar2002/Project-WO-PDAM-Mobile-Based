@@ -9,30 +9,107 @@ class MapsSeedModel {
   static const List<MasterLocationModel> masterLocations = [
     MasterLocationModel(
       id: 1,
-      nama: 'Universitas Ciputra Surabaya',
-      latitude: -7.2855908,
-      longitude: 112.631599,
+      nama: 'Jl. Raya Darmo No. 88, Wonokromo, Surabaya',
+      latitude: -7.2865975,
+      longitude: 112.7394111,
       radiusMeter: defaultRadiusMeter,
     ),
     MasterLocationModel(
       id: 2,
-      nama: 'Sepuluh Nopember Institute of Technology',
-      latitude: -7.282356,
-      longitude: 112.7949253,
+      nama: 'Jl. Manyar Kertoarjo No. 12, Gubeng, Surabaya',
+      latitude: -7.2798543,
+      longitude: 112.7631856,
       radiusMeter: defaultRadiusMeter,
     ),
     MasterLocationModel(
       id: 3,
-      nama: 'Universitas Telkom Surabaya',
-      latitude: -7.3111665,
-      longitude: 112.728915,
+      nama: 'Jl. HR Muhammad No. 45, Sukomanunggal, Surabaya',
+      latitude: -7.2844709,
+      longitude: 112.6937142,
       radiusMeter: defaultRadiusMeter,
     ),
     MasterLocationModel(
       id: 4,
-      nama: 'State University of Surabaya - Campus 1',
-      latitude: -7.3152027,
-      longitude: 112.7268517,
+      nama: 'Jl. Ahmad Yani No. 120, Wonocolo, Surabaya',
+      latitude: -7.3258005,
+      longitude: 112.7302923,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 5,
+      nama: 'Jl. Tunjungan No. 10, Genteng, Surabaya',
+      latitude: -7.2567402,
+      longitude: 112.7372218,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 6,
+      nama: 'Jl. Dharmahusada Indah Timur No. 17, Mulyorejo, Surabaya',
+      latitude: -7.2839926,
+      longitude: 112.7809551,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 7,
+      nama: 'Jl. Ketintang Baru Selatan No. 22, Gayungan, Surabaya',
+      latitude: -7.3247895,
+      longitude: 112.7258568,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 8,
+      nama: 'Jl. Kapas Krampung No. 50, Tambaksari, Surabaya',
+      latitude: -7.2488449,
+      longitude: 112.7576475,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 9,
+      nama: 'Jl. Rungkut Madya No. 30, Rungkut, Surabaya',
+      latitude: -7.3322081,
+      longitude: 112.7258568,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 10,
+      nama: 'Jl. Dukuh Kupang Barat No. 19, Dukuh Pakis, Surabaya',
+      latitude: -7.2851102,
+      longitude: 112.7088043,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 11,
+      nama: 'Kecipik, Boteng, Menganti, Gresik Regency',
+      latitude: -7.270509,
+      longitude: 112.567216,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 12,
+      nama: 'Jl. Joyoboyo, Sawunggaling, Kec. Wonokromo, Surabaya',
+      latitude: -7.29816,
+      longitude: 112.73704,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 13,
+      nama: 'Telkom University Surabaya, Jl. Ketintang No. 156, Surabaya',
+      latitude: -7.312211,
+      longitude: 112.728954,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 14,
+      nama: 'PDAM Surya Sembada Kota Surabaya, Jl. Prof. Dr. Moestopo No. 2, Surabaya',
+      latitude: -7.265670,
+      longitude: 112.751480,
+      radiusMeter: defaultRadiusMeter,
+    ),
+    MasterLocationModel(
+      id: 15,
+      nama: 'Jl. Raya Menganti Kramat No.102, Wiyung, Surabaya',
+      latitude: -7.3128298,
+      longitude: 112.7039418,
       radiusMeter: defaultRadiusMeter,
     ),
   ];
@@ -46,7 +123,7 @@ class MapsSeedModel {
   }
 
   static List<MasterLocationEntity> search(String query) {
-    final normalizedQuery = _normalize(query);
+    final normalizedQuery = normalize(query);
 
     if (normalizedQuery.isEmpty) {
       return entities;
@@ -62,24 +139,17 @@ class MapsSeedModel {
   }
 
   static String _searchableText(MasterLocationEntity location) {
-    final aliases = switch (location.id) {
-      1 => 'uc uc surabaya ciputra university',
-      2 => 'its institut teknologi sepuluh nopember',
-      3 => 'telkom university tel-u telkom surabaya',
-      4 => 'unesa universitas negeri surabaya state university',
-      _ => '',
-    };
-
-    return _normalize('${location.nama} $aliases');
+    return normalize(location.nama);
   }
 
-  static String _normalize(String value) {
+  /// Normalisasi teks lokasi (lowercase, samakan "jalan"->"jl", "nomor"->"no",
+  /// buang tanda baca, rapikan spasi). Dipakai oleh pencarian seed dan oleh
+  /// guard pencocokan lokasi penugasan vs lokasi pengaduan.
+  static String normalize(String value) {
     return value
         .toLowerCase()
-        .replaceAll(RegExp(r'\buniversitas\b|\buniversity\b'), 'univ')
-        .replaceAll(RegExp(r'\binstitut\b|\binstitute\b'), 'inst')
-        .replaceAll(RegExp(r'\bnegeri\b|\bstate\b'), 'state')
-        .replaceAll(RegExp(r'\bkampus\b|\bcampus\b'), 'campus')
+        .replaceAll(RegExp(r'\bjalan\b'), 'jl')
+        .replaceAll(RegExp(r'\bnomor\b'), 'no')
         .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ');

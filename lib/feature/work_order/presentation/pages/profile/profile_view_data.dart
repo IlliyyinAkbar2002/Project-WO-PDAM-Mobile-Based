@@ -1,3 +1,4 @@
+import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 
 class ProfileViewData {
@@ -19,21 +20,25 @@ class ProfileViewData {
 class PersonalDataViewData {
   final String firstName;
   final String lastName;
+  final String nip;
   final String birthDate;
   final String position;
-  final String country;
-  final String state;
-  final String city;
+  final String department;
+  // final String country;
+  // final String state;
+  // final String city;
   final String address;
 
   const PersonalDataViewData({
     required this.firstName,
     required this.lastName,
+    required this.nip,
     required this.birthDate,
     required this.position,
-    required this.country,
-    required this.state,
-    required this.city,
+    required this.department,
+    // required this.country,
+    // required this.state,
+    // required this.city,
     required this.address,
   });
 }
@@ -42,11 +47,10 @@ class ProfileViewDataResolver {
   static const PersonalDataViewData defaultPersonalData = PersonalDataViewData(
     firstName: '-',
     lastName: '-',
+    nip: '-',
     birthDate: '-',
     position: 'Staff',
-    country: '-',
-    state: '-',
-    city: '-',
+    department: '-',
     address: '-',
   );
 
@@ -77,7 +81,9 @@ class ProfileViewDataResolver {
 
     final split = _splitName(fullName);
     final roleName = resolvePositionLabel(user);
+    final department = resolveDepartmentLabel(user);
     final birthDate = _formatBirthDate(employee['birth_date']);
+    final nip = resolveNip(user);
 
     return ProfileViewData(
       fullName: fullName,
@@ -87,11 +93,13 @@ class ProfileViewDataResolver {
       personalData: PersonalDataViewData(
         firstName: split.$1,
         lastName: split.$2,
+        nip: nip,
         birthDate: birthDate,
         position: roleName,
-        country: address == '-' ? '-' : 'Indonesia',
-        state: address == '-' ? '-' : 'DKI Jakarta',
-        city: address == '-' ? '-' : 'Jakarta Selatan',
+        department: department,
+        // country: address == '-' ? '-' : 'Indonesia',
+        // state: address == '-' ? '-' : 'DKI Jakarta',
+        // city: address == '-' ? '-' : 'Jakarta Selatan',
         address: address,
       ),
     );
@@ -105,43 +113,43 @@ class ProfileViewDataResolver {
     return (words.first, words.sublist(1).join(' '));
   }
 
-  static String resolvePositionLabel(Map<String, dynamic> user) {
+  /// NIP pegawai dari data pegawai (bukan dari user/login), '-' bila kosong.
+  static String resolveNip(Map<String, dynamic> user) {
     final employee = user['employee'] as Map<String, dynamic>?;
-    final fromEmployee = employee?['jabatan_kode'] as String?;
-
-    final pegawai = user['pegawai'] as Map<String, dynamic>?;
-    final jabatan = pegawai?['jabatan'] as Map<String, dynamic>?;
-    final fromPegawai = jabatan?['kode'] as String?;
-
-    final positionId = _toInt(employee?['position_id']);
-    String? legacyJabatan;
-    switch (positionId) {
-      case 2:
-        legacyJabatan = 'SPV';
-        break;
-      case 3:
-        legacyJabatan = 'SENIOR_STAFF';
-        break;
-      case 4:
-        legacyJabatan = 'STAFF';
-        break;
-    }
-
-    final kode =
-        fromEmployee ??
-        fromPegawai ??
-        legacyJabatan ??
-        AuthStorage.getJabatanKodeSync();
-
-    if (kode == 'SPV') return 'Supervisor';
-    if (kode == 'SENIOR_STAFF') return 'Senior Staff';
-    return 'Staff';
+    final nip = (employee?['nip'] ?? employee?['employee_id'])?.toString();
+    if (nip != null && nip.trim().isNotEmpty) return nip.trim();
+    return '-';
   }
 
-  static int? _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value);
-    return null;
+  /// Nama departemen pegawai (mis. 'Operasional'), '-' bila tidak tersedia.
+  static String resolveDepartmentLabel(Map<String, dynamic> user) {
+    final employee = user['employee'] as Map<String, dynamic>?;
+    final nama = (user['departemen_nama'] ?? employee?['department_name'])
+        ?.toString();
+    if (nama != null && nama.trim().isNotEmpty) return nama.trim();
+    return '-';
+  }
+
+  static String resolvePositionLabel(Map<String, dynamic> user) {
+    // Utamakan nama jabatan asli dari backend bila tersedia.
+    final employee = user['employee'] as Map<String, dynamic>?;
+    final nama = (user['jabatan_nama'] ?? employee?['position_name'])
+        ?.toString();
+    if (nama != null && nama.trim().isNotEmpty) return nama.trim();
+
+    final kode = JabatanKode.fromUser(user) ?? AuthStorage.getJabatanKodeSync();
+    switch (kode) {
+      case JabatanKode.spv:
+        return 'Supervisor';
+      case JabatanKode.seniorStaff:
+        return 'Senior Staff';
+      case JabatanKode.manager:
+        return 'Manager';
+      case JabatanKode.kadep:
+        return 'Kepala Departemen';
+      default:
+        return 'Staff';
+    }
   }
 
   static String _formatBirthDate(dynamic rawBirthDate) {

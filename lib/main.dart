@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/config/theme/app_theme.dart';
+import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
+import 'package:project_mobile_pdam/core/utils/app_navigator.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/route_observer.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
@@ -58,22 +61,18 @@ class _AppState extends AppStatePage<App> {
       return const LoginPage();
     }
 
-    final roleId = user['role_id'] as int?;
-    final jabatanKode = AuthStorage.getJabatanKodeSync();
-
-    debugPrint('🔄 Restoring session for role: $roleId, jabatan: $jabatanKode');
-
-    if (roleId == 3) {
-      if (jabatanKode == 'SPV') {
-        return const SpvLandingPage();
-      } else {
-        return const StaffLandingPage();
-      }
+    // Sesi hanya valid bila lolos 3 gerbang akses (role -> departemen -> jabatan).
+    if (!MobileAccess.isAllowed(user)) {
+      AuthStorage.clearAuth();
+      return const LoginPage();
     }
 
-    // Role selain employee (staff/spv) belum didukung, kembali ke login
-    AuthStorage.clearAuth();
-    return const LoginPage();
+    final jabatanKode = AuthStorage.getJabatanKodeSync();
+    debugPrint('🔄 Restoring session, jabatan: $jabatanKode');
+
+    return jabatanKode == JabatanKode.spv
+        ? const SpvLandingPage()
+        : const StaffLandingPage();
   }
 
   @override
@@ -92,7 +91,9 @@ class _AppState extends AppStatePage<App> {
       ],
       child: MaterialApp(
         theme: ThemeManager.theme,
+        navigatorKey: AppNavigator.key,
         home: _getInitialPage(),
+        navigatorObservers: [appRouteObserver],
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.light,
       ),

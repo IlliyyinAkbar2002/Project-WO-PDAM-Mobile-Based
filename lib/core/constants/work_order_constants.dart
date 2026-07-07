@@ -46,27 +46,45 @@ class TipeProgressId {
   }
 }
 
+/// Tahapan pengerjaan WO (1-4) — selaras dengan TahapanWorkorder di backend.
+/// 1 Persiapan, 2 Pengerjaan, 3 Pengujian, 4 Dokumentasi.
+class TahapanWorkorder {
+  static const int persiapan = 1;
+  static const int pengerjaan = 2;
+  static const int pengujian = 3;
+  static const int dokumentasi = 4;
+
+  /// Tahap maksimum yang dapat dilaporkan lewat mode "Progress" (Laporan).
+  /// Tahap 4 (Dokumentasi) hanya boleh lewat mode "Selesai".
+  static const int maxProgress = pengujian;
+
+  /// Nama tahapan untuk ditampilkan (dari kolom `tahapan`). Null bila di luar 1-4.
+  static String? label(int? tahapan) {
+    switch (tahapan) {
+      case persiapan:
+        return 'Persiapan';
+      case pengerjaan:
+        return 'Pengerjaan';
+      case pengujian:
+        return 'Pengujian';
+      case dokumentasi:
+        return 'Dokumentasi';
+      default:
+        return null;
+    }
+  }
+}
+
 class ProgressStatusId {
   static const int draft = 9;
   static const int submitted = 10;
   static const int verified = 11;
   static const int revisiRequested = 14; // Status when SPV rejects progress
-  static const int dibatalkan = 18;
 
   static bool isDraft(int? id) => id == draft;
   static bool isSubmitted(int? id) => id == submitted;
   static bool isVerified(int? id) => id == verified;
   static bool isRevisiRequested(int? id) => id == revisiRequested;
-  static bool isDibatalkan(int? id) => id == dibatalkan;
-}
-
-/// Kode master action dari TKT-01 (stabil, tidak tergantung id numerik).
-/// Nilainya match dengan kolom `m_action.kode`.
-class WorkOrderActionKode {
-  static const String penugasan = 'PENUGASAN';
-  static const String freeze = 'FREEZE';
-  static const String resume = 'RESUME';
-  static const String extend = 'EXTEND';
 }
 
 class WorkOrderStatusId {

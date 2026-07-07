@@ -5,10 +5,8 @@ import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
-
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 
 class PersetujuanPeminjamanBarangPage extends StatefulWidget {
@@ -76,9 +74,7 @@ class _PersetujuanPeminjamanBarangPageState
     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
     Widget target;
-    if (roleId == 2) {
-      target = const ManajerLandingPage();
-    } else if (roleId == 3 && isSpv) {
+    if (roleId == 4 && isSpv) {
       target = const SpvLandingPage();
     } else {
       target = const StaffLandingPage();
@@ -485,7 +481,7 @@ class _PersetujuanPeminjamanBarangPageState
 
   Widget _buildRequestCard(PeminjamanMaterialEntity request) {
     final matName =
-        request.material?.namaMaterial ?? 'Material #${request.materialId}';
+        request.material?.namaMaterial ?? 'Material #${request.materialKode}';
     final requesterName = request.user?.employee?.name ?? 'Staff';
     final submittedTime = request.waktuKembali ?? DateTime.now();
 
@@ -563,7 +559,7 @@ class _PersetujuanPeminjamanBarangPageState
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Pinjam: ${request.jumlahPinjam} • Kembali: ${request.jumlahKembali ?? 0}',
+                          'Pinjam: ${request.jumlahPinjam} • Terpasang: ${request.jumlahTerpasang ?? '-'} • Rusak: ${request.jumlahRusak ?? 0}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -679,7 +675,7 @@ class _ApprovalDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = request;
-    final matName = r.material?.namaMaterial ?? 'Material #${r.materialId}';
+    final matName = r.material?.namaMaterial ?? 'Material #${r.materialKode}';
     final submittedTime = r.waktuKembali ?? r.waktuPinjam ?? DateTime.now();
 
     return DraggableScrollableSheet(
@@ -852,6 +848,24 @@ class _ApprovalDetailSheet extends StatelessWidget {
                           child: _buildInfoTile(
                             'Jumlah Kembali',
                             '${r.jumlahKembali ?? 0} ${r.material?.satuan ?? ""}',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoTile(
+                            'Jumlah Terpasang',
+                            '${r.jumlahTerpasang ?? '-'} ${r.material?.satuan ?? ""}',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildInfoTile(
+                            'Jumlah Rusak',
+                            '${r.jumlahRusak ?? 0} ${r.material?.satuan ?? ""}',
                           ),
                         ),
                       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/common/input_chip/bloc/chip_field_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/form_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/location_type_remote_data_source.dart';
@@ -10,6 +11,7 @@ import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/l
 import 'package:project_mobile_pdam/feature/work_order/data/repositories/laporan_workorder_repository_impl.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/repositories/laporan_workorder_repository.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/create_laporan_workorder_usecase.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_laporan_report_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_lembur_remote_data.dart';
@@ -46,6 +48,7 @@ import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/progress_detail_usecases/update_progress_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/create_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spl_detail.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/get_spls_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/spl_usecases/update_spl_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_user_detail_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/user_usecases/get_users_usecase.dart';
@@ -89,7 +92,11 @@ Future<void> init() async {
   try {
     debugPrint("🔧 Memulai inisialisasi dependency...");
 
-    // **1️⃣ Data Sources**
+    // **Core Services**
+    sl.registerLazySingleton<GeofenceService>(() => GeofenceService());
+    debugPrint("✅ GeofenceService terdaftar");
+
+    // **Data Sources**
     sl.registerLazySingleton<WorkOrderRemoteDataSource>(
       () => WorkOrderRemoteDataSource(),
     );
@@ -152,7 +159,7 @@ Future<void> init() async {
     );
     debugPrint("✅ WorkOrderLemburRemoteDataSource terdaftar");
 
-    // **2️⃣ Repository**
+    // **Repository**
     sl.registerLazySingleton<WorkOrderRepository>(
       () => WorkOrderRepositoryImpl(sl<WorkOrderRemoteDataSource>()),
     );
@@ -238,7 +245,7 @@ Future<void> init() async {
     );
     debugPrint("✅ WorkOrderLemburRepository terdaftar");
 
-    // **4️⃣ Use Cases**
+    // **Use Cases**
     sl.registerLazySingleton(
       () => GetWorkOrdersUseCase(sl<WorkOrderRepository>()),
     );
@@ -265,6 +272,10 @@ Future<void> init() async {
       () => CreateLaporanWorkorderUseCase(sl<LaporanWorkorderRepository>()),
     );
 
+    sl.registerLazySingleton(
+      () => GetLaporanReportUseCase(sl<LaporanWorkorderRepository>()),
+    );
+
     //work order type
     sl.registerLazySingleton(
       () => GetWorkOrderTypesUsecase(sl<WorkOrderTypeRepository>()),
@@ -286,7 +297,7 @@ Future<void> init() async {
     sl.registerLazySingleton(() => GetUserDetailUsecase(sl<UserRepository>()));
 
     //spl
-    // sl.registerLazySingleton(() => GetSplsUsecase(sl<SplRepository>()));
+    sl.registerLazySingleton(() => GetSplsUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => GetSplDetailUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => UpdateSplUseCase(sl<SplRepository>()));
     sl.registerLazySingleton(() => CreateSplUseCase(sl<SplRepository>()));
@@ -346,9 +357,12 @@ Future<void> init() async {
 
     debugPrint("✅ Semua use case terdaftar");
 
-    // **5️⃣ Bloc**
+    // **Bloc**
     sl.registerFactory(
-      () => LaporanWorkorderCubit(sl<CreateLaporanWorkorderUseCase>()),
+      () => LaporanWorkorderCubit(
+        sl<CreateLaporanWorkorderUseCase>(),
+        sl<GetLaporanReportUseCase>(),
+      ),
     );
     sl.registerFactory(
       () => NotificationBloc(
@@ -431,10 +445,10 @@ Future<void> init() async {
     );
     debugPrint("✅ LemburBloc terdaftar");
 
-    debugPrint("🎉 Semua dependency berhasil diinisialisasi!");
+    debugPrint("Semua dependency berhasil diinisialisasi!");
   } catch (e, stacktrace) {
-    debugPrint("❌ Gagal menginisialisasi dependency: $e");
+    debugPrint("Gagal menginisialisasi dependency: $e");
     debugPrint("Stacktrace: $stacktrace");
-    rethrow; // ⚠️ Rethrow agar main.dart tahu ada error
+    rethrow; // Rethrow agar main.dart tahu ada error
   }
 }

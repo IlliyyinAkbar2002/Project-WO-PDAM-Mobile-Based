@@ -5,7 +5,8 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/utils/route_observer.dart';
 
 class StaffLandingPage extends StatefulWidget {
   const StaffLandingPage({super.key});
@@ -14,13 +15,51 @@ class StaffLandingPage extends StatefulWidget {
   State<StaffLandingPage> createState() => _StaffLandingPageState();
 }
 
-class _StaffLandingPageState extends AppStatePage<StaffLandingPage> {
+class _StaffLandingPageState extends AppStatePage<StaffLandingPage>
+    with RouteAware {
   @override
   void initState() {
     super.initState();
-    final user = AuthStorage.getUserSync();
-    final userId = user?['id'] as int?;
-    context.read<WorkOrderBloc>().add(GetWorkOrdersEvent(userId: userId));
+    _loadWorkOrders();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Kembali ke dashboard dari halaman lain: WorkOrderBloc global bisa sudah
+    // ditimpa query halaman list lain, jadi muat ulang query dashboard.
+    _loadWorkOrders();
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  void _loadWorkOrders() {
+    // BE index read-only: tak bisa filter per-pegawai & tak kirim assignment
+    // (lihat docs/be-root-problem-dashboard.md). Hanya WO yang sudah di-assign
+    // (status 'Proses') yang dihitung — WO 'Pending' (belum di-assign SPV)
+    // tereksklusi. `status` int dipetakan ke query 'Proses' di data source.
+    context.read<WorkOrderBloc>().add(
+      GetWorkOrdersEvent(
+        status: const [
+          WorkOrderStatusId.ditugaskanKeStaff,
+          WorkOrderStatusId.inProgress,
+          WorkOrderStatusId.pengecekan,
+        ],
+        includeStatusNames: const ['Proses'],
+      ),
+    );
   }
 
   @override

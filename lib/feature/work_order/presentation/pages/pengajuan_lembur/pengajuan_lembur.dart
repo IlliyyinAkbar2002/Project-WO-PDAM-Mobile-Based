@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
@@ -50,18 +52,22 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   DateTime? _tanggalLembur;
   TimeOfDay? _jamMulai;
 
-  // Opsional; nilai persis: rendah | sedang | tinggi | darurat.
+  // Opsional; nilai persis enum BE: rendah | sedang | tinggi | urgent.
   String? _prioritas;
   double? _latitude;
   double? _longitude;
   int? _locationId;
   int? _koordinatorUserId;
 
+  double? _woRefLat;
+  double? _woRefLng;
+  int? _woRefRadius;
+
   static const List<({String value, String label})> _prioritasOptions = [
     (value: 'rendah', label: 'Rendah'),
     (value: 'sedang', label: 'Sedang'),
     (value: 'tinggi', label: 'Tinggi'),
-    (value: 'darurat', label: 'Darurat'),
+    (value: 'urgent', label: 'Urgent'),
   ];
 
   bool _isSubmitting = false;
@@ -92,45 +98,61 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     return (name: name, npp: npp, jabatan: jabatan);
   }
 
-  List<int>? _assignableJabatanIds() {
+  int? _callerDepartemenId() {
     final user = AuthStorage.getUserSync();
     final employee = user?['employee'];
-    final dynamic rawPositionId = (employee is Map)
-        ? employee['position_id']
-        : null;
-    final int? callerJabatanId = rawPositionId is int
-        ? rawPositionId
-        : int.tryParse(rawPositionId?.toString() ?? '');
-    if (callerJabatanId == null) return null;
-    const int lookahead = 20;
-    return List<int>.generate(
-      lookahead,
-      (index) => callerJabatanId + index + 1,
-    );
+    final dynamic raw =
+        user?['departemen_id'] ??
+        (employee is Map
+            ? (employee['department_id'] ?? employee['departemen_id'])
+            : null);
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+  }
+
+  List<UserEntity> _filterEligibleMembers(List<UserEntity> users) {
+    const allowed = {'staff', 'staff senior'};
+    return users.where((u) {
+      final jabatan = u.employee?.jabatan?.trim().toLowerCase();
+      return jabatan != null && allowed.contains(jabatan);
+    }).toList();
+  }
+
+  bool _isStaffSenior(UserEntity u) {
+    return (u.employee?.jabatan ?? '').trim().toLowerCase() == 'staff senior';
   }
 
   Future<void> _loadWorkOrders() async {
     setState(() => _loadingWorkOrders = true);
     try {
-      // final user = AuthStorage.getUserSync();
-
       final usecase = sl<GetWorkOrdersUseCase>();
       final result = await usecase(
         WorkOrderParams(
           page: 1,
           limit: 100,
+          // status_id 12 → BE memfilter status string 'Pending'.
           status: const [WorkOrderStatusId.ditugaskanKeSpv],
         ),
       );
 
+      List<WorkOrderEntity>? data;
       if (result is DataSuccess<List<WorkOrderEntity>>) {
-        setState(() {
-          _availableWorkOrders = result.data ?? [];
-        });
+        data = result.data;
       } else if (result is PaginatedDataSuccess<List<WorkOrderEntity>>) {
-        setState(() {
-          _availableWorkOrders = result.data ?? [];
-        });
+        data = result.data;
+      }
+
+      if (data != null) {
+        final myPegawaiId = AuthStorage.getUserSync()?['pegawai_id'] as int?;
+        final filtered = (myPegawaiId == null)
+            ? const <WorkOrderEntity>[]
+            : data
+                  .where(
+                    (wo) =>
+                        wo.assignedToPegawaiId == myPegawaiId &&
+                        wo.splId == null,
+                  )
+                  .toList();
+        setState(() => _availableWorkOrders = filtered);
       }
     } catch (e) {
       debugPrint("Error loading work orders: $e");
@@ -151,7 +173,10 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
       final bloc = context.read<WorkOrderBloc>();
       if (!_usersRequested) {
         _usersRequested = true;
-        bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds()));
+        // Scope picker ke departemen pemohon agar BE tidak menolak anggota
+        // lintas-departemen (422). Jabatan disaring FE-side via
+        // _filterEligibleMembers (lihat listener UsersLoaded).
+        bloc.add(GetUsersEvent(departemenId: _callerDepartemenId()));
       }
     });
   }
@@ -301,10 +326,12 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   void _applyParityFromWorkOrder(WorkOrderEntity wo) {
     _selectedWorkType = wo.workOrderType?.name;
 
+    // Simpan apa adanya (lowercase) walau tidak ada di whitelist, supaya field
+    // read-only tetap menampilkan prioritas WO yang valid namun tak terduga.
     final rawPrioritas = wo.prioritas?.trim().toLowerCase();
-    _prioritas = _prioritasOptions.any((o) => o.value == rawPrioritas)
-        ? rawPrioritas
-        : null;
+    _prioritas = (rawPrioritas == null || rawPrioritas.isEmpty)
+        ? null
+        : rawPrioritas;
 
     // Lokasi: teks lokasi WO (fallback ke nama master-location), hormati
     // maxLength 255.
@@ -322,6 +349,11 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     _locationId = (coords != null)
         ? (wo.assignment?.locationId ?? wo.assignment?.location?.id)
         : null;
+
+    // Acuan lokasi WO untuk validasi jarak titik peta lembur.
+    _woRefLat = coords?.$1;
+    _woRefLng = coords?.$2;
+    _woRefRadius = wo.assignment?.location?.radiusMeter;
   }
 
   (double, double)? _coordsFromWorkOrder(WorkOrderEntity wo) {
@@ -342,12 +374,15 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   }
 
   /// Label tampilan untuk prioritas WO terpilih (read-only), atau null jika
-  /// WO tidak punya prioritas yang dikenali.
+  /// WO tidak punya prioritas. Nilai di luar whitelist tetap ditampilkan dengan
+  /// title-case sebagai fallback agar field tidak pernah blank.
   String? get _prioritasLabel {
+    final raw = _prioritas;
+    if (raw == null || raw.isEmpty) return null;
     for (final opt in _prioritasOptions) {
-      if (opt.value == _prioritas) return opt.label;
+      if (opt.value == raw) return opt.label;
     }
-    return null;
+    return raw[0].toUpperCase() + raw.substring(1);
   }
 
   Future<void> _pickMembers() async {
@@ -561,8 +596,35 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (_alasanController.text.trim().isEmpty) {
       return 'Alasan lembur wajib diisi.';
     }
+    if (_selectedMembers.isEmpty) {
+      return 'Anggota tim wajib dipilih.';
+    }
+    if (_koordinatorUserId == null) {
+      return 'Koordinator wajib dipilih (jabatan Staff Senior).';
+    }
+    final koordinatorMatches = _selectedMembers.where(
+      (m) => m.id == _koordinatorUserId,
+    );
+    if (koordinatorMatches.isEmpty || !_isStaffSenior(koordinatorMatches.first)) {
+      return 'Koordinator harus berjabatan Staff Senior.';
+    }
     if (_latitude == null || _longitude == null) {
       return 'Titik peta wajib dipilih. Ketuk peta untuk menandai lokasi lembur.';
+    }
+    // Titik peta lembur tidak boleh jauh dari lokasi WO (acuan pengaduan).
+    if (_woRefLat != null && _woRefLng != null) {
+      final radius = (_woRefRadius ?? MapsSeedModel.defaultRadiusMeter)
+          .toDouble();
+      final dist = Geolocator.distanceBetween(
+        _woRefLat!,
+        _woRefLng!,
+        _latitude!,
+        _longitude!,
+      );
+      if (dist > radius) {
+        return 'Titik peta lembur harus berada di sekitar lokasi WO '
+            '(maks ${radius.round()} m).';
+      }
     }
     return null;
   }
@@ -572,7 +634,21 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         '${_tanggalLembur!.year.toString().padLeft(4, '0')}-${_tanggalLembur!.month.toString().padLeft(2, '0')}-${_tanggalLembur!.day.toString().padLeft(2, '0')}';
     final jamMulai =
         '${_jamMulai!.hour.toString().padLeft(2, '0')}:${_jamMulai!.minute.toString().padLeft(2, '0')}';
-    final memberIds = _selectedMembers
+    // KONTRAK members = pegawai_id (m_pegawai.id). UserModel.id dari
+    // /v1/pegawai/filter MEMANG pegawai_id (PegawaiController@getPegawaiByFilter
+    // mengembalikan id = pegawai.id), dan BE lembur (pegawai-centric)
+    // memvalidasi members.* sebagai exists:m_pegawai,id. JANGAN ubah ke users.id.
+    //
+    // KOORDINATOR/PIC: BE TIDAK membaca koordinator_user_id. PIC = anggota
+    // PERTAMA pada urutan insert (LemburApprovalService::attachMembers
+    // sortBy('id') = urutan insert = urutan array members). Maka koordinator
+    // terpilih diletakkan paling depan; .toSet() (LinkedHashSet) mempertahankan
+    // urutan saat dedup.
+    final orderedMembers = <UserEntity>[
+      ..._selectedMembers.where((u) => u.id == _koordinatorUserId),
+      ..._selectedMembers.where((u) => u.id != _koordinatorUserId),
+    ];
+    final memberIds = orderedMembers
         .map((u) => u.id)
         .whereType<int>()
         .toSet()
@@ -734,7 +810,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         listener: (context, state) {
           if (state is UsersLoaded) {
             setState(() {
-              _availableUsers = state.users;
+              _availableUsers = _filterEligibleMembers(state.users);
               // Drop selections that no longer exist in the latest list.
               _selectedMembers.removeWhere(
                 (u) => !_availableUsers.any((au) => au.id == u.id),
@@ -1093,7 +1169,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 Text(
                                   _selectedWorkOrder == null
                                       ? 'Pilih pekerjaan untuk menentukan titik peta.'
-                                      : 'Titik peta dapat disesuaikan jika lokasi kerja di lapangan berbeda dengan lokasi pada WO.',
+                                      : 'Titik peta harus berada di sekitar lokasi WO.',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -1115,7 +1191,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 const Padding(
                                   padding: EdgeInsets.only(bottom: 8),
                                   child: Text(
-                                    'Ketuk anggota untuk menjadikan koordinator. Jika tidak dipilih, anggota pertama otomatis menjadi koordinator.',
+                                    'Pilih anggota tim, lalu tentukan koordinator (Staff Senior) pada field Koordinator di bawah.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF64748B),
@@ -1164,15 +1240,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                           }
                                         });
                                       },
-                                      onSelected: (selected) {
-                                        setState(() {
-                                          if (selected) {
-                                            _koordinatorUserId = m.id;
-                                          } else {
-                                            _koordinatorUserId = null;
-                                          }
-                                        });
-                                      },
                                       selected: isKoordinator,
                                       selectedColor: Colors.orange.withValues(
                                         alpha: 0.15,
@@ -1187,6 +1254,56 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                     );
                                   }).toList(),
                                 ),
+                              const SizedBox(height: 12),
+                              const _FieldLabel('Koordinator (PIC)'),
+                              const SizedBox(height: 6),
+                              Builder(
+                                builder: (context) {
+                                  final seniorMembers = _selectedMembers
+                                      .where(_isStaffSenior)
+                                      .toList();
+                                  final value =
+                                      seniorMembers.any(
+                                        (m) => m.id == _koordinatorUserId,
+                                      )
+                                      ? _koordinatorUserId
+                                      : null;
+                                  return DropdownButtonFormField<int>(
+                                    key: ValueKey(value),
+                                    initialValue: value,
+                                    isExpanded: true,
+                                    decoration: _inputDecoration(
+                                      hint: 'Pilih koordinator dari tim',
+                                    ),
+                                    hint: Text(
+                                      seniorMembers.isEmpty
+                                          ? 'Tidak ada anggota Staff Senior'
+                                          : 'Pilih koordinator dari tim',
+                                      style: const TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    items: seniorMembers
+                                        .map(
+                                          (m) => DropdownMenuItem<int>(
+                                            value: m.id,
+                                            child: Text(
+                                              m.employee?.name ??
+                                                  m.email ??
+                                                  'User #${m.id}',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: seniorMembers.isEmpty
+                                        ? null
+                                        : (val) => setState(
+                                            () => _koordinatorUserId = val,
+                                          ),
+                                  );
+                                },
+                              ),
                               const SizedBox(height: 12),
                               const _FieldLabel('Alasan Lembur'),
                               const SizedBox(height: 6),

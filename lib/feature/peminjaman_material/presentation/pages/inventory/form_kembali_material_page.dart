@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
@@ -19,6 +20,7 @@ class _FormKembaliMaterialPageState
     extends AppStatePage<FormKembaliMaterialPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _jumlahController = TextEditingController();
+  final TextEditingController _rusakController = TextEditingController(text: '0');
   final TextEditingController _kondisiController = TextEditingController();
 
   @override
@@ -33,6 +35,7 @@ class _FormKembaliMaterialPageState
   @override
   void dispose() {
     _jumlahController.dispose();
+    _rusakController.dispose();
     _kondisiController.dispose();
     super.dispose();
   }
@@ -43,6 +46,7 @@ class _FormKembaliMaterialPageState
         KembalikanMaterialEvent(
           peminjamanId: widget.peminjaman.id!,
           jumlahKembali: int.parse(_jumlahController.text),
+          jumlahRusak: int.tryParse(_rusakController.text) ?? 0,
           kondisiKembali: _kondisiController.text.isNotEmpty
               ? _kondisiController.text
               : null,
@@ -50,6 +54,76 @@ class _FormKembaliMaterialPageState
       );
       Navigator.pop(context);
     }
+  }
+
+  /// Mengubah nilai pada [controller] sebesar [delta], lalu menjepit (clamp)
+  /// hasilnya ke rentang [min]–[max] agar tidak melampaui batas.
+  void _adjust(
+    TextEditingController controller,
+    int delta,
+    int min,
+    int max,
+  ) {
+    final current = int.tryParse(controller.text.trim()) ?? min;
+    var next = current + delta;
+    if (next < min) next = min;
+    if (max >= min && next > max) next = max;
+    controller.text = next.toString();
+    setState(() {});
+  }
+
+  Widget _stepperButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Material(
+        color: const Color(0xFFEFF6FF),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, size: 20, color: const Color(0xFF155DFC)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Input hybrid: tetap bisa diketik manual (untuk angka besar), sekaligus
+  /// punya tombol −/+ untuk penyesuaian kecil agar mengurangi salah input.
+  Widget _buildStepperField({
+    required TextEditingController controller,
+    required String label,
+    String? hintText,
+    required int min,
+    required int Function() maxGetter,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontWeight: FontWeight.w700),
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        border: const OutlineInputBorder(),
+        prefixIcon: _stepperButton(
+          icon: Icons.remove,
+          onTap: () => _adjust(controller, -1, min, maxGetter()),
+        ),
+        suffixIcon: _stepperButton(
+          icon: Icons.add,
+          onTap: () => _adjust(controller, 1, min, maxGetter()),
+        ),
+      ),
+      validator: validator,
+    );
   }
 
   @override
@@ -78,13 +152,11 @@ class _FormKembaliMaterialPageState
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            _buildStepperField(
               controller: _jumlahController,
-              decoration: const InputDecoration(
-                labelText: 'Jumlah Kembali',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
+              label: 'Jumlah Kembali',
+              min: 1,
+              maxGetter: () => sisaDipinjam,
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Harus diisi';
                 final val = int.tryParse(value);
@@ -94,12 +166,30 @@ class _FormKembaliMaterialPageState
               },
             ),
             const SizedBox(height: 16),
+            _buildStepperField(
+              controller: _rusakController,
+              label: 'Jumlah Rusak',
+              hintText: 'Jumlah barang yang dikembalikan dalam kondisi rusak',
+              min: 0,
+              maxGetter: () => int.tryParse(_jumlahController.text) ?? 0,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return null;
+                final rusak = int.tryParse(value);
+                if (rusak == null || rusak < 0) return 'Tidak valid';
+                final jumlahKembali = int.tryParse(_jumlahController.text) ?? 0;
+                if (rusak > jumlahKembali) {
+                  return 'Maksimal sejumlah yang dikembalikan';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _kondisiController,
               decoration: const InputDecoration(
                 labelText: 'Kondisi Kembali (Opsional)',
                 border: OutlineInputBorder(),
-                hintText: 'Cth: Baik, Rusak, Hilang sebagian',
+                hintText: 'Catatan kondisi, cth: Baik, lecet ringan',
               ),
               maxLines: 2,
             ),

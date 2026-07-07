@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
+import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
@@ -396,46 +397,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget _buildRegisterLink() {
-  //   return Center(
-  //     child: GestureDetector(
-  //       behavior: HitTestBehavior.opaque,
-  //       onTap: () {
-  //         Navigator.push(
-  //           context,
-  //           MaterialPageRoute(builder: (context) => const RegisterPage()),
-  //         );
-  //       },
-  //       child: const Padding(
-  //         padding: EdgeInsets.symmetric(vertical: 4),
-  //         child: Text.rich(
-  //           TextSpan(
-  //             style: TextStyle(
-  //               fontSize: 13,
-  //               color: _LoginTokens.textSecondary,
-  //               fontWeight: FontWeight.w500,
-  //               height: 1.5,
-  //             ),
-  //             children: [
-  //               TextSpan(text: 'Belum punya akun?  '),
-  //               TextSpan(
-  //                 text: 'Daftar Sekarang',
-  //                 style: TextStyle(
-  //                   color: _LoginTokens.accentGreen,
-  //                   fontWeight: FontWeight.bold,
-  //                   fontSize: 16,
-  //                   height: 1.5,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           textAlign: TextAlign.center,
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
   /// Footer: glass pill button untuk Test Koneksi + copyright uppercase
   Widget _buildFooter() {
     return Column(
@@ -480,7 +441,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Test Koneksi API',
+                        'Test Koneksi Ngrok',
                         style: TextStyle(
                           color: _LoginTokens.footerTeal,
                           fontSize: 13,
@@ -537,21 +498,53 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
 
-          final meResult = await authDataSource.fetchMe();
+          // Respons login adalah sumber data terkaya (punya role, departemen,
+          // dan jabatan). Endpoint /me yang baru hanya mengembalikan kolom user
+          // tipis, jadi cukup normalisasi & simpan dari respons login ini.
+          final rawUser = authResponse.user;
+          if (rawUser != null) {
+            await AuthStorage.saveUser(AuthStorage.normalizeLoginUser(rawUser));
+            debugPrint('👤 User saved: ${rawUser['email']}');
+          }
 
-          int? roleId = authResponse.user?['role_id'];
+          if (!mounted) return;
 
-          if (meResult is DataSuccess) {
-            final userData = meResult.data!;
-            await AuthStorage.saveUser(userData);
-            debugPrint('👤 User saved: ${userData['email']}');
-            roleId = userData['role_id'] as int?;
-          } else {
-            if (authResponse.user != null) {
-              await AuthStorage.saveUser(authResponse.user!);
-              debugPrint(
-                '👤 User saved (fallback): ${authResponse.user!['email']}',
-              );
+          // 3 gerbang akses Mobile: role -> departemen -> jabatan.
+          final user = AuthStorage.getUserSync();
+          final access = MobileAccess.evaluate(user);
+
+          debugPrint('Role ID: ${user?['role_id']}');
+          debugPrint('Departemen ID: ${user?['departemen_id']}');
+          debugPrint('Jabatan Kode: ${AuthStorage.getJabatanKodeSync()}');
+          debugPrint('Hasil akses: $access');
+
+          if (access != MobileAccessResult.allowed) {
+            await AuthStorage.clearAuth();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(MobileAccess.denyMessage(access)),
+                backgroundColor: const Color(0xFFF44336),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          // Respons login tidak membawa nip/tanggal lahir/alamat. Lengkapi
+          // data pegawai dari /v1/pegawai/{id} agar profil bisa menampilkannya.
+          // Best-effort: kegagalan tidak menggagalkan login.
+          final pegawaiId = user?['pegawai_id'];
+          if (pegawaiId is int) {
+            final pegawaiResult = await authDataSource.fetchPegawaiProfile(
+              pegawaiId,
+            );
+            if (pegawaiResult is DataSuccess && pegawaiResult.data != null) {
+              await AuthStorage.enrichEmployeeFromPegawai(pegawaiResult.data!);
+              debugPrint('Profil pegawai dilengkapi (nip, dll).');
+            } else {
+              debugPrint('Gagal melengkapi profil pegawai (diabaikan).');
             }
           }
 
@@ -567,44 +560,18 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-          Widget targetPage;
+          // Lolos gerbang -> masuk dashboard sesuai jabatan.
+          final targetPage = AuthStorage.getJabatanKodeSync() == JabatanKode.spv
+              ? const SpvLandingPage()
+              : const StaffLandingPage();
 
-          // AuthStorage already has the freshly-saved user, so the helper
-          // resolves kode from the same source for login and session restore.
-          final jabatanKode = AuthStorage.getJabatanKodeSync();
-
-          debugPrint('🎭 Role ID: $roleId');
-          debugPrint('👔 Jabatan Kode: $jabatanKode');
-
-          if (roleId == 3) {
-            if (jabatanKode == 'SPV') {
-              targetPage = const SpvLandingPage();
-            } else {
-              targetPage = const StaffLandingPage();
-            }
-
-            if (context.mounted) {
-              context.read<NotificationBloc>().add(FetchNotificationsEvent());
-            }
-
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => targetPage),
-            );
-          } else {
-            await AuthStorage.clearAuth();
-            if (!mounted) return;
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Aplikasi saat ini hanya tersedia untuk Staff dan Supervisor.',
-                ),
-                backgroundColor: Color(0xFFF44336),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 3),
-              ),
-            );
+          if (context.mounted) {
+            context.read<NotificationBloc>().add(FetchNotificationsEvent());
           }
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => targetPage),
+          );
         } else if (result is DataFailed) {
           String errorMessage = 'Email atau password salah';
 
@@ -682,24 +649,24 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      debugPrint('🧪 Testing connection to API server...');
+      debugPrint('Testing connection to API server...');
       final response = await dio.get('${AppConfig.backendDomain}/api/ping');
 
-      debugPrint('✅ Connection successful!');
-      debugPrint('📥 Response: ${response.data}');
+      debugPrint('Connection successful!');
+      debugPrint('Response: ${response.data}');
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Koneksi berhasil!\nStatus: ${response.statusCode}'),
+          content: Text('Koneksi berhasil!\nStatus: ${response.statusCode}'),
           backgroundColor: const Color(0xFF16A34A),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
       );
     } on DioException catch (e) {
-      debugPrint('❌ Connection test failed!');
+      debugPrint('Connection test failed!');
       debugPrint('Type: ${e.type}');
       debugPrint('Message: ${e.message}');
 

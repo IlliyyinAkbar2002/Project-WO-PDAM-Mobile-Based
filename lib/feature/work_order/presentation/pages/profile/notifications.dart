@@ -3,15 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/notification_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
-import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/approval_pengembalian_peminjaman_asset.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -80,6 +81,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
         return Icons.fact_check_rounded;
       case NotificationKind.materialReturnSubmitted:
         return Icons.inventory_2_rounded;
+      case NotificationKind.materialReturnVerified:
+        return Icons.inventory_rounded;
+      case NotificationKind.woLemburApproved:
+        return Icons.more_time_rounded;
       case NotificationKind.unknown:
         return Icons.notifications_rounded;
     }
@@ -103,6 +108,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case NotificationKind.woCreated:
       case NotificationKind.woAssigned:
       case NotificationKind.woReadyForReview:
+      case NotificationKind.materialReturnVerified:
+      case NotificationKind.woLemburApproved:
+        // Semua bermuara ke detail WO terkait. Untuk WO lembur,
+        // _openWorkOrderDetail otomatis membuka layar lembur (isLembur).
         await _openWorkOrderDetail(context, n.data.workOrderId);
         return;
 
@@ -164,7 +173,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final user = AuthStorage.getUserSync();
       final roleId = user?['role_id'] as int?;
       final jabatanKode = AuthStorage.getJabatanKodeSync();
-      final isStaff = roleId == 3 && jabatanKode != 'SPV';
+      // Skema MergerManual: pegawai = role_id 4 (lapangan), dibedakan via jabatan.
+      // Staff = pegawai non-SPV (Staff / Staff Senior).
+      final isStaff = roleId == 4 && jabatanKode != 'SPV';
 
       final lngLat = workOrder.assignment?.latitude != null
           ? LatLng(
@@ -172,7 +183,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
               workOrder.assignment!.longitude!,
             )
           : null;
-      final radiusMeter = workOrder.assignment?.location?.radiusMeter ?? 100;
+      final radiusMeter =
+          workOrder.assignment?.location?.radiusMeter ??
+          MapsSeedModel.defaultRadiusMeter;
       final locationName = workOrder.assignment?.location?.nama;
       final workOrderTypeId =
           workOrder.workOrderTypeId ?? workOrder.workOrderType?.id;

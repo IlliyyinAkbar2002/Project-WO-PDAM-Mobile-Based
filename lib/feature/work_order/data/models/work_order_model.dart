@@ -28,12 +28,19 @@ class WorkOrderModel extends WorkOrderEntity {
     super.status,
     super.progresPersen,
     super.createdAt,
+    super.updatedAt,
     super.kategoriForm,
     super.detailKategori,
     super.prioritas,
     super.assignment,
     super.assignments,
     super.tahapanTertinggi,
+    // super.departemenId,
+    // super.departemenNama,
+    super.isActive,
+    super.assignedToPegawaiId,
+    super.statusName,
+    super.statusEnum,
   });
 
   factory WorkOrderModel.fromJson(String source) =>
@@ -238,6 +245,58 @@ class WorkOrderModel extends WorkOrderEntity {
     final resolvedKategori = _resolveKategoriForm(map, rawJenisWorkorder);
     final detailKategori = _extractDetailKategoriMap(map);
 
+    // final Map<String, dynamic>? departemenMap = parseMap(map['departemen']);
+    // final int? departemenId =
+    //     parseIdFromAny(map['departemen_id']) ?? parseIdFromAny(departemenMap);
+    // final String? departemenNama = departemenMap?['nama'] as String?;
+    final int? assignedToPegawaiId =
+        parseIdFromAny(map['assigned_to']) ??
+        parseIdFromAny(map['assigned_to_id']);
+
+    final dynamic rawIsActive = map['is_active'];
+    final bool? isActive = rawIsActive == null
+        ? null
+        : (rawIsActive is bool
+              ? rawIsActive
+              : (rawIsActive.toString().toLowerCase() == 'true' ||
+                    rawIsActive.toString() == '1'));
+
+    final dynamic rawStatusEnum = map['status'] ?? map['status_workorder'];
+    final String? statusEnum = rawStatusEnum is String
+        ? rawStatusEnum.trim()
+        : (rawStatusEnum is Map
+              ? (rawStatusEnum['status']?.toString().trim() ??
+                    rawStatusEnum['name']?.toString().trim())
+              : null);
+
+    final dynamic rawStatusValue = map['status'] ?? map['status_workorder'];
+    final String? statusName = rawStatusValue is String
+        ? (rawStatusValue.trim().isEmpty ? null : rawStatusValue.trim())
+        : (rawStatusValue is Map ? rawStatusValue['status'] as String? : null);
+
+    int? resolvedStatusId =
+        parseIdFromAny(map['status_id']) ??
+        (map['status'] is Map ? parseIdFromAny(map['status']['id']) : null) ??
+        (map['status_workorder'] is Map
+            ? parseIdFromAny(map['status_workorder']['id'])
+            : null);
+    if (resolvedStatusId == null && statusEnum != null) {
+      switch (statusEnum.trim()) {
+        case 'Pending':
+          resolvedStatusId = 12;
+          break;
+        case 'Proses':
+          resolvedStatusId = 13;
+          break;
+        case 'Selesai':
+          resolvedStatusId = 6;
+          break;
+        case 'Tutup':
+          resolvedStatusId = 17;
+          break;
+      }
+    }
+
     const startDateKeys = [
       'tanggal_mulai',
       'tanggalMulai',
@@ -386,7 +445,7 @@ class WorkOrderModel extends WorkOrderEntity {
       creator:
           parseIdFromAny(map['created_by_user_id']) ??
           parseIdFromAny(map['pic_id']),
-      statusId: parseIdFromAny(map['status_id']),
+      statusId: resolvedStatusId,
       workOrderTypeId:
           parseIdFromAny(map['jenis_workorder_id']) ??
           parseIdFromAny(rawJenisWorkorder),
@@ -413,8 +472,15 @@ class WorkOrderModel extends WorkOrderEntity {
           ? (map['prioritas'] as String).trim().toLowerCase()
           : null,
       createdAt: parseUtcDateTime(map['created_at']),
+      updatedAt: parseUtcDateTime(map['updated_at']),
       assignment: assignment,
       tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
+      // departemenId: departemenId,
+      // departemenNama: departemenNama,
+      isActive: isActive,
+      assignedToPegawaiId: assignedToPegawaiId,
+      statusName: statusName,
+      statusEnum: statusEnum,
     );
   }
 
@@ -446,8 +512,6 @@ class WorkOrderModel extends WorkOrderEntity {
           : assignment?.location?.nama,
       'deskripsi': assignment?.description,
       'assigned_to': assignedTo,
-      // `prioritas` enum: rendah | sedang | tinggi | darurat. Default `sedang`
-      // kalau caller tidak set; BE wajibkan field ini.
       'prioritas': prioritas ?? 'sedang',
     };
 
@@ -480,12 +544,19 @@ class WorkOrderModel extends WorkOrderEntity {
       status: status,
       progresPersen: progresPersen,
       createdAt: createdAt,
+      updatedAt: updatedAt,
       kategoriForm: kategoriForm,
       detailKategori: detailKategori,
       prioritas: prioritas,
       assignment: assignment,
       assignments: assignments,
       tahapanTertinggi: tahapanTertinggi,
+      // departemenId: departemenId,
+      // departemenNama: departemenNama,
+      isActive: isActive,
+      assignedToPegawaiId: assignedToPegawaiId,
+      statusName: statusName,
+      statusEnum: statusEnum,
     );
   }
 
@@ -506,12 +577,19 @@ class WorkOrderModel extends WorkOrderEntity {
       requiresApproval: entity.requiresApproval,
       progresPersen: entity.progresPersen,
       createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       kategoriForm: entity.kategoriForm,
       detailKategori: entity.detailKategori,
       prioritas: entity.prioritas,
       assignment: entity.assignment,
       assignments: entity.assignments,
       tahapanTertinggi: entity.tahapanTertinggi,
+      // departemenId: entity.departemenId,
+      // departemenNama: entity.departemenNama,
+      isActive: entity.isActive,
+      assignedToPegawaiId: entity.assignedToPegawaiId,
+      statusName: entity.statusName,
+      statusEnum: entity.statusEnum,
     );
   }
 
@@ -535,9 +613,18 @@ class WorkOrderModel extends WorkOrderEntity {
     Map<String, dynamic> map,
     dynamic rawJenisWorkorder,
   ) {
-    if (map['wo_jaringan'] != null) return 'jaringan';
-    if (map['wo_infrastruktur'] != null) return 'infrastruktur';
-    if (map['wo_meter'] != null) return 'meter';
+    if (map['jaringan'] != null) return 'jaringan';
+    if (map['infrastruktur'] != null) return 'infrastruktur';
+    if (map['meter'] != null) return 'meter';
+
+    if (map['kategori'] is String) {
+      final k = map['kategori'] as String;
+      if (k == 'jaringan' || k == 'infrastruktur' || k == 'meter') return k;
+    }
+    if (rawJenisWorkorder is Map && rawJenisWorkorder['kategori'] is String) {
+      final k = rawJenisWorkorder['kategori'] as String;
+      if (k == 'jaringan' || k == 'infrastruktur' || k == 'meter') return k;
+    }
 
     if (map['kategori_form'] is String) {
       return map['kategori_form'] as String;

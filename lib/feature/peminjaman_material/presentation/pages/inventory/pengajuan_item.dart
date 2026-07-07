@@ -40,15 +40,16 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
     final qty = int.tryParse(_jumlahController.text.trim()) ?? 0;
     final note = _catatanController.text.trim();
 
-    final materialKodeInt =
-        int.tryParse(widget.material.kodeMaterial ?? '') ??
-        widget.material.id ??
-        0;
+    final materialKode = widget.material.kodeMaterial ?? '';
+    if (materialKode.isEmpty) {
+      AppSnackbar.showError('Kode material tidak valid.');
+      return;
+    }
 
     context.read<MaterialBloc>().add(
       PinjamMaterialEvent(
         workOrderId: widget.workOrderId,
-        materialId: materialKodeInt,
+        materialKode: materialKode,
         jumlahPinjam: qty,
         catatan: note.isNotEmpty ? note : null,
       ),
@@ -118,7 +119,7 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                 ),
                 const Expanded(
                   child: Text(
-                    'Borrow Material',
+                    'Peminjaman Material',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
@@ -183,7 +184,7 @@ class _PengajuanItemPageState extends State<PengajuanItemPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Jumlah Pinjam (${m.satuan ?? ""})'),
+                      _buildLabel('Jumlah Pinjam'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _jumlahController,

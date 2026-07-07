@@ -23,15 +23,16 @@ class WorkOrderEntity extends Equatable {
   final StatusEntity? status;
   final int? progresPersen;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
   final int? tahapanTertinggi;
-
-  /// Kategori form WO: 'meter' | 'jaringan' | 'infrastruktur'
-  /// Diambil dari m_jenis_workorder.kategori_form via relasi jenis_workorder
+  // final int? departemenId;
+  // final String? departemenNama;
+  final bool? isActive;
+  final int? assignedToPegawaiId;
+  final String? statusName;
+  final String? statusEnum;
   final String? kategoriForm;
   final Map<String, dynamic>? detailKategori;
-
-  /// Prioritas WO sesuai BE enum: rendah | sedang | tinggi | darurat.
-  /// Default `sedang` saat create kalau caller tidak set.
   final String? prioritas;
 
   /// Relasi ke entity assignment
@@ -57,12 +58,19 @@ class WorkOrderEntity extends Equatable {
     this.status,
     this.progresPersen,
     this.createdAt,
+    this.updatedAt,
     this.kategoriForm,
     this.detailKategori,
     this.prioritas,
     this.assignment,
     this.assignments,
     this.tahapanTertinggi,
+    // this.departemenId,
+    // this.departemenNama,
+    this.isActive,
+    this.assignedToPegawaiId,
+    this.statusName,
+    this.statusEnum,
   });
 
   bool get isLembur => splId != null;
@@ -87,12 +95,19 @@ class WorkOrderEntity extends Equatable {
     status,
     progresPersen,
     createdAt,
+    updatedAt,
     kategoriForm,
     detailKategori,
     prioritas,
     assignment,
     assignments,
     tahapanTertinggi,
+    // departemenId,
+    // departemenNama,
+    isActive,
+    assignedToPegawaiId,
+    statusName,
+    statusEnum,
   ];
 
   WorkOrderEntity copyWith({
@@ -114,12 +129,19 @@ class WorkOrderEntity extends Equatable {
     StatusEntity? status,
     int? progresPersen,
     DateTime? createdAt,
+    DateTime? updatedAt,
     String? kategoriForm,
     Map<String, dynamic>? detailKategori,
     String? prioritas,
     AssignmentWorkorderEntity? assignment,
     List<AssignmentWorkorderEntity>? assignments,
     int? tahapanTertinggi,
+    // int? departemenId,
+    // String? departemenNama,
+    bool? isActive,
+    int? assignedToPegawaiId,
+    String? statusName,
+    String? statusEnum,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -140,12 +162,19 @@ class WorkOrderEntity extends Equatable {
       status: status ?? this.status,
       progresPersen: progresPersen ?? this.progresPersen,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       kategoriForm: kategoriForm ?? this.kategoriForm,
       detailKategori: detailKategori ?? this.detailKategori,
       prioritas: prioritas ?? this.prioritas,
       assignment: assignment ?? this.assignment,
       assignments: assignments ?? this.assignments,
       tahapanTertinggi: tahapanTertinggi ?? this.tahapanTertinggi,
+      // departemenId: departemenId ?? this.departemenId,
+      // departemenNama: departemenNama ?? this.departemenNama,
+      isActive: isActive ?? this.isActive,
+      assignedToPegawaiId: assignedToPegawaiId ?? this.assignedToPegawaiId,
+      statusName: statusName ?? this.statusName,
+      statusEnum: statusEnum ?? this.statusEnum,
     );
   }
 }

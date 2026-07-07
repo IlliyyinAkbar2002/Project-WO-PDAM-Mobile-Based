@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
@@ -57,11 +58,22 @@ class _ListLaporanWorkorderPageState
 
   String? _isoDate(DateTime? date) => date?.toIso8601String().split('T').first;
 
+  /// Staff Senior/Staff hanya boleh melihat laporan WO yang mereka kerjakan
+  /// sendiri; SPV tetap melihat seluruh laporan tim/departemennya. `user_id`
+  /// adalah query param BE asli (lihat HistoryWorkOrderPage), bukan filter
+  /// FE-side seperti assignedToPegawaiId.
+  int? get _scopedUserId {
+    final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+    if (isSpv) return null;
+    return AuthStorage.getUserSync()?['id'] as int?;
+  }
+
   /// Memuat laporan sesuai filter aktif: gabungan kata kunci + rentang tanggal.
   void _applyFilters() {
     final query = _searchController.text.trim();
     final startDate = _isoDate(_dateRange?.start);
     final endDate = _isoDate(_dateRange?.end);
+    final userId = _scopedUserId;
 
     if (query.isNotEmpty) {
       _workOrderBloc.add(
@@ -70,6 +82,7 @@ class _ListLaporanWorkorderPageState
           status: const [WorkOrderStatusId.selesai],
           startDate: startDate,
           endDate: endDate,
+          userId: userId,
         ),
       );
     } else {
@@ -78,6 +91,7 @@ class _ListLaporanWorkorderPageState
           status: const [WorkOrderStatusId.selesai],
           startDate: startDate,
           endDate: endDate,
+          userId: userId,
         ),
       );
     }
@@ -257,21 +271,11 @@ class _ListLaporanWorkorderPageState
   }
 
   void _navigateToDetail(WorkOrderEntity wo) {
-    // Get assignee details from assignment if available
-    final assigneeName = wo.assignment?.assignee?.employee?.name ?? '-';
-    final assigneeNip = wo.assignment?.assignee?.employee?.nip ?? '-';
-    final assigneeUnit = wo.assignment?.assignee?.employee?.departemen ?? '-';
-
+    // Detail laporan (kode pengaduan, lokasi, petugas, catatan SPV, dll.)
+    // dimuat di dalam halaman lewat endpoint workorder/history/{id}.
     final payload = <String, dynamic>{
       'workorder_id': wo.id,
       'is_lembur': wo.isLembur,
-      'nomor_laporan': 'LP-${wo.id}',
-      'hasil_akhir_snapshot': wo.title,
-      'petugas_snapshot': {
-        'nama': assigneeName,
-        'nip': assigneeNip,
-        'unit': assigneeUnit,
-      },
     };
 
     Navigator.push(
@@ -292,9 +296,13 @@ class _LaporanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // Tanggal selesai: pakai updated_at (waktu status→Selesai, sumber dari
+    // endpoint index) yang sepadan dengan laporan.tanggal_terbit di detail.
+    // Fallback ke startDateTime bila kelak data sudah membawa assignment.
     String dateStr = '-';
-    if (workOrder.startDateTime != null) {
-      final d = workOrder.startDateTime!;
+    final completedAt = workOrder.updatedAt ?? workOrder.startDateTime;
+    if (completedAt != null) {
+      final d = completedAt;
       dateStr =
           '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     }

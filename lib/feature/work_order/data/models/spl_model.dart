@@ -7,6 +7,7 @@ class SplModel extends SplEntity {
   const SplModel({
     super.id,
     super.statusId,
+    super.statusCode,
     super.decision,
     super.verificatorId,
     super.createdAt,
@@ -30,9 +31,14 @@ class SplModel extends SplEntity {
   String toJson() => json.encode(toMap());
 
   factory SplModel.fromMap(Map<String, dynamic> map) {
+    // BE TARGET (MergerManual) mengirim `status` sebagai enum string
+    // ('pending'|'approved'|'rejected'); skema lama mengirim objek status
+    // ({id, nama}). Tangani keduanya agar parsing respons tidak crash.
+    final dynamic rawStatus = map['status'];
     return SplModel(
       id: map['id'],
       statusId: map['status_id'],
+      statusCode: rawStatus is String ? rawStatus : null,
       decision: map['decision']?.toString(),
       verificatorId: map['verifikator_id'],
       createdAt: map['waktu_pengajuan'] != null
@@ -51,8 +57,8 @@ class SplModel extends SplEntity {
       estimasiJam: map['estimasi_jam'],
       alasanLembur: map['alasan_lembur'],
       pemohonId: map['pemohon_id'],
-      status: map['status'] != null
-          ? StatusModel.fromMap(map['status'])
+      status: rawStatus is Map
+          ? StatusModel.fromMap(Map<String, dynamic>.from(rawStatus))
           : null,
       pemohon: map['pemohon'] != null
           ? UserModel.fromMap(map['pemohon'])
@@ -61,31 +67,49 @@ class SplModel extends SplEntity {
     );
   }
 
+  /// Body untuk PUT /v1/lembur-spl/{id} (verifikasi/approval lembur).
+  /// Kontrak BE TARGET (MergerManual) HANYA membaca:
+  ///   - `status` (WAJIB, enum 'pending'|'approved'|'rejected')
+  ///   - `verifikator_id` (nullable, users.id approver)
+  ///   - `alasan_ditolak` (nullable)
+  /// BE MENGABAIKAN `status_id`/`decision`; mengirim `status_id` tanpa `status`
+  /// menyebabkan 422 ("status field is required").
   Map<String, dynamic> toMap() {
-    final payload = {
-      'status_id': statusId,
-      if (decision != null) 'decision': decision,
+    final payload = <String, dynamic>{
+      'status': _resolveStatusEnum(),
       'verifikator_id': verificatorId,
-      // 'waktu_verifikasi': verificationDate?.toIso8601String(),
       'alasan_ditolak': reason,
-      'judul_pekerjaan': judulPekerjaan,
-      'jenis_pekerjaan': jenisPekerjaan,
-      'tanggal_lembur': tanggalLembur != null
-          ? '${tanggalLembur!.year.toString().padLeft(4, '0')}-${tanggalLembur!.month.toString().padLeft(2, '0')}-${tanggalLembur!.day.toString().padLeft(2, '0')}'
-          : null,
-      'jam_mulai': jamMulai,
-      'estimasi_jam': estimasiJam,
-      'alasan_lembur': alasanLembur,
-      'pemohon_id': pemohonId,
     };
     payload.removeWhere((key, value) => value == null);
     return payload;
+  }
+
+  /// Turunkan status enum BE: utamakan [statusCode]; fallback ke [statusId]
+  /// (2→approved, 4→rejected) atau [decision] agar pemanggil lama (detail WO
+  /// keluar/masuk) tetap mengirim `status` yang benar tanpa `status_id`.
+  String? _resolveStatusEnum() {
+    final code = statusCode?.trim();
+    if (code != null && code.isNotEmpty) return code;
+    switch (statusId) {
+      case 2:
+        return 'approved';
+      case 4:
+        return 'rejected';
+    }
+    switch (decision) {
+      case 'accept':
+        return 'approved';
+      case 'reject':
+        return 'rejected';
+    }
+    return null;
   }
 
   SplEntity toEntity() {
     return SplEntity(
       id: id,
       statusId: statusId,
+      statusCode: statusCode,
       decision: decision,
       verificatorId: verificatorId,
       createdAt: createdAt,
@@ -108,6 +132,7 @@ class SplModel extends SplEntity {
     return SplModel(
       id: entity.id,
       statusId: entity.statusId,
+      statusCode: entity.statusCode,
       decision: entity.decision,
       verificatorId: entity.verificatorId,
       createdAt: entity.createdAt,

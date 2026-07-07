@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/api_error_interceptor.dart';
+import 'package:project_mobile_pdam/core/resource/session_expired_interceptor.dart';
 import '/core/utils/debug_log.dart';
 
 enum ContentType { json, form, multipart }
@@ -25,6 +26,10 @@ class RemoteDatasource {
       ),
     );
     _addDefaultInterceptors();
+    // Harus sebelum ApiErrorInterceptor: reject() di error interceptor bersifat
+    // terminal (tidak ada varian "lanjut ke interceptor berikutnya"), jadi kalau
+    // ditaruh setelah ApiErrorInterceptor, onError-nya tidak akan pernah dipanggil.
+    dio.interceptors.add(SessionExpiredInterceptor());
     // TKT-08: parse body {message, errors} dari Laravel jadi ApiException
     // supaya Bloc/UI bisa branching lewat `isValidation`, `isNotFound`, dst.
     dio.interceptors.add(ApiErrorInterceptor());

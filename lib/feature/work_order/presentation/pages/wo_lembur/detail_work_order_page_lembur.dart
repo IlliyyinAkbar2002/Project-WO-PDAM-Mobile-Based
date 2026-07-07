@@ -11,12 +11,13 @@ import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/tahapan_stepper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -61,7 +62,7 @@ class DetailWorkOrderPageLembur extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100,
+    this.radiusMeter = MapsSeedModel.defaultRadiusMeter,
   });
 
   @override
@@ -139,7 +140,13 @@ class _DetailWorkOrderPageLemburState
     _progressRemoteDataSource =
         GetIt.instance<WorkOrderProgressRemoteDataSource>();
     _materialRemoteDataSource = GetIt.instance<MaterialRemoteDataSource>();
-    _fetchProgresses();
+    // SPV (non-assignee) tak menampilkan Tahapan maupun entri pelaporan, jadi
+    // `progresses` tak terpakai — lewati fetch dan tandai siap langsung.
+    if (widget.isAssignee) {
+      _fetchProgresses();
+    } else {
+      _progressesLoaded = true;
+    }
     final workOrderBloc = context.read<WorkOrderBloc>();
     if (widget.workOrderId != null) {
       workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
@@ -226,14 +233,34 @@ class _DetailWorkOrderPageLemburState
     }
   }
 
+
+  LatLng? get _resolvedLngLat {
+    if (widget.lngLat != null) return widget.lngLat;
+    final assignment = _workOrder?.assignment;
+    final double? lat = assignment?.latitude ?? assignment?.location?.latitude;
+    final double? lng =
+        assignment?.longitude ?? assignment?.location?.longitude;
+    if (lat != null && lng != null) return LatLng(lat, lng);
+    return null;
+  }
+
+  String? get _resolvedLocationName =>
+      widget.locationName ?? _workOrder?.assignment?.location?.nama;
+
+  int get _resolvedRadiusMeter =>
+      _workOrder?.assignment?.location?.radiusMeter ?? widget.radiusMeter;
+
+  /// Status WO terkini. `widget.status` dibekukan saat halaman dibuka, sehingga
+  /// basi setelah staf submit "Selesai" (status BE berpindah ke pengecekan).
+  /// Utamakan `statusId` dari detail WO yang ikut ter-refresh lewat WorkOrderBloc.
+  int? get _liveStatus => _workOrder?.statusId ?? widget.status;
+
   Widget _buildBody() {
     if (!_progressesLoaded) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final List<WorkOrderProgressEntity> visibleProgresses = progresses
-        .where((p) => !p.isDibatalkan)
-        .toList();
+    final List<WorkOrderProgressEntity> visibleProgresses = progresses;
 
     final bool hasInspeksi = visibleProgresses.any((item) => item.isInspeksi);
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
@@ -253,6 +280,9 @@ class _DetailWorkOrderPageLemburState
             status: widget.status,
             enableInnerScroll: false,
           ),
+
+          if (widget.isAssignee && _workOrder != null)
+            TahapanStepper(workOrder: _workOrder, progresses: progresses),
 
           if (_isManager && isPendingApproval && _workOrder?.splId != null) ...[
             const SizedBox(height: 16),
@@ -315,93 +345,99 @@ class _DetailWorkOrderPageLemburState
             ),
           ],
 
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "Pelaporan WO Lembur",
-                  style: textTheme.displayMedium,
+          // Seksi pelaporan hanya untuk assignee/staff. SPV cukup melihat form
+          // + kartu "Progress Anggota Tim" dari embedded DetailWorkOrderPage.
+          if (widget.isAssignee) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Pelaporan WO Lembur",
+                    style: textTheme.displayMedium,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            if (!hasInspeksi && !hasMulai)
+              Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.6,
+                  child: _buildActionButton('Inspeksi'),
+                ),
+              ),
+            if (hasInspeksi && !hasMulai)
+              Row(
+                children: [
+                  Expanded(child: _buildActionButton('Mulai')),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildSecondaryOutlinedButton(
+                      label: 'Pinjam Material',
+                      onPressed: () async {
+                        final shouldRefresh = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PeminjamanItemListPage(
+                              workOrderId: widget.workOrderId,
+                            ),
+                          ),
+                        );
+                        if (shouldRefresh == true && mounted) {
+                          _handleRefresh();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+            ...visibleProgresses.map(
+              (progressIndex) => _buildProgressEntry(progressIndex),
+            ),
+
+            if (hasMulai && !hasSelesai) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _buildActionButton('Selesai')),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildActionButton('Laporan')),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-
-          if (widget.isAssignee && !hasInspeksi && !hasMulai)
-            Center(
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.6,
-                child: _buildActionButton('Inspeksi'),
+            // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
+            // ke status WO numerik (5/6): BE terintegrasi memakai status string
+            // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
+            // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
+            if (hasSelesai) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSecondaryOutlinedButton(
+                      label: 'Kembalikan Material',
+                      onPressed: () async {
+                        final shouldRefresh = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PeminjamanItemListPage(
+                              workOrderId: widget.workOrderId,
+                              returnMode: true,
+                            ),
+                          ),
+                        );
+                        if (shouldRefresh == true && mounted) {
+                          _handleRefresh();
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-          if (widget.isAssignee && hasInspeksi && !hasMulai)
-            Row(
-              children: [
-                Expanded(child: _buildActionButton('Mulai')),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildSecondaryOutlinedButton(
-                    label: 'Pinjam Material',
-                    onPressed: () async {
-                      final shouldRefresh = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PeminjamanItemListPage(
-                            workOrderId: widget.workOrderId,
-                          ),
-                        ),
-                      );
-                      if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-          ...visibleProgresses.map(
-            (progressIndex) => _buildProgressEntry(progressIndex),
-          ),
-
-          if (widget.isAssignee && hasMulai && !hasSelesai) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: _buildActionButton('Selesai')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildActionButton('Laporan')),
-              ],
-            ),
-          ],
-          if (widget.isAssignee &&
-              hasSelesai &&
-              (widget.status == WorkOrderStatusId.pengecekan ||
-                  widget.status == WorkOrderStatusId.selesai)) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSecondaryOutlinedButton(
-                    label: 'Kembalikan Material',
-                    onPressed: () async {
-                      final shouldRefresh = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PeminjamanItemListPage(
-                            workOrderId: widget.workOrderId,
-                          ),
-                        ),
-                      );
-                      if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
+            ],
           ],
         ],
       ),
@@ -434,19 +470,23 @@ class _DetailWorkOrderPageLemburState
               MaterialPageRoute(
                 builder: (_) => WorkOrderReportPageLembur(
                   mode: progress.progressType ?? '-',
-                  status: widget.status,
+                  status: _liveStatus,
                   isAssignee: widget.isAssignee,
                   progressId: progress.id,
                   workOrderId: widget.workOrderId,
                   workOrderTypeId: widget.workOrderTypeId,
-                  lngLat: widget.lngLat,
-                  locationName: widget.locationName,
-                  radiusMeter: widget.radiusMeter,
+                  lngLat: _resolvedLngLat,
+                  locationName: _resolvedLocationName,
+                  radiusMeter: _resolvedRadiusMeter,
                   kategoriForm: widget.kategoriForm,
                   initialKategoriData: _workOrder != null
                       ? _buildKategoriFormData(_workOrder!)
                       : null,
                   initialDescription: progress.description,
+                  scheduledStart:
+                      _workOrder?.assignment?.startDateTime ??
+                      _workOrder?.startDateTime,
+                  currentTahapanTertinggi: _highestSubmittedTahapan(),
                 ),
               ),
             );
@@ -455,88 +495,8 @@ class _DetailWorkOrderPageLemburState
             }
           },
         ),
-        if (progress.canCancel && widget.isAssignee)
-          Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
       ],
     );
-  }
-
-  Widget _buildCancelButton(WorkOrderProgressEntity progress) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _confirmCancel(progress),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.danger.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.danger, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.undo, size: 14, color: color.danger),
-              const SizedBox(width: 4),
-              Text(
-                'Batalkan',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color.danger,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    final String message =
-        'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan Laporan?'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Tidak'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: color.danger),
-            child: const Text('Ya, Batalkan'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    await _executeCancelProgress(progress);
-  }
-
-  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
-    if (progress.id == null) return;
-    final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
-    if (!mounted) return;
-    if (result is DataSuccess) {
-      final String successMsg = 'Laporan berhasil dibatalkan.';
-      AppSnackbar.showSuccess(successMsg);
-      _handleRefresh();
-    } else {
-      final errorMsg = result.error?.response?.data is Map
-          ? (result.error!.response!.data['message'] ??
-                'Gagal membatalkan laporan.')
-          : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
-      AppSnackbar.showError(errorMsg.toString());
-    }
   }
 
   Future<bool> _needsPinjamMaterialFirst() async {
@@ -593,6 +553,75 @@ class _DetailWorkOrderPageLemburState
     }
   }
 
+  /// Tahap tertinggi yang sudah tersubmit (acuan urutan tahapan). Dihitung dari
+  /// daftar [progresses] — sama seperti [TahapanStepper]. Detail WO dari BE
+  /// tidak mengembalikan `tahapan_tertinggi`, jadi `_workOrder.tahapanTertinggi`
+  /// umumnya null; gunakan progress sebagai sumber yang andal.
+  int _highestSubmittedTahapan() {
+    final entityVal = _workOrder?.tahapanTertinggi;
+    if (entityVal != null) return entityVal;
+    int computed = 0;
+    for (final p in progresses) {
+      if (p.tahapan != null && p.tahapan! > computed) {
+        computed = p.tahapan!;
+      }
+    }
+    return computed;
+  }
+
+  Future<void> _showBelumWaktunyaReminder(DateTime scheduledStart) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Belum Waktunya',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Work order ini dijadwalkan mulai pada '
+          '${_formatEndDateTime(scheduledStart)}. '
+          'Anda belum dapat memulainya sekarang.',
+          style: const TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTahapanIncompleteReminder() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Tahapan Belum Selesai',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Selesaikan tahap Pengujian terlebih dahulu sebelum menyelesaikan '
+          'work order. Tahapan harus dikerjakan berurutan.',
+          style: TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(String mode, {bool disabled = false}) {
     final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
 
@@ -604,6 +633,26 @@ class _DetailWorkOrderPageLemburState
       }
       _isNavigatingToReport = true;
       try {
+        // Pencegatan "belum waktunya": WO lembur tidak boleh dimulai sebelum
+        // jadwal (assignment.tanggal_mulai). Hanya untuk aksi yang MEMULAI
+        // kerja (Mulai/Inspeksi); Progress/Selesai sudah terlanjur mulai.
+        if (mode == 'Mulai' || mode == 'Inspeksi') {
+          final DateTime? rawStart =
+              _workOrder?.assignment?.startDateTime ??
+              _workOrder?.startDateTime;
+          if (rawStart != null) {
+            // startDateTime di-parse tanpa toLocal() (lihat work_order_model),
+            // bisa ber-flag UTC → normalisasi dulu sebelum dibandingkan.
+            final DateTime scheduledStart = rawStart.isUtc
+                ? rawStart.toLocal()
+                : rawStart;
+            if (DateTime.now().isBefore(scheduledStart)) {
+              await _showBelumWaktunyaReminder(scheduledStart);
+              return;
+            }
+          }
+        }
+
         if (mode == 'Mulai') {
           final bool needPinjam = await _needsPinjamMaterialFirst();
           if (!mounted) return;
@@ -613,23 +662,35 @@ class _DetailWorkOrderPageLemburState
           }
         }
 
+        // Pencegatan tombol "Selesai": tahap Pengujian (3) harus tercapai dulu
+        // agar WO tidak diselesaikan dengan melompati tahapan (Bug 3).
+        if (mode == 'Selesai' &&
+            _highestSubmittedTahapan() < TahapanWorkorder.pengujian) {
+          await _showTahapanIncompleteReminder();
+          return;
+        }
+
         final bool? shouldRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (_) => WorkOrderReportPageLembur(
               mode: reportMode,
-              status: widget.status,
+              status: _liveStatus,
               isAssignee: widget.isAssignee,
               progressId: null,
               workOrderId: widget.workOrderId,
               workOrderTypeId: widget.workOrderTypeId,
-              lngLat: widget.lngLat,
-              locationName: widget.locationName,
-              radiusMeter: widget.radiusMeter,
+              lngLat: _resolvedLngLat,
+              locationName: _resolvedLocationName,
+              radiusMeter: _resolvedRadiusMeter,
               kategoriForm: widget.kategoriForm,
               initialKategoriData: _workOrder != null
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
+              scheduledStart:
+                  _workOrder?.assignment?.startDateTime ??
+                  _workOrder?.startDateTime,
+              currentTahapanTertinggi: _highestSubmittedTahapan(),
             ),
           ),
         );

@@ -58,8 +58,6 @@ class LemburProgressByMemberLoaded extends LemburState {
   List<Object?> get props => [progressByMember];
 }
 
-class LemburCancelProgressSuccess extends LemburState {}
-
 class LemburProgressDetailsHistoryLoaded extends LemburState {
   final List<dynamic> details;
 

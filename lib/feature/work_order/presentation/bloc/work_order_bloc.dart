@@ -189,13 +189,72 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {
         if (dataState.data!.isEmpty) {}
         totalPages = dataState.totalPages;
-        emit(WorkOrderLoaded(dataState.data!));
+        emit(
+          WorkOrderLoaded(
+            _applyMobileFilters(
+              dataState.data!,
+              assignedToPegawaiId: event.assignedToPegawaiId,
+              departemenId: event.departemenId,
+              onlyActive: event.onlyActive,
+              includeStatusNames: event.includeStatusNames,
+              excludeStatusNames: event.excludeStatusNames,
+              excludeLembur: event.excludeLembur,
+            ),
+          ),
+        );
       } else if (dataState is DataFailed) {
         emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       emit(WorkOrderError(_friendlyErrorMessage(e)));
     }
+  }
+
+  /// Filter sisi-FE untuk WO Masuk: backend `index` belum memfilter
+  /// `assigned_to`/`departemen_id`/`is_active`, jadi mobile menyaringnya di
+  /// sini. Hanya aktif bila parameter terkait di-set; pemanggil lain (yang
+  /// mengirim null) tidak terpengaruh.
+  List<WorkOrderEntity> _applyMobileFilters(
+    List<WorkOrderEntity> workOrders, {
+    int? assignedToPegawaiId,
+    int? departemenId,
+    bool? onlyActive,
+    List<String>? includeStatusNames,
+    List<String>? excludeStatusNames,
+    bool? excludeLembur,
+  }) {
+    final include = includeStatusNames
+        ?.map((s) => s.toLowerCase())
+        .toList(growable: false);
+    final exclude = excludeStatusNames
+        ?.map((s) => s.toLowerCase())
+        .toList(growable: false);
+
+    if (assignedToPegawaiId == null &&
+        departemenId == null &&
+        onlyActive != true &&
+        excludeLembur != true &&
+        (include == null || include.isEmpty) &&
+        (exclude == null || exclude.isEmpty)) {
+      return workOrders;
+    }
+    return workOrders.where((wo) {
+      if (onlyActive == true && wo.isActive == false) return false;
+      if (excludeLembur == true && wo.isLembur) return false;
+      if (assignedToPegawaiId != null &&
+          wo.assignedToPegawaiId != assignedToPegawaiId) {
+        return false;
+      }
+      // if (departemenId != null && wo.departemenId != departemenId) return false;
+      final status = wo.statusName?.toLowerCase();
+      if (include != null && include.isNotEmpty) {
+        if (status == null || !include.contains(status)) return false;
+      }
+      if (exclude != null && exclude.isNotEmpty) {
+        if (status != null && exclude.contains(status)) return false;
+      }
+      return true;
+    }).toList();
   }
 
   Future<void> _onLoadMoreWorkOrdersEvent(
@@ -222,9 +281,18 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     );
 
     if (dataState is PaginatedDataSuccess) {
+      final filteredPage = _applyMobileFilters(
+        List<WorkOrderEntity>.from(dataState.data!),
+        assignedToPegawaiId: event.assignedToPegawaiId,
+        departemenId: event.departemenId,
+        onlyActive: event.onlyActive,
+        includeStatusNames: event.includeStatusNames,
+        excludeStatusNames: event.excludeStatusNames,
+        excludeLembur: event.excludeLembur,
+      );
       final updatedList = List<WorkOrderEntity>.from(
         (state as WorkOrderLoaded).workOrders,
-      )..addAll(dataState.data!);
+      )..addAll(filteredPage);
       emit(WorkOrderLoaded(updatedList));
     }
     isFetching = false;
@@ -393,7 +461,19 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         ),
       );
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {
-        emit(WorkOrderLoaded(dataState.data!));
+        emit(
+          WorkOrderLoaded(
+            _applyMobileFilters(
+              dataState.data!,
+              assignedToPegawaiId: event.assignedToPegawaiId,
+              departemenId: event.departemenId,
+              onlyActive: event.onlyActive,
+              includeStatusNames: event.includeStatusNames,
+              excludeStatusNames: event.excludeStatusNames,
+              excludeLembur: event.excludeLembur,
+            ),
+          ),
+        );
       } else if (dataState is DataFailed) {
         emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
       }
@@ -737,11 +817,11 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         emit(ProgressByMemberLoaded(dataState.data!));
       } else if (dataState is DataFailed) {
         debugPrint("❌ Gagal memuat progress by member: ${dataState.error}");
-        emit(WorkOrderError(_friendlyErrorMessage(dataState.error)));
+        emit(ProgressByMemberError(_friendlyErrorMessage(dataState.error)));
       }
     } catch (e) {
       debugPrint("❌ Error saat mengambil progress by member: $e");
-      emit(WorkOrderError("Gagal mengambil progress anggota tim: $e"));
+      emit(ProgressByMemberError("Gagal mengambil progress anggota tim: $e"));
     }
   }
 }

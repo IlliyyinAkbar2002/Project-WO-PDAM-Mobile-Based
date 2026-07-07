@@ -36,17 +36,16 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
 
   String _normalizeReviewDecision(String rawAction) {
     final normalized = rawAction.trim().toLowerCase();
-    // For lembur, decision must be 'accept' or 'reject'
     if (normalized == 'accept' ||
         normalized == 'terima' ||
         normalized == 'approve' ||
         normalized == 'setuju') {
       return 'accept';
-    } else if (normalized == 'reject' ||
-        normalized == 'tolak' ||
-        normalized == 'rejected' ||
-        normalized == 'revisi') {
-      return 'reject';
+    }
+    else if (normalized == 'revision' ||
+        normalized == 'revisi' ||
+        normalized == 'revise') {
+      return 'revisi';
     }
     return normalized;
   }
@@ -120,20 +119,6 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
       final dioError = _toDioException(e, '/v1/progress-lembur');
       _logDioError('fetchProgressByWorkOrderId', dioError);
       debugPrint("❌ fetchProgressByWorkOrderId stack: $st");
-      return DataFailed(dioError);
-    }
-  }
-
-  Future<DataState<void>> cancelProgress(int progressId) async {
-    try {
-      await post(path: '/v1/progress-lembur/$progressId/cancel');
-      return const DataSuccess(null);
-    } catch (e) {
-      final dioError = _toDioException(
-        e,
-        '/v1/progress-lembur/$progressId/cancel',
-      );
-      _logDioError('cancelProgress', dioError);
       return DataFailed(dioError);
     }
   }
@@ -419,8 +404,8 @@ class WorkOrderLemburRemoteDataSource extends RemoteDatasource {
         if (note.isNotEmpty) {
           if (decision == 'accept') {
             formData.fields.add(MapEntry('approval_notes', note));
-          } else {
-            formData.fields.add(MapEntry('alasan_penolakan', note));
+          } else if (decision == 'revisi') {
+            formData.fields.add(MapEntry('alasan_revisi', note));
           }
         }
         response = await post(

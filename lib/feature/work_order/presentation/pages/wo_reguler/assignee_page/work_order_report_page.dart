@@ -10,6 +10,8 @@ import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
+import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -45,6 +47,15 @@ class WorkOrderReportPage extends StatefulWidget {
   final String? initialDescription;
   final String? workOrderTypeName;
 
+  /// Prioritas WO (mis. 'urgent'). Dipakai untuk pengecualian cutoff jam upload
+  /// laporan: WO Urgent boleh upload kapan saja, selain itu dibatasi ≤ 16:00.
+  final String? prioritas;
+
+  /// Tahap tertinggi yang sudah tersubmit pada WO ini, dihitung pemanggil dari
+  /// daftar progress (andal). Dipakai untuk memandu pilihan tahapan di selector.
+  /// `null`/0 = tidak diketahui → selector tidak membatasi (BE tetap menjaga).
+  final int? currentTahapanTertinggi;
+
   const WorkOrderReportPage({
     super.key,
     required this.mode,
@@ -55,11 +66,14 @@ class WorkOrderReportPage extends StatefulWidget {
     this.workOrderTypeId,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.radiusMeter =
+        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
     this.kategoriForm,
     this.initialKategoriData,
     this.initialDescription,
     this.workOrderTypeName,
+    this.prioritas,
+    this.currentTahapanTertinggi,
   });
 
   @override
@@ -77,6 +91,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   bool get _isAlreadyRecorded =>
       widget.isAssignee && widget.progressId != null && !isRejected;
+
+  /// Geofence hanya digate untuk staff yang sedang menyubmit progress dan WO
+  /// punya titik lokasi. Mode review/detail (SPV) atau WO tanpa titik tidak
+  /// digate.
+  bool get _shouldGateGeofence =>
+      widget.isAssignee && widget.lngLat != null && !isDetailMode;
 
   String get _submitInProgressMessage {
     switch (widget.mode) {
@@ -102,6 +122,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _hasClosedAfterSubmit = false;
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
+  final GeofenceService _geofence = sl<GeofenceService>();
+
+  /// Status geofence untuk banner UX. `_withinRange` null = belum/ gagal cek.
+  bool? _withinRange;
+  double? _lastDistanceMeters;
+  bool _poorAccuracy = false;
+  String? _geoStatusError;
   int? _selectedTahapan;
 
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
@@ -219,15 +246,17 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         setState(() {
           _progressDetails = [];
           isDataLoaded = true;
-          _isCheckingDistance = false;
+          _isCheckingDistance = _shouldGateGeofence;
         });
+        if (_shouldGateGeofence) _checkDistance();
         return;
       }
 
       setState(() {
         isDataLoaded = true;
-        _isCheckingDistance = false;
+        _isCheckingDistance = _shouldGateGeofence;
       });
+      if (_shouldGateGeofence) _checkDistance();
       return;
     }
 
@@ -242,7 +271,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
     }
 
-    if (widget.mode == 'Mulai' && widget.lngLat != null && widget.isAssignee) {
+    if (_shouldGateGeofence) {
       _checkDistance();
     } else {
       setState(() {
@@ -375,6 +404,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                   : _getOptionIdFromValue(detail);
             }
 
+            // kategori_data (tindakan_perbaikan, hasil_inspeksi, dll) tersimpan
+            // terpisah dari progress_detail. Tanpa merge ini, field kategori
+            // pada form Selesai (jaringan/infrastruktur/meter) tidak terisi.
+            final kategoriData =
+                progressDetails.first.workOrderProgress?.kategoriData;
+
             // Schedule setState setelah frame selesai untuk menghindari blocking
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -388,6 +423,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 } else {
                   _descriptionController.text = description;
                   _formData = formData;
+                  if (kategoriData != null) {
+                    _formData.addAll(kategoriData);
+                  }
                   _images = images;
                   if (tahapan != null) {
                     _selectedTahapan = tahapan;
@@ -443,6 +481,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 AuthStorage.getJabatanKodeSync() == 'SENIOR_STAFF';
             final bool canShowResubmitButton =
                 !isSelesaiResubmit || isSeniorStaff;
+            final bool isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
+            final bool isWorkOrderClosed =
+                widget.status == WorkOrderStatusId.selesai;
 
             String? jenisPekerjaan = widget.workOrderTypeName;
             if (jenisPekerjaan == null && widget.workOrderTypeId != null) {
@@ -478,7 +519,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 ? specificLabels[_selectedTahapan! - 1]
                 : "Persiapan";
 
-            return !isDataLoaded || _isCheckingDistance
+            // Spinner penuh hanya saat memuat data; pengecekan geofence
+            // ditampilkan via banner agar form tetap terlihat (mis. tombol
+            // "Periksa ulang" tidak menghilang).
+            return !isDataLoaded
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -486,7 +530,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                         const CircularProgressIndicator(),
                         const SizedBox(height: 12),
                         Text(
-                          "Pengecekan lokasi...",
+                          "Memuat data...",
                           style: textTheme.titleLarge?.copyWith(
                             color: color.primary[500],
                           ),
@@ -501,6 +545,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       child: Column(
                         children: [
                           if (widget.lngLat != null) _buildLocationMap(),
+                          if (_shouldGateGeofence) ...[
+                            const SizedBox(height: 8),
+                            _buildGeofenceStatus(),
+                          ],
                           const SizedBox(height: 16),
 
                           Padding(
@@ -598,12 +646,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                                         color:
                                                             widget.mode ==
                                                                 'Selesai'
-                                                            ? (widget.status ==
-                                                                      7
-                                                                  ? color
-                                                                        .foreground[100]
-                                                                  : color
-                                                                        .primary[500])
+                                                            ? color
+                                                                  .foreground[100]
                                                             : color
                                                                   .primary[500],
                                                       ),
@@ -613,27 +657,22 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                               ? const SizedBox()
                               : widget.mode == 'Selesai' &&
                                     !widget.isAssignee &&
+                                    isSpv &&
+                                    !isWorkOrderClosed &&
                                     ProgressStatusId.isSubmitted(
                                       _progressStatusId,
                                     )
                               ? Row(
                                   children: [
-                                    // Expanded(
-                                    //   child: ElevatedButton(
-                                    //     style: ElevatedButton.styleFrom(
-                                    //       backgroundColor: color.danger,
-                                    //     ),
-                                    //     onPressed: () => _onReview('tolak'),
-                                    //     child: const Text('Tolak'),
-                                    //   ),
-                                    // ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.danger,
                                         ),
-                                        onPressed: _showRevisionDialog,
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : _showRevisionDialog,
                                         child: const Text('Revisi'),
                                       ),
                                     ),
@@ -643,11 +682,28 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
                                         ),
-                                        onPressed: () => _onReview('accept'),
-                                        child: const Text('Terima', style: TextStyle(
-                                            color: Color(0xFF000080),
-                                          ),
-                                        ),
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : () => _onReview('accept'),
+                                        child: _isSubmitting
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Color(0xFF000080)),
+                                                    ),
+                                              )
+                                            : const Text(
+                                                'Terima',
+                                                style: TextStyle(
+                                                  color: Color(0xFF000080),
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ],
@@ -699,34 +755,79 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   Widget _buildTahapanSelector() {
     String? jenisPekerjaan = widget.workOrderTypeName;
-    int tahapanTertinggi = 1;
     bool isPic = true;
 
     final state = _workOrderBloc.state;
     if (state is WorkOrderDetailLoaded) {
       jenisPekerjaan ??= state.workOrder.workOrderType?.name;
-      tahapanTertinggi = state.workOrder.tahapanTertinggi ?? 1;
 
       final currentUser = AuthStorage.getUserSync();
-      final currentUserIdStr = currentUser?['id']?.toString();
-      final picIdStr = state.workOrder.assignment?.assigneeId?.toString();
+      final currentPegawaiIdStr = currentUser?['pegawai_id']?.toString();
+      final picPegawaiIdStr = state.workOrder.assignment?.assignee?.id
+          ?.toString();
 
-      if (picIdStr != null && currentUserIdStr != null) {
-        isPic = currentUserIdStr == picIdStr;
+      if (picPegawaiIdStr != null && currentPegawaiIdStr != null) {
+        isPic = currentPegawaiIdStr == picPegawaiIdStr;
       }
     }
+
+    // Tahap tertinggi yang sudah tersubmit. Sumber utama: param dari pemanggil
+    // (dihitung dari daftar progress — andal). Fallback ke entity bila ada.
+    // Detail WO dari BE TIDAK mengembalikan `tahapan_tertinggi`, jadi entity
+    // biasanya null; karenanya param dari detail page yang jadi acuan.
+    final int? entityTahapan = state is WorkOrderDetailLoaded
+        ? state.workOrder.tahapanTertinggi
+        : null;
+    final int tahapanTertinggi = widget.currentTahapanTertinggi ?? entityTahapan ?? 0;
+    // Bila tahap tidak diketahui (0), selector tidak membatasi pilihan — biarkan
+    // BE (rejectIfTahapanInvalid) yang menolak urutan yang salah.
+    final bool knowTahapan = tahapanTertinggi > 0;
 
     List<int> validTahapan = [1, 2, 3, 4];
     if (widget.mode == 'Inspeksi' || widget.mode == 'Mulai') {
       validTahapan = [1];
     } else if (widget.mode == 'Progress') {
-      validTahapan = [2, 3];
+      validTahapan = [TahapanWorkorder.pengerjaan, TahapanWorkorder.pengujian];
     } else if (widget.mode == 'Selesai') {
-      validTahapan = [4];
+      validTahapan = [TahapanWorkorder.dokumentasi];
     }
 
-    if (_selectedTahapan != null && !validTahapan.contains(_selectedTahapan)) {
-      _selectedTahapan = validTahapan.first;
+    // Tahap berikut yang boleh dimajukan PIC: maju satu langkah, maksimal 3
+    // (Pengujian). Tahap 4 (Dokumentasi) hanya lewat mode "Selesai".
+    final int nextStage = (tahapanTertinggi + 1).clamp(
+      1,
+      TahapanWorkorder.maxProgress,
+    );
+
+    // Aturan enable/disable opsi tahapan (hanya saat tahap diketahui):
+    // - Mode selain Progress: pertahankan perilaku lama (hanya 1 opsi valid).
+    // - Mode Progress + PIC: hanya boleh lapor tahap berjalan atau maju satu
+    //   langkah (cegah lompat & mundur — Bug 1 & 2).
+    // - Mode Progress + non-PIC: tetap tidak boleh memajukan tahap.
+    bool isStageDisabled(int val) {
+      if (!knowTahapan) return false;
+      if (widget.mode != 'Progress') {
+        return !isPic && val > tahapanTertinggi;
+      }
+      if (isPic) {
+        return val < tahapanTertinggi || val > nextStage;
+      }
+      return val > tahapanTertinggi;
+    }
+
+    // Default aman: untuk Progress arahkan ke tahap berikut yang valid;
+    // selain itu opsi pertama. Reset bila pilihan saat ini tidak valid/disabled.
+    int defaultTahapan = validTahapan.first;
+    if (widget.mode == 'Progress' && knowTahapan) {
+      final int desired = isPic ? nextStage : tahapanTertinggi;
+      defaultTahapan = validTahapan.contains(desired)
+          ? desired
+          : validTahapan.first;
+    }
+    if (_selectedTahapan == null ||
+        !validTahapan.contains(_selectedTahapan) ||
+        isStageDisabled(_selectedTahapan!)) {
+      _selectedTahapan = defaultTahapan;
     }
 
     return Container(
@@ -741,6 +842,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Tahapan Pekerjaan", style: textTheme.titleMedium),
+          if (widget.mode == 'Progress') ...[
+            const SizedBox(height: 4),
+            Text(
+              knowTahapan
+                  ? "Tahap berjalan: $tahapanTertinggi - ${kTahapanGeneric[(tahapanTertinggi - 1).clamp(0, 3)]}. "
+                        "Tahapan harus berurutan; tidak bisa melompati atau mengulang tahap yang sudah lewat."
+                  : "Tahapan harus berurutan; tidak bisa melompati atau mengulang tahap yang sudah lewat.",
+              style: textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            ),
+          ],
           if (!isPic) ...[
             const SizedBox(height: 4),
             Text(
@@ -758,7 +869,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             hint: const Text('Pilih tahapan... (Opsional)'),
             items: validTahapan.map((val) {
               final index = val - 1;
-              final isDisabled = !isPic && val > tahapanTertinggi;
+              final isDisabled = isStageDisabled(val);
               return DropdownMenuItem<int>(
                 value: val,
                 enabled: !isDisabled,
@@ -864,9 +975,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Laporan sudah tercatat dan tidak dapat diubah. '
-              'Untuk mengirim ulang, batalkan laporan ini terlebih dahulu '
-              'dari halaman daftar progress.',
+              'Laporan sudah tercatat dan tidak dapat diubah.',
               style: textTheme.bodyMedium?.copyWith(
                 color: color.foreground[800],
               ),
@@ -884,10 +993,28 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
     if (_isAlreadyRecorded) {
       AppSnackbar.showWarning(
-        'Laporan sudah tercatat. Batalkan terlebih dahulu sebelum mengubah.',
+        'Laporan sudah tercatat dan tidak dapat diubah.',
       );
       return;
     }
+    // Cutoff jam upload laporan WO reguler: di atas 16:00 tidak boleh upload,
+    // kecuali prioritas Urgent. Mengikuti pola gate assignment 09:00–16:00 di
+    // detail_work_order_page.dart. WO lembur tidak melewati halaman ini.
+    final bool isUrgent = (widget.prioritas ?? '').toLowerCase() == 'urgent';
+    if (!isUrgent) {
+      final TimeOfDay now = TimeOfDay.now();
+      const int batasMenit = 16 * 60; // 16:00
+      if (now.hour * 60 + now.minute > batasMenit) {
+        AppSnackbar.showError(
+          'Upload laporan hanya dapat dilakukan sampai pukul 16:00.',
+        );
+        return;
+      }
+    }
+    // Urutan tahapan (skip/mundur/Selesai sebelum Pengujian) ditegakkan oleh BE
+    // `ProgressWorkorderController::rejectIfTahapanInvalid` — error 422-nya
+    // tampil via snackbar. Selector di atas sudah mencegah pilihan tak valid
+    // saat tahap diketahui; tombol "Selesai" juga digate di detail page.
     if (_formKey.currentState!.validate()) {
       if (_descriptionController.text.isEmpty) {
         AppSnackbar.showError("Deskripsi tidak boleh kosong.");
@@ -918,6 +1045,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           }
           if ((_formData['diameter_pipa'] ?? '').toString().trim().isEmpty) {
             AppSnackbar.showError("Diameter Pipa tidak boleh kosong.");
+            return;
+          }
+          if (double.tryParse(
+                (_formData['diameter_pipa'] ?? '').toString().trim(),
+              ) ==
+              null) {
+            AppSnackbar.showError("Diameter Pipa harus berupa angka.");
             return;
           }
           if ((_formData['panjang_pipa'] ?? '').toString().trim().isEmpty) {
@@ -1010,45 +1144,66 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         _hasClosedAfterSubmit = false;
       });
 
-      // Pastikan lokasi diambil untuk semua mode submit jika belum ada
-      if (_currentPosition == null) {
+      // === Geofence gate ===
+      // Ambil posisi SEGAR (preferFresh) agar perubahan mock GPS terbaca, lalu
+      // tolak submit bila di luar radius. Posisi disimpan untuk payload BE
+      // (latitude/longitude/accuracy) — kontrak tidak berubah.
+      if (widget.lngLat != null) {
         try {
-          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-          if (!serviceEnabled) {
-            await Geolocator.openLocationSettings();
-            throw Exception(
-              "GPS harus diaktifkan. Silakan aktifkan dan coba lagi.",
-            );
-          }
-
-          LocationPermission permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission();
-            if (permission == LocationPermission.denied) {
-              throw Exception("Akses lokasi ditolak.");
-            }
-          }
-
-          if (permission == LocationPermission.deniedForever) {
-            throw Exception(
-              "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
-            );
-          }
-
-          Position? current = await Geolocator.getLastKnownPosition();
-          current ??= await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-              timeLimit: Duration(seconds: 10),
-            ),
+          final geo = await _geofence.check(
+            targetLat: widget.lngLat!.latitude,
+            targetLng: widget.lngLat!.longitude,
+            radiusMeter: widget.radiusMeter.toDouble(),
+            preferFresh: true,
           );
-          _currentPosition = current;
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _isSubmitting = false;
-            });
+          if (!mounted) return;
+          setState(() {
+            _currentPosition = geo.position;
+            _withinRange = geo.withinRadius;
+            _lastDistanceMeters = geo.distanceMeters;
+            _poorAccuracy = geo.accuracyPoor;
+            _geoStatusError = null;
+          });
+
+          // Akurasi buruk = peringatan saja, tidak memblokir.
+          if (geo.accuracyPoor) {
+            AppSnackbar.showWarning(
+              "Akurasi GPS rendah (±${geo.position.accuracy.toStringAsFixed(0)} m). "
+              "Hasil pengecekan lokasi mungkin kurang akurat.",
+            );
           }
+
+          if (GeofenceService.enforceGeofence && !geo.withinRadius) {
+            setState(() => _isSubmitting = false);
+            AppSnackbar.showError(
+              "Anda berada di luar jangkauan lokasi WO "
+              "(±${geo.distanceMeters.toStringAsFixed(0)} m, "
+              "radius ${widget.radiusMeter} m). Submit ditolak.",
+            );
+            return;
+          }
+        } on GeofenceException catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError(e.message);
+          return;
+        } catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError("Gagal mendapatkan lokasi: ${e.toString()}");
+          return;
+        }
+      } else {
+        // Tanpa titik lokasi WO → geofence tidak bisa diterapkan. Tetap ambil
+        // posisi untuk payload (tanpa memblokir submit).
+        try {
+          final pos = await _geofence.getCurrentPosition(preferFresh: true);
+          if (!mounted) return;
+          setState(() => _currentPosition = pos);
+        } on GeofenceException catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
+          AppSnackbar.showError(e.message);
+          return;
+        } catch (e) {
+          if (mounted) setState(() => _isSubmitting = false);
           AppSnackbar.showError("Gagal mendapatkan lokasi: ${e.toString()}");
           return;
         }
@@ -1231,6 +1386,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onReview(String action) {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
     final reviewModel = WorkOrderProgressModel(
       id: widget.progressId,
       description: _descriptionController.text.trim().isEmpty
@@ -1242,6 +1399,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   }
 
   void _onReviewWithNote(String action, String note) {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
     final reviewModel = WorkOrderProgressModel(
       id: widget.progressId,
       description: note,
@@ -1261,9 +1420,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         String? latestNote;
         for (final item in list.reversed) {
           final note =
+              item['alasan_revisi']?.toString() ??
               item['catatan']?.toString() ??
               item['keterangan']?.toString() ??
-              item['alasan_penolakan']?.toString() ??
               item['approval_notes']?.toString();
           if (note != null && note.trim().isNotEmpty) {
             latestNote = note.trim();
@@ -1283,8 +1442,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
 
   void _showRevisionDialog() {
     final noteController = TextEditingController();
-    XFile? selectedFile;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1329,64 +1486,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // File Picker
-                    InkWell(
-                      onTap: () async {
-                        final picker = ImagePicker();
-                        final file = await picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 80,
-                        );
-                        if (file != null) {
-                          setStateDialog(() {
-                            selectedFile = file;
-                          });
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: color.foreground[400]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.upload, color: color.foreground[600]),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                selectedFile != null
-                                    ? selectedFile!.name
-                                    : 'Pilih File',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: color.foreground[700]),
-                              ),
-                            ),
-                            if (selectedFile != null)
-                              GestureDetector(
-                                onTap: () {
-                                  setStateDialog(() {
-                                    selectedFile = null;
-                                  });
-                                },
-                                child: Icon(
-                                  Icons.clear,
-                                  color: color.foreground[500],
-                                  size: 18,
-                                ),
-                              )
-                            else
-                              Text(
-                                '...',
-                                style: TextStyle(color: color.foreground[500]),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -1536,115 +1635,185 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     super.dispose();
   }
 
-  Future<void> _checkDistance() async {
-    // Beri jeda untuk memastikan Google Maps dari halaman sebelumnya
-    // sudah selesai melakukan heavy initialization
+  /// Pengecekan geofence untuk indikator status (banner). Tidak memblokir —
+  /// gate otoritatif ada di [_onSubmit]. [preferFresh] dipakai tombol
+  /// "Periksa ulang" agar perubahan mock GPS langsung terbaca.
+  Future<void> _checkDistance({bool preferFresh = false}) async {
+    // Beri jeda agar Google Maps dari halaman sebelumnya selesai inisialisasi.
     await Future.delayed(const Duration(milliseconds: 300));
-
     if (!mounted) return;
 
-    try {
-      final latitudeData = widget.lngLat!.latitude;
-      final longitudeData = widget.lngLat!.longitude;
+    if (widget.lngLat == null) {
+      setState(() => _isCheckingDistance = false);
+      return;
+    }
 
-      // Tambahkan timeout keseluruhan 15 detik untuk mencegah freeze
-      final result =
-          await isUserWithinRange(
-            targetLat: latitudeData,
-            targetLng: longitudeData,
-            maxDistanceInMeters: widget.radiusMeter.toDouble(),
-          ).timeout(
+    setState(() {
+      _isCheckingDistance = true;
+      _geoStatusError = null;
+    });
+
+    try {
+      final result = await _geofence
+          .check(
+            targetLat: widget.lngLat!.latitude,
+            targetLng: widget.lngLat!.longitude,
+            radiusMeter: widget.radiusMeter.toDouble(),
+            preferFresh: preferFresh,
+          )
+          .timeout(
             const Duration(seconds: 15),
-            onTimeout: () {
-              throw TimeoutException("Pengecekan lokasi timeout");
-            },
+            onTimeout: () => throw TimeoutException("Pengecekan lokasi timeout"),
           );
 
-      if (!mounted) return; // Safety check setelah async operation
-
-      setState(() {
-        _isCheckingDistance = false;
-      });
-      if (!result) {
-        AppSnackbar.showError(
-          "Lokasi Anda diluar jangkauan (radius ${widget.radiusMeter}m).",
-        );
-      } else {
-        AppSnackbar.showSuccess("Anda berada dalam jangkauan.");
-      }
-    } on TimeoutException catch (_) {
-      // Handle timeout - GPS terlalu lama
-      debugPrint(
-        "⚠️ GPS timeout - tidak dapat mendapatkan lokasi dalam waktu yang ditentukan",
-      );
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
+        _currentPosition = result.position;
+        _withinRange = result.withinRadius;
+        _lastDistanceMeters = result.distanceMeters;
+        _poorAccuracy = result.accuracyPoor;
+        _geoStatusError = null;
       });
-      AppSnackbar.showError("Tidak dapat menentukan lokasi. Coba lagi.");
+    } on GeofenceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = e.message;
+      });
+    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = "Tidak dapat menentukan lokasi. Coba lagi.";
+      });
     } catch (e) {
       debugPrint("⚠️ Error pengecekan lokasi: $e");
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
+        _withinRange = null;
+        _geoStatusError = "Error: ${e.toString()}";
       });
-      AppSnackbar.showError("Error: ${e.toString()}");
     }
   }
 
-  Future<bool> isUserWithinRange({
-    required double targetLat,
-    required double targetLng,
-    required double maxDistanceInMeters, // batas jarak dari MasterLocation
-  }) async {
-    // Menggunakan Geolocator saja untuk semua operasi (menghindari konflik dengan package location)
-
-    // Cek apakah location service enabled
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Buka settings GPS (lebih reliable daripada location.requestService())
-      await Geolocator.openLocationSettings();
-      throw Exception("GPS harus diaktifkan. Silakan aktifkan dan coba lagi.");
-    }
-
-    // Cek permission menggunakan Geolocator
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception("Akses lokasi ditolak.");
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        "Akses lokasi ditolak permanen. Silakan aktifkan di Settings.",
+  /// Banner status jangkauan di bawah peta. Memberi umpan balik visual sebelum
+  /// submit; gate sesungguhnya tetap di [_onSubmit].
+  Widget _buildGeofenceStatus() {
+    if (_isCheckingDistance) {
+      return _geoStatusBox(
+        bg: color.foreground[100]!,
+        border: color.foreground[400]!,
+        icon: Icons.my_location,
+        iconColor: color.foreground[600]!,
+        title: "Memeriksa lokasi…",
+        showSpinner: true,
       );
     }
 
-    // Coba ambil lokasi terakhir yang diketahui (sangat cepat)
-    Position? current = await Geolocator.getLastKnownPosition();
+    if (_geoStatusError != null) {
+      return _geoStatusBox(
+        bg: Colors.orange.withValues(alpha: 0.1),
+        border: Colors.orange,
+        icon: Icons.gps_off,
+        iconColor: Colors.orange.shade800,
+        title: "Tidak dapat memeriksa lokasi",
+        subtitle: _geoStatusError,
+        showRecheck: true,
+      );
+    }
 
-    // Jika tidak ada, baru ambil lokasi baru dengan timeout
-    current ??= await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
+    if (_withinRange != null) {
+      final dist = _lastDistanceMeters?.toStringAsFixed(0) ?? '-';
+      final accNote = _poorAccuracy
+          ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
+          : "";
+      if (_withinRange == true) {
+        return _geoStatusBox(
+          bg: color.status[2]!.withValues(alpha: 0.12),
+          border: color.status[2]!,
+          icon: Icons.check_circle,
+          iconColor: color.status[2]!,
+          title: "Anda berada dalam jangkauan",
+          subtitle:
+              "±$dist m dari titik WO (radius ${widget.radiusMeter} m).$accNote",
+          showRecheck: true,
+        );
+      }
+      return _geoStatusBox(
+        bg: color.danger.withValues(alpha: 0.1),
+        border: color.danger,
+        icon: Icons.location_off,
+        iconColor: color.danger,
+        title: "Anda di luar jangkauan",
+        subtitle:
+            "±$dist m dari titik WO (radius ${widget.radiusMeter} m). "
+            "Submit akan ditolak.$accNote",
+        showRecheck: true,
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _geoStatusBox({
+    required Color bg,
+    required Color border,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    bool showSpinner = false,
+    bool showRecheck = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          showSpinner
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+          if (showRecheck)
+            TextButton(
+              onPressed: _isCheckingDistance
+                  ? null
+                  : () => _checkDistance(preferFresh: true),
+              child: const Text("Periksa ulang"),
+            ),
+        ],
       ),
     );
-
-    _currentPosition = current;
-
-    // Hitung jarak
-    double distance = Geolocator.distanceBetween(
-      current.latitude,
-      current.longitude,
-      targetLat,
-      targetLng,
-    );
-
-    debugPrint("📏 Jarak ke lokasi: $distance meter");
-
-    return distance <= maxDistanceInMeters;
   }
 }

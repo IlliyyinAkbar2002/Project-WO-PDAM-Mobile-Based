@@ -80,7 +80,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
   Future<DataState<String>> forgotPassword({required String email}) async {
     try {
       final response = await post(
-        path: '/v1/auth/forgot-password',
+        path: '/v1/auth/check-email',
         data: {'email': email},
       );
 
@@ -97,7 +97,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/auth/forgot-password'),
+          requestOptions: RequestOptions(path: '/v1/auth/check-email'),
         ),
       );
     }
@@ -112,7 +112,7 @@ class AuthRemoteDataSource extends RemoteDatasource {
   }) async {
     try {
       final response = await post(
-        path: '/v1/auth/reset-password',
+        path: '/v1/auth/new-password',
         data: {'email': email, 'new_password': newPassword},
       );
 
@@ -129,7 +129,41 @@ class AuthRemoteDataSource extends RemoteDatasource {
       return DataFailed(
         DioException(
           error: e,
-          requestOptions: RequestOptions(path: '/v1/auth/reset-password'),
+          requestOptions: RequestOptions(path: '/v1/auth/new-password'),
+        ),
+      );
+    }
+  }
+
+  /// Ambil data pegawai lengkap dari `/v1/pegawai/{id}`.
+  ///
+  /// Respons login hanya mengirim kolom user tipis (tanpa `nip`,
+  /// `tanggal_lahir`, `alamat`), jadi profil mengambil sisa data pegawai
+  /// dari endpoint ini. Lihat [PegawaiController::show] di backend.
+  Future<DataState<Map<String, dynamic>>> fetchPegawaiProfile(
+    int pegawaiId,
+  ) async {
+    try {
+      final response = await get(path: '/v1/pegawai/$pegawaiId');
+      final data = response.data;
+      if (data is Map) {
+        return DataSuccess(Map<String, dynamic>.from(data));
+      }
+      return DataFailed(
+        DioException(
+          error: 'Format respons pegawai tidak valid',
+          requestOptions: RequestOptions(path: '/v1/pegawai/$pegawaiId'),
+        ),
+      );
+    } on DioException catch (e) {
+      debugPrint('❌ fetchPegawaiProfile DioException: ${e.message}');
+      return DataFailed(e);
+    } catch (e) {
+      debugPrint('❌ fetchPegawaiProfile Unexpected Error: $e');
+      return DataFailed(
+        DioException(
+          error: e,
+          requestOptions: RequestOptions(path: '/v1/pegawai/$pegawaiId'),
         ),
       );
     }

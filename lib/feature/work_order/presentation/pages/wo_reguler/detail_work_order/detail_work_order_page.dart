@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
@@ -20,16 +20,15 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_enti
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/member_progress_card.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/progress_by_member_entity.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/progress_individu.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class DetailWorkOrderPageMasuk extends StatefulWidget {
+class DetailWorkOrderPage extends StatelessWidget {
   final int? picId;
   final int? userId;
   final int? workOrderId;
@@ -38,7 +37,7 @@ class DetailWorkOrderPageMasuk extends StatefulWidget {
   final bool isAssignee;
   final bool enableInnerScroll;
 
-  const DetailWorkOrderPageMasuk({
+  const DetailWorkOrderPage({
     super.key,
     this.picId,
     this.userId,
@@ -50,12 +49,46 @@ class DetailWorkOrderPageMasuk extends StatefulWidget {
   });
 
   @override
-  State<DetailWorkOrderPageMasuk> createState() =>
-      _DetailWorkOrderPageMasukState();
+  Widget build(BuildContext context) {
+    return BlocProvider<WorkOrderBloc>(
+      create: (_) => sl<WorkOrderBloc>(),
+      child: _DetailWorkOrderPage(
+        picId: picId,
+        userId: userId,
+        workOrderId: workOrderId,
+        status: status,
+        isOvertime: isOvertime,
+        isAssignee: isAssignee,
+        enableInnerScroll: enableInnerScroll,
+      ),
+    );
+  }
 }
 
-class _DetailWorkOrderPageMasukState
-    extends AppStatePage<DetailWorkOrderPageMasuk> {
+class _DetailWorkOrderPage extends StatefulWidget {
+  final int? picId;
+  final int? userId;
+  final int? workOrderId;
+  final int? status;
+  final bool isOvertime;
+  final bool isAssignee;
+  final bool enableInnerScroll;
+
+  const _DetailWorkOrderPage({
+    this.picId,
+    this.userId,
+    this.workOrderId,
+    this.status,
+    required this.isOvertime,
+    this.isAssignee = false,
+    this.enableInnerScroll = true,
+  });
+
+  @override
+  State<_DetailWorkOrderPage> createState() => _DetailWorkOrderPageState();
+}
+
+class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   static const String _assigneeKey = "assignee";
   static const String _assigneesKey = "assignees";
 
@@ -65,11 +98,14 @@ class _DetailWorkOrderPageMasukState
   List<WorkOrderProgressEntity> progresses = [];
   ProgressByMemberEntity? progressByMember;
   int? status;
+  String? statusName;
+  bool? isActive;
   int? splId;
 
   bool _isManager = false;
   late final WorkOrderRemoteDataSource _workOrderRemoteDataSource;
   String? _detailErrorMessage;
+  String? _memberLoadError;
   bool _assignableUsersRequested = false;
 
   bool isDataLoaded = false;
@@ -103,11 +139,27 @@ class _DetailWorkOrderPageMasukState
     bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
   }
 
-  bool _shouldLoadAssignableUsersForDetail() {
+  bool _canAssignStaffFor({
+    required String? statusName,
+    required int? statusId,
+    required bool? isActive,
+  }) {
+    final bool isPendingStage =
+        statusName?.toLowerCase() == 'pending' ||
+        statusId == WorkOrderStatusId.ditugaskanKeSpv;
     return isDetailMode &&
         !_isManager &&
         !widget.isAssignee &&
-        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
+        isPendingStage &&
+        isActive != false;
+  }
+
+  bool _shouldLoadAssignableUsersForDetail() {
+    return _canAssignStaffFor(
+      statusName: statusName,
+      statusId: status ?? widget.status,
+      isActive: isActive,
+    );
   }
 
   void _reloadDetail() {
@@ -200,22 +252,29 @@ class _DetailWorkOrderPageMasukState
     switch (workOrder.kategoriForm) {
       case WoKategoriForm.jaringan:
         return {
-          "jenisPipa": detail["jenis_pipa"],
-          "diameterPipa": detail["diameter_pipa"]?.toString(),
-          "panjangPipa": detail["panjang_pipa"]?.toString(),
-          "tingkatKerusakan": detail["tingkat_kerusakan"],
+          "jenis_pipa": detail["jenis_pipa"],
+          "diameter_pipa": detail["diameter_pipa"]?.toString(),
+          "panjang_pipa": detail["panjang_pipa"]?.toString(),
+          "tingkat_kerusakan": detail["tingkat_kerusakan"],
+          "tindakan_perbaikan": detail["tindakan_perbaikan"]?.toString(),
+          "hasil_inspeksi": detail["hasil_inspeksi"]?.toString(),
         };
       case WoKategoriForm.infrastruktur:
         return {
-          "namaAset": detail["nama_aset"],
-          "jenisAset": detail["jenis_aset"],
+          "nama_aset": detail["nama_aset"],
+          "jenis_aset": detail["jenis_aset"],
           "kapasitas": detail["kapasitas"]?.toString(),
-          "kondisiAwal": detail["kondisi_awal"]?.toString(),
+          "kondisi_awal": detail["kondisi_awal"]?.toString(),
+          "kondisi_akhir": detail["kondisi_akhir"]?.toString(),
+          "jadwal_pemeliharaan": detail["jadwal_pemeliharaan"]?.toString(),
+          "tindakan": detail["tindakan"]?.toString(),
         };
       case WoKategoriForm.meter:
         return {
-          "nomorMeter": detail["nomor_meter"],
-          "kondisiMeterAwal": detail["kondisi_meter_awal"],
+          "nomor_meter": detail["nomor_meter"],
+          "kondisi_meter_awal": detail["kondisi_meter_awal"],
+          "kondisi_meter_akhir": detail["kondisi_meter_akhir"]?.toString(),
+          "hasil_kalibrasi": detail["hasil_kalibrasi"]?.toString(),
         };
       default:
         return const {};
@@ -256,6 +315,28 @@ class _DetailWorkOrderPageMasukState
           assignees = state.users;
         }
 
+        // Capture hasil progress di LISTENER (bukan builder) supaya nilai pasti
+        // ter-commit + dijamin rebuild lewat setState. Sebelumnya capture di
+        // builder bikin render section progress bergantung pada state mana yang
+        // kebetulan "current" saat rebuild → progress kadang hilang di buka
+        // pertama (race tiga fetch yang berbagi satu bloc).
+        if (state is ProgressesLoaded) {
+          setState(() {
+            progresses = state.progresses;
+          });
+        }
+        if (state is ProgressByMemberLoaded) {
+          setState(() {
+            progressByMember = state.progressByMember;
+            _memberLoadError = null;
+          });
+        }
+        if (state is ProgressByMemberError) {
+          setState(() {
+            _memberLoadError = state.message;
+          });
+        }
+
         if (state is WorkOrderCreated &&
             _isSubmitting &&
             !_hasClosedAfterCreate) {
@@ -271,7 +352,10 @@ class _DetailWorkOrderPageMasukState
             if (!mounted) return;
             AppSnackbar.showSuccess("Work order berhasil dibuat.");
             final route = ModalRoute.of(context);
-
+            // Hanya pop kalau route ini masih aktif (isCurrent) dan belum
+            // sedang di-pop oleh proses lain. Ini mencegah assertion
+            // `entry.currentState == _RouteLifecycle.popping` yang terjadi
+            // saat Navigator.pop dipanggil pada route yang sudah dispatch pop.
             if (route != null &&
                 route.isActive &&
                 route.isCurrent &&
@@ -303,20 +387,22 @@ class _DetailWorkOrderPageMasukState
         }
         if (state is WorkOrderDetailLoaded) {
           status = state.workOrder.statusId;
+          statusName = state.workOrder.statusName;
+          isActive = state.workOrder.isActive;
           splId = state.workOrder.splId;
-          final bool canAssignStaff =
-              isDetailMode &&
-              !_isManager &&
-              !widget.isAssignee &&
-              state.workOrder.statusId == WorkOrderStatusId.ditugaskanKeSpv;
-          debugPrint(
-            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment = ${state.workOrder.assignment}",
+          final bool canAssignStaff = _canAssignStaffFor(
+            statusName: statusName,
+            statusId: status,
+            isActive: isActive,
           );
           debugPrint(
-            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment?.assignee = ${state.workOrder.assignment?.assignee}",
+            "📢 DetailWorkOrderPage: state.workOrder.assignment = ${state.workOrder.assignment}",
           );
           debugPrint(
-            "📢 DetailWorkOrderPageMasuk: state.workOrder.assignment?.assignee?.employee?.name = ${state.workOrder.assignment?.assignee?.employee?.name}",
+            "📢 DetailWorkOrderPage: state.workOrder.assignment?.assignee = ${state.workOrder.assignment?.assignee}",
+          );
+          debugPrint(
+            "📢 DetailWorkOrderPage: state.workOrder.assignment?.assignee?.employee?.name = ${state.workOrder.assignment?.assignee?.employee?.name}",
           );
           setState(() {
             _detailErrorMessage = null;
@@ -335,6 +421,10 @@ class _DetailWorkOrderPageMasukState
                         state.workOrder.prioritas!.substring(1).toLowerCase())
                   : "Sedang",
               "lokasi":
+                  state.workOrder.lokasiText ??
+                  state.workOrder.assignment?.location?.nama ??
+                  "",
+              "lokasiPengaduan":
                   state.workOrder.lokasiText ??
                   state.workOrder.assignment?.location?.nama ??
                   "",
@@ -381,15 +471,9 @@ class _DetailWorkOrderPageMasukState
         _checkDataLoaded();
       },
       child: BlocBuilder<WorkOrderBloc, WorkOrderState>(
+        // Builder murni untuk render — capture state progress ditangani di
+        // listener di atas agar tidak bergantung urutan kedatangan state.
         builder: (context, state) {
-          if (state is ProgressesLoaded) {
-            progresses = state.progresses;
-          }
-          if (state is ProgressByMemberLoaded) {
-            setState(() {
-              progressByMember = state.progressByMember;
-            });
-          }
           if (isDetailMode && !isDataLoaded) {
             if (_detailErrorMessage != null) {
               return Center(
@@ -424,7 +508,10 @@ class _DetailWorkOrderPageMasukState
                           ),
                         )
                       : null,
-                  body: (state is WorkOrderLoading && isDetailMode)
+                  // Spinner penuh hanya saat detail belum siap. Setelah form
+                  // tampil (isDataLoaded), WorkOrderLoading dari fetch progress
+                  // TIDAK boleh menutup form yang sudah ada.
+                  body: (state is WorkOrderLoading && isDetailMode && !isDataLoaded)
                       ? const Center(child: CircularProgressIndicator())
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(16.0),
@@ -438,11 +525,11 @@ class _DetailWorkOrderPageMasukState
   }
 
   Widget _buildFormContent(List<WorkOrderProgressEntity>? progresses) {
-    final bool canAssignStaff =
-        isDetailMode &&
-        !_isManager &&
-        !widget.isAssignee &&
-        (status ?? widget.status) == WorkOrderStatusId.ditugaskanKeSpv;
+    final bool canAssignStaff = _canAssignStaffFor(
+      statusName: statusName,
+      statusId: status ?? widget.status,
+      isActive: isActive,
+    );
 
     final formFields = (isDetailMode)
         ? FormFieldsConfig.getDetailWorkOrderFields(
@@ -469,69 +556,10 @@ class _DetailWorkOrderPageMasukState
           onFieldChanged: _onFieldChanged,
           customWidgets: CustomFieldWidgets.fields,
         ),
-        !widget.isAssignee &&
-                progresses != null &&
-                progresses.isNotEmpty &&
-                progresses.first.description != null
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Pelaporan Work Order", style: textTheme.displayMedium),
-                  const SizedBox(height: 10),
-                  ...progresses
-                      .where(
-                        (progressIndex) => progressIndex.description != null,
-                      )
-                      .map(
-                        (progressIndex) => ProgressCard(
-                          type: progressIndex.progressType!,
-                          index: progressIndex.order!,
-                          description: progressIndex.description,
-                          dateTime: _resolveProgressDateTime(progressIndex),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WorkOrderReportPage(
-                                  mode: progressIndex.progressType!,
-                                  status: widget.status,
-                                  progressId: progressIndex.id,
-                                  workOrderId: widget.workOrderId,
-                                  kategoriForm:
-                                      formData["kategoriForm"] as String?,
-                                  initialKategoriData: formData,
-                                  lngLat:
-                                      (formData["latitude"] != null &&
-                                          formData["longitude"] != null)
-                                      ? LatLng(
-                                          (formData["latitude"] as num)
-                                              .toDouble(),
-                                          (formData["longitude"] as num)
-                                              .toDouble(),
-                                        )
-                                      : null,
-                                  locationName:
-                                      formData["locationName"] as String?,
-                                  radiusMeter:
-                                      (formData["radiusMeter"] as int?) ?? 100,
-                                  workOrderTypeName:
-                                      formData["workOrderTypeName"] as String?,
-                                  workOrderTypeId:
-                                      formData["workOrderTypeId"] as int?,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  const SizedBox(height: 16),
-                ],
-              )
-            : const SizedBox(),
-        // Progress Individual Anggota (untuk SPV)
-        !widget.isAssignee && progressByMember != null
-            ? _buildMemberProgressSection()
-            : const SizedBox(),
+        // Progress Individual Anggota (untuk SPV). Keputusan tampilan
+        // (data / error+retry / kosong) diserahkan ke _buildMemberProgressSection
+        // agar kegagalan load tidak disembunyikan diam-diam.
+        !widget.isAssignee ? _buildMemberProgressSection() : const SizedBox(),
         widget.isAssignee
             ? const SizedBox()
             : _buildActionButtons(canAssignStaff: canAssignStaff),
@@ -540,69 +568,97 @@ class _DetailWorkOrderPageMasukState
   }
 
   Widget _buildMemberProgressSection() {
-    if (progressByMember == null || progressByMember!.members.isEmpty) {
+    final bool hasData =
+        progressByMember != null && progressByMember!.members.isNotEmpty;
+
+    // Load gagal dan belum ada data → munculkan error + retry (jangan diam2).
+    if (_memberLoadError != null && !hasData) {
+      return _buildMemberProgressError();
+    }
+
+    // Masih loading / benar-benar belum ada anggota → tidak menampilkan apa-apa.
+    if (!hasData) {
       return const SizedBox();
     }
 
+    return IndividualProgressSection(
+      progressByMember: progressByMember!,
+      status: widget.status,
+      kategoriForm: formData["kategoriForm"] as String?,
+      lngLat: (formData["latitude"] != null && formData["longitude"] != null)
+          ? LatLng(
+              (formData["latitude"] as num).toDouble(),
+              (formData["longitude"] as num).toDouble(),
+            )
+          : null,
+      locationName: formData["locationName"] as String?,
+      radiusMeter:
+          (formData["radiusMeter"] as int?) ?? MapsSeedModel.defaultRadiusMeter,
+      workOrderTypeName: formData["workOrderTypeName"] as String?,
+      workOrderTypeId: formData["workOrderTypeId"] as int?,
+      isOvertime: widget.isOvertime,
+    );
+  }
+
+  Widget _buildMemberProgressError() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Text("Progress Anggota Tim", style: textTheme.displayMedium),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[100]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Progress Anggota Tim", style: textTheme.displayMedium),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${progressByMember!.members.length} Anggota',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue[700],
+              Row(
+                children: [
+                  Icon(Icons.error_outline, size: 20, color: Colors.red[400]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _memberLoadError ?? "Gagal memuat progress anggota tim.",
+                      style: TextStyle(fontSize: 13, color: Colors.red[700]),
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () {
+                    context.read<WorkOrderBloc>().add(
+                      GetProgressByMemberEvent(widget.workOrderId!),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text("Muat ulang"),
                 ),
               ),
             ],
           ),
         ),
-
-        // Member List
-        ...progressByMember!.members.map((member) {
-          return MemberProgressCard(
-            member: member,
-            isExpanded: false,
-            status: widget.status,
-            kategoriForm: formData["kategoriForm"] as String?,
-            lngLat:
-                (formData["latitude"] != null && formData["longitude"] != null)
-                ? LatLng(
-                    (formData["latitude"] as num).toDouble(),
-                    (formData["longitude"] as num).toDouble(),
-                  )
-                : null,
-            locationName: formData["locationName"] as String?,
-            radiusMeter: (formData["radiusMeter"] as int?) ?? 100,
-            workOrderTypeName: formData["workOrderTypeName"] as String?,
-            workOrderTypeId: formData["workOrderTypeId"] as int?,
-          );
-        }),
         const SizedBox(height: 16),
       ],
     );
   }
 
-
-
+  // Halaman ini menangani DUA tahap lifecycle WO dalam satu page (dibedakan
+  // oleh status, bukan oleh file terpisah):
+  //   • MODE "MASUK"  → status Pending/ditugaskanKeSpv, SPV BELUM assign.
+  //                     Tampil form + tombol Assign (canAssignStaff == true).
+  //   • MODE "KELUAR" → sudah di-assign. Read-only + "Progress Anggota Tim".
   Widget _buildActionButtons({required bool canAssignStaff}) {
     // If creating a new work order, show submit button
     if (widget.workOrderId == null) {
@@ -612,6 +668,7 @@ class _DetailWorkOrderPageMasukState
       );
     }
 
+    // MODE MASUK: SPV menugaskan staff (assign).
     if (canAssignStaff) {
       return ButtonInteraction(
         status: null,
@@ -636,6 +693,8 @@ class _DetailWorkOrderPageMasukState
       );
     }
 
+    // For all other cases (already approved, rejected, in progress, etc.)
+    // Don't show any buttons (read-only mode)
     return const SizedBox();
   }
 
@@ -728,7 +787,9 @@ class _DetailWorkOrderPageMasukState
                 nama: locationName,
                 latitude: latitude ?? 0,
                 longitude: longitude ?? 0,
-                radiusMeter: _toInt(formData["radiusMeter"]) ?? 1000,
+                radiusMeter:
+                    _toInt(formData["radiusMeter"]) ??
+                    MapsSeedModel.defaultRadiusMeter,
               )
             : null,
       ),
@@ -744,6 +805,23 @@ class _DetailWorkOrderPageMasukState
 
   Future<void> _validateAndAssignStaff() async {
     if (_isSubmitting || widget.workOrderId == null) return;
+
+    // Assignment hanya boleh dilakukan pada jam kerja 09:00–16:00.
+    // Pengecualian: WO berprioritas Urgent boleh di-assign kapan saja.
+    final bool isUrgent =
+        _readTrimmedString("prioritas").toLowerCase() == "urgent";
+    if (!isUrgent) {
+      final TimeOfDay now = TimeOfDay.now();
+      final int nowMinutes = now.hour * 60 + now.minute;
+      const int mulaiMenit = 9 * 60; // 09:00
+      const int selesaiMenit = 16 * 60; // 16:00
+      if (nowMinutes < mulaiMenit || nowMinutes > selesaiMenit) {
+        AppSnackbar.showError(
+          "Assignment hanya dapat dilakukan pada pukul 09:00–16:00.",
+        );
+        return;
+      }
+    }
 
     final List<UserEntity> selectedAssignees = _toUserEntityList(
       formData[_assigneeKey],
@@ -771,6 +849,10 @@ class _DetailWorkOrderPageMasukState
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
+    // Build form_kategori berdasarkan kategoriForm.
+    // Field kategori "awal" kini diisi oleh staff lapangan saat menekan
+    // "Mulai" (lihat WorkOrderReportPage). SPV cukup menentukan petugas, PIC,
+    // dan deskripsi, sehingga form_kategori dikirim kosong.
     final String kategoriForm = _readTrimmedString("kategoriForm");
     final String kategori = kategoriForm.isEmpty
         ? WoKategoriForm.meter
@@ -782,6 +864,8 @@ class _DetailWorkOrderPageMasukState
     final int? locationId = _toInt(formData["locationId"]);
     final String locationName = _readTrimmedString("locationName");
 
+    // Location is considered unset if locationId is null, locationName is empty,
+    // coordinates are null/zero, or coordinates match the default fallback (-7.2704960, 112.5672211).
     final bool isDefaultLocation =
         assignLatitude != null &&
         assignLongitude != null &&
@@ -797,27 +881,41 @@ class _DetailWorkOrderPageMasukState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Lokasi Belum Ditentukan'),
+          title: const Text('Lokasi Belum Ditentukan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           content: const Text(
             'Lokasi penugasan belum diatur. Apakah Anda yakin ingin melanjutkan penugasan ke staff tanpa lokasi?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.primary,
               ),
-              child: const Text('Ya, Lanjutkan'),
+              child: const Text('Mohon di set lokasi'),
             ),
           ],
         ),
       );
 
       if (confirmed != true) {
+        return;
+      }
+    }
+
+    // Lokasi penugasan yang dipilih SPV harus sama dengan lokasi pengaduan.
+    // Bandingkan nama lokasi pilihan vs lokasi asli pengaduan (dinormalisasi
+    // dengan normalizer yang sama dengan pencarian lokasi).
+    final String chosenLocationName = _readTrimmedString("locationName");
+    final String pengaduanLokasi = _readTrimmedString("lokasiPengaduan");
+    if (chosenLocationName.isNotEmpty && pengaduanLokasi.isNotEmpty) {
+      final bool sameLocation =
+          MapsSeedModel.normalize(chosenLocationName) ==
+          MapsSeedModel.normalize(pengaduanLokasi);
+      if (!sameLocation) {
+        AppSnackbar.showError(
+          "Lokasi penugasan harus sama dengan lokasi pengaduan "
+          "($pengaduanLokasi).",
+        );
         return;
       }
     }
@@ -856,6 +954,7 @@ class _DetailWorkOrderPageMasukState
       lokasi: lokasiText.isEmpty ? null : lokasiText,
       latitude: assignLatitude,
       longitude: assignLongitude,
+      radiusMeter: _toInt(formData["radiusMeter"]),
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       estimasiSelesai: estimasiSelesai,
@@ -888,17 +987,5 @@ class _DetailWorkOrderPageMasukState
     final message =
         (result as DataFailed).error?.toString() ?? "Gagal assign staff.";
     AppSnackbar.showError(message);
-  }
-
-  String? _resolveProgressDateTime(WorkOrderProgressEntity progress) {
-    final DateTime? sourceTime =
-        progress.submitTime ?? progress.updatedAt ?? progress.createdAt;
-    if (sourceTime == null) return null;
-    return _formatEndDateTime(sourceTime);
-  }
-
-  String _formatEndDateTime(DateTime dateTime) {
-    final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm \'WIB\'');
-    return formatter.format(dateTime);
   }
 }

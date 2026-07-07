@@ -19,32 +19,39 @@ class GetPeminjamanByWoEvent extends MaterialEvent {
 
 class PinjamMaterialEvent extends MaterialEvent {
   final int workOrderId;
-  final int materialId;
+  final String materialKode;
   final int jumlahPinjam;
   final String? catatan;
 
   const PinjamMaterialEvent({
     required this.workOrderId,
-    required this.materialId,
+    required this.materialKode,
     required this.jumlahPinjam,
     this.catatan,
   });
 
   @override
-  List<Object?> get props => [workOrderId, materialId, jumlahPinjam, catatan];
+  List<Object?> get props => [workOrderId, materialKode, jumlahPinjam, catatan];
 }
 
 class KembalikanMaterialEvent extends MaterialEvent {
   final int peminjamanId;
   final int jumlahKembali;
+  final int jumlahRusak;
   final String? kondisiKembali;
 
   const KembalikanMaterialEvent({
     required this.peminjamanId,
     required this.jumlahKembali,
+    this.jumlahRusak = 0,
     this.kondisiKembali,
   });
 
   @override
-  List<Object?> get props => [peminjamanId, jumlahKembali, kondisiKembali];
+  List<Object?> get props => [
+    peminjamanId,
+    jumlahKembali,
+    jumlahRusak,
+    kondisiKembali,
+  ];
 }

@@ -42,11 +42,28 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     String? search,
   ) async {
     try {
+      String? statusStr;
+      if (status != null && status.isNotEmpty) {
+        final firstId = status.first;
+        if (firstId == 12) {
+          statusStr = 'Pending';
+        } else if (firstId == 13 || firstId == 7 || firstId == 5) {
+          statusStr = 'Proses';
+        } else if (firstId == 6) {
+          statusStr = 'Selesai';
+        } else if (firstId == 17) {
+          statusStr = 'Tutup';
+        }
+      } else if (excludeStatus != null && excludeStatus.isNotEmpty) {
+        if (excludeStatus.contains(12) && excludeStatus.contains(6)) {
+          statusStr = 'Proses';
+        }
+      }
+
       final queryParameters = {
         'page': page,
         'limit': limit,
-        if (status != null) 'status': status.join(','),
-        if (excludeStatus != null) 'exclude_status': excludeStatus.join(','),
+        if (statusStr != null) 'status': statusStr,
         if (picId != null) 'pic_id': picId,
         if (userId != null) 'user_id': userId,
         if (type != null) 'type': type,
@@ -90,6 +107,18 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
       final Map<String, dynamic> payload = _extractWorkOrderPayload(
         response.data,
       );
+
+      if (payload['workorder_assignment'] == null &&
+          payload['work_order_assignment'] == null &&
+          payload['assignment'] == null) {
+        final Map<String, dynamic>? assignmentMap = await _fetchAssignmentMap(
+          id,
+        );
+        if (assignmentMap != null) {
+          payload['workorder_assignment'] = assignmentMap;
+        }
+      }
+
       final data = WorkOrderModel.fromMap(payload);
       return DataSuccess(data);
     } catch (e) {
@@ -100,6 +129,22 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         ),
       );
     }
+  }
+
+  
+  Future<Map<String, dynamic>?> _fetchAssignmentMap(int id) async {
+    try {
+      final response = await get(path: '/v1/workorder/$id/assignment');
+      final dynamic raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        final dynamic data = raw['data'];
+        if (data is Map) return Map<String, dynamic>.from(data);
+        if (raw.containsKey('id')) return Map<String, dynamic>.from(raw);
+      }
+    } catch (e) {
+      debugPrint('ℹ️ fetchWorkOrderDetail: assignment WO $id tidak tersedia: $e');
+    }
+    return null;
   }
 
   Future<DataState<WorkOrderModel>> createWorkOrder(
@@ -156,10 +201,6 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     WorkOrderModel workOrder,
   ) async {
     try {
-      // BE rute resmi: PUT /v1/workorder/{id} (lihat FE_adjustment_BE.md §3).
-      // Sebelumnya kita masih nge-hit `/v1/mobile/workorder/{id}` yang sudah
-      // tidak ada di routes Laravel — selalu 404. Diluruskan ke endpoint
-      // canonical-nya.
       final response = await put(
         path: '/v1/workorder/${workOrder.id}',
         data: workOrder.toMap(),
@@ -207,6 +248,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     double? longitude,
     String? lokasi,
     double? accuracy,
+    int? radiusMeter,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     DateTime? estimasiSelesai,
@@ -214,7 +256,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     try {
       final petugas = staffIds.asMap().entries.map((entry) {
         return {
-          'user_id': entry.value,
+          'pegawai_id': entry.value,
           'peran': entry.key == 0 ? 'koordinator' : 'anggota',
         };
       }).toList();
@@ -242,6 +284,7 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (accuracy != null) 'accuracy': accuracy,
+        if (radiusMeter != null) 'radius_meter': radiusMeter,
         if (tanggalMulai != null) 'tanggal_mulai': formatDateTime(tanggalMulai),
         if (tanggalSelesai != null)
           'tanggal_selesai': formatDateTime(tanggalSelesai),

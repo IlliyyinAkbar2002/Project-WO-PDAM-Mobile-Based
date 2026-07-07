@@ -5,13 +5,13 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/domain/repositor
 
 class PinjamMaterialParams {
   final int workOrderId;
-  final int materialId;
+  final String materialKode;
   final int jumlahPinjam;
   final String? catatan;
 
   PinjamMaterialParams({
     required this.workOrderId,
-    required this.materialId,
+    required this.materialKode,
     required this.jumlahPinjam,
     this.catatan,
   });
@@ -32,7 +32,7 @@ class PinjamMaterial
   ) {
     return _repository.pinjamMaterial(
       workOrderId: params.workOrderId,
-      materialId: params.materialId,
+      materialKode: params.materialKode,
       jumlahPinjam: params.jumlahPinjam,
       catatan: params.catatan,
     );

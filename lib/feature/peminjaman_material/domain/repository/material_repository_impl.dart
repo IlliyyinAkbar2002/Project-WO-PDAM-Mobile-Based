@@ -24,13 +24,13 @@ class MaterialRepositoryImpl implements MaterialRepository {
   @override
   Future<DataState<PeminjamanMaterialEntity>> pinjamMaterial({
     required int workOrderId,
-    required int materialId,
+    required String materialKode,
     required int jumlahPinjam,
     String? catatan,
   }) async {
     return await _remoteDataSource.pinjamMaterial(
       workOrderId: workOrderId,
-      materialId: materialId,
+      materialKode: materialKode,
       jumlahPinjam: jumlahPinjam,
       catatan: catatan,
     );
@@ -40,11 +40,13 @@ class MaterialRepositoryImpl implements MaterialRepository {
   Future<DataState<PeminjamanMaterialEntity>> kembalikanMaterial({
     required int peminjamanId,
     required int jumlahKembali,
+    int jumlahRusak = 0,
     String? kondisiKembali,
   }) async {
     return await _remoteDataSource.kembalikanMaterial(
       peminjamanId: peminjamanId,
       jumlahKembali: jumlahKembali,
+      jumlahRusak: jumlahRusak,
       kondisiKembali: kondisiKembali,
     );
   }

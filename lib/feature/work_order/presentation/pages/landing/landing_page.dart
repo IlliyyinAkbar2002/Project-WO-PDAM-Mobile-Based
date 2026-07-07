@@ -4,12 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/notification_bloc.dart';
 import 'package:project_mobile_pdam/config/theme/app_color.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assigner_page/assigner_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_masuk/assigner_page/assigner_work_order_masuk_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assigner_page/assigner_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/assignment_wo/assigner_page/assigner_work_order_masuk_page.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
-import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/persetujuan_peminjaman_barang.dart';
+import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/approval/approval_pengembalian_peminjaman_asset.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/pengajuan_lembur/pengajuan_lembur.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/pengajuan_lembur/riwayat_pengajuan_lembur.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/auth/presentation/login.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/profile/notifications.dart';
@@ -112,14 +113,16 @@ class _LandingPageState extends AppStatePage<LandingPage> {
   void initState() {
     super.initState();
     final user = AuthStorage.getUserSync();
-    final userId = user?['id'] as int?;
+    // Identitas daftar WO berbasis pegawai (assignment & assigned_to memakai
+    // m_pegawai), bukan users.id. Lihat skema MergerManual.
+    final pegawaiId = user?['pegawai_id'] as int?;
 
     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
 
     context.read<WorkOrderBloc>().add(
       GetWorkOrdersEvent(
-        userId: isSpv ? null : userId,
-        picId: isSpv ? userId : null,
+        userId: isSpv ? null : pegawaiId,
+        picId: isSpv ? pegawaiId : null,
       ),
     );
   }

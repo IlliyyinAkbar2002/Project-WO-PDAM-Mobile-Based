@@ -15,7 +15,17 @@ import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/
 
 class PeminjamanItemListPage extends StatefulWidget {
   final int? workOrderId;
-  const PeminjamanItemListPage({super.key, this.workOrderId});
+
+  /// Mode pengembalian: dibuka dari tombol "Kembalikan Material" setelah WO
+  /// "Selesai". Langsung membuka tab "Peminjaman Saya" dan menyembunyikan tab
+  /// peminjaman (Daftar Stok) agar staf hanya mengembalikan material yang dipakai.
+  final bool returnMode;
+
+  const PeminjamanItemListPage({
+    super.key,
+    this.workOrderId,
+    this.returnMode = false,
+  });
 
   @override
   State<PeminjamanItemListPage> createState() => _PeminjamanItemListPageState();
@@ -32,18 +42,21 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
   bool get _isStaff {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    return roleId == 3 && AuthStorage.getJabatanKodeSync() != 'SPV';
+    return roleId == 4 && AuthStorage.getJabatanKodeSync() != 'SPV';
   }
 
   bool get _isSpv {
     final user = AuthStorage.getUserSync();
     final roleId = user?['role_id'] as int?;
-    return roleId == 3 && AuthStorage.getJabatanKodeSync() == 'SPV';
+    return roleId == 4 && AuthStorage.getJabatanKodeSync() == 'SPV';
   }
 
   @override
   void initState() {
     super.initState();
+    if (widget.returnMode) {
+      _activeSegment = 1; // langsung ke "Peminjaman Saya"
+    }
     _fetchData();
     _searchController.addListener(() {
       setState(() {
@@ -111,7 +124,8 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
               return Column(
                 children: [
                   _buildHeader(context),
-                  if (widget.workOrderId != null) _buildSegmentControl(),
+                  if (widget.workOrderId != null && !widget.returnMode)
+                    _buildSegmentControl(),
                   Expanded(
                     child: _activeSegment == 0
                         ? _buildStockTab(state, isStaff)
@@ -186,7 +200,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Inventory Material',
+            widget.returnMode ? 'Pengembalian Material' : 'Inventori Material',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: const Color(0xFF101828),
               fontWeight: FontWeight.w800,
@@ -247,59 +261,59 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildChipTab('All'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('Perpipaan'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('Fitting'),
-                  const SizedBox(width: 8),
-                  _buildChipTab('SR'),
-                ],
-              ),
-            ),
+            // const SizedBox(height: 12),
+            // SizedBox(
+            //   height: 40,
+            //   child: ListView(
+            //     scrollDirection: Axis.horizontal,
+            //     children: [
+            //       _buildChipTab('All'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('Perpipaan'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('Fitting'),
+            //       const SizedBox(width: 8),
+            //       _buildChipTab('SR'),
+            //     ],
+            //   ),
+            // ),
           ],
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFD1D5DC)),
+          // const SizedBox(height: 10),
+          // const Divider(height: 1, color: Color(0xFFD1D5DC)),
         ],
       ),
     );
   }
 
-  Widget _buildChipTab(String category) {
-    final isActive = _selectedCategory == category;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedCategory = category;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF155DFC) : Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isActive ? Colors.transparent : const Color(0xFFE5E7EB),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            category,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isActive ? Colors.white : const Color(0xFF4A5565),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildChipTab(String category) {
+  //   final isActive = _selectedCategory == category;
+  //   return GestureDetector(
+  //     onTap: () {
+  //       setState(() {
+  //         _selectedCategory = category;
+  //       });
+  //     },
+  //     child: Container(
+  //       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+  //       decoration: BoxDecoration(
+  //         color: isActive ? const Color(0xFF155DFC) : Colors.white,
+  //         borderRadius: BorderRadius.circular(999),
+  //         border: Border.all(
+  //           color: isActive ? Colors.transparent : const Color(0xFFE5E7EB),
+  //         ),
+  //       ),
+  //       child: Center(
+  //         child: Text(
+  //           category,
+  //           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+  //             color: isActive ? Colors.white : const Color(0xFF4A5565),
+  //             fontWeight: FontWeight.w700,
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildSegmentControl() {
     return Container(
@@ -531,7 +545,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Kode: ${m.kodeMaterial} • Satuan: ${m.satuan}',
+                        'Kode: ${m.kodeMaterial}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF6A7282),
                         ),
@@ -547,7 +561,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '$available ${m.satuan ?? ""} tersedia',
+                            '$available tersedia',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: const Color(0xFF4A5565),
@@ -596,7 +610,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                   ).then((_) => _fetchData());
                 },
                 child: const Text(
-                  'Request to Borrow',
+                  'Permohonan Pinjaman',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -665,9 +679,8 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
 
   Widget _buildBorrowedCard(PeminjamanMaterialEntity item, bool isStaff) {
     final matName =
-        item.material?.namaMaterial ?? 'Material #${item.materialId}';
+        item.material?.namaMaterial ?? 'Material #${item.materialKode}';
     final matCat = item.material?.kategori ?? 'Umum';
-    final matSatuan = item.material?.satuan ?? '';
     final isBorrowed = item.status == 'DIPINJAM';
 
     return Container(
@@ -735,21 +748,38 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Jumlah: ${item.jumlahPinjam} $matSatuan',
+                            'Jumlah: ${item.jumlahPinjam}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF374151),
                             ),
                           ),
-                          if (item.jumlahKembali != null)
-                            Text(
-                              'Kembali: ${item.jumlahKembali} $matSatuan',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF059669),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (item.jumlahTerpasang != null) ...[
+                                Text(
+                                  'Terpasang: ${item.jumlahTerpasang}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFEA580C),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (item.jumlahKembali != null)
+                                  const SizedBox(width: 10),
+                              ],
+                              if (item.jumlahKembali != null)
+                                Text(
+                                  'Kembali: ${item.jumlahKembali}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF059669),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
@@ -758,7 +788,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
               ),
             ],
           ),
-          if (isStaff && isBorrowed) ...[
+          if (isStaff && isBorrowed && widget.returnMode) ...[
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF3F4F6)),
             const SizedBox(height: 12),

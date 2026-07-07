@@ -66,7 +66,7 @@ class MaterialBloc extends Bloc<MaterialEvent, MaterialState> {
     final result = await pinjamMaterial(
       PinjamMaterialParams(
         workOrderId: event.workOrderId,
-        materialId: event.materialId,
+        materialKode: event.materialKode,
         jumlahPinjam: event.jumlahPinjam,
         catatan: event.catatan,
       ),
@@ -87,6 +87,7 @@ class MaterialBloc extends Bloc<MaterialEvent, MaterialState> {
       KembalikanMaterialParams(
         peminjamanId: event.peminjamanId,
         jumlahKembali: event.jumlahKembali,
+        jumlahRusak: event.jumlahRusak,
         kondisiKembali: event.kondisiKembali,
       ),
     );

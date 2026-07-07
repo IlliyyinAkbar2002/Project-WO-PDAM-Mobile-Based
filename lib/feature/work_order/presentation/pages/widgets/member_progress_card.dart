@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_progress_entity.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/work_order_report_page_lembur.dart';
 
 /// Widget untuk menampilkan progress individual satu anggota tim.
 ///
@@ -20,6 +23,13 @@ class MemberProgressCard extends StatefulWidget {
   final int radiusMeter;
   final String? workOrderTypeName;
   final int? workOrderTypeId;
+  final bool isOvertime;
+  final bool isLeader;
+  final bool showAvatar;
+  final bool flat;
+
+  /// Margin pembungkus. Default mengikuti perilaku lama.
+  final EdgeInsetsGeometry? margin;
 
   const MemberProgressCard({
     super.key,
@@ -30,9 +40,14 @@ class MemberProgressCard extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100,
+    this.radiusMeter = MapsSeedModel.defaultRadiusMeter,
     this.workOrderTypeName,
     this.workOrderTypeId,
+    this.isOvertime = false,
+    this.isLeader = false,
+    this.showAvatar = false,
+    this.flat = false,
+    this.margin,
   });
 
   @override
@@ -41,35 +56,62 @@ class MemberProgressCard extends StatefulWidget {
 
 class _MemberProgressCardState extends State<MemberProgressCard> {
   bool _isExpanded = false;
+  bool _showAllProgress = false;
 
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.isExpanded;
+    // Leader (PIC) terbuka secara default agar riwayatnya langsung terlihat.
+    _isExpanded = widget.isExpanded || widget.isLeader;
   }
 
   @override
   Widget build(BuildContext context) {
+    final content = InkWell(
+      onTap: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+        widget.onTap?.call();
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: EdgeInsets.all(widget.flat ? 4 : 16),
+        child: _buildContent(),
+      ),
+    );
+
+    // Mode flat: tanpa pembungkus Card, dipakai sebagai konten di dalam
+    // container luar (mis. leader/PIC di section "Tim Lapangan").
+    if (widget.flat) {
+      return Material(color: Colors.transparent, child: content);
+    }
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _isExpanded = !_isExpanded;
-          });
-          widget.onTap?.call();
-        },
+      margin: widget.margin ??
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: widget.isLeader ? 3 : 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        side: widget.isLeader
+            ? BorderSide(color: Colors.blue.shade200, width: 1.5)
+            : BorderSide.none,
+      ),
+      child: content,
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Nama, Jabatan, PIC Badge
+              // Header: Avatar, Nama, Jabatan, PIC Badge
               Row(
                 children: [
+                  if (widget.showAvatar) ...[
+                    _buildAvatar(),
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +151,30 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                             ],
                           ],
                         ),
+                        if (widget.isLeader) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size: 14,
+                                color: Colors.blue[700],
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Penanggung Jawab Lapangan',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue[700],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 4),
                         Text(
                           widget.member.jabatan,
@@ -138,36 +204,6 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Statistics Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatItem(
-                      'Total Laporan',
-                      '${widget.member.progressList.length}',
-                      Icons.assignment,
-                      Colors.blue,
-                    ),
-                  ),
-                  if (widget.member.progressList.isNotEmpty)
-                    Expanded(
-                      child: _buildStatItem(
-                        'Status Terakhir',
-                        widget.member.progressList.first.progressType ??
-                            'Progress',
-                        widget.member.progressList.first.isSelesai
-                            ? Icons.check_circle
-                            : Icons.sync,
-                        widget.member.progressList.first.isSelesai
-                            ? Colors.green
-                            : Colors.orange,
-                      ),
-                    ),
-                ],
-              ),
-
               // Expanded Section: Progress List
               if (_isExpanded) ...[
                 const SizedBox(height: 16),
@@ -192,58 +228,74 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                     ),
                   )
                 else
-                  ...widget.member.progressList.take(5).map((progress) {
-                    return _buildProgressItem(progress);
-                  }),
+                  ...(_showAllProgress
+                          ? widget.member.progressList
+                          : widget.member.progressList.take(5))
+                      .map((progress) {
+                        return _buildProgressItem(progress);
+                      }),
                 if (widget.member.progressList.length > 5)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Center(
-                      child: Text(
-                        '+ ${widget.member.progressList.length - 5} progress lainnya',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showAllProgress = !_showAllProgress;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            _showAllProgress
+                                ? 'Tampilkan lebih sedikit'
+                                : '+ ${widget.member.progressList.length - 5} progress lainnya',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
               ],
             ],
-          ),
+          );
+  }
+
+  Widget _buildAvatar() {
+    final initials = _initials(widget.member.nama);
+    final isLeader = widget.isLeader;
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: isLeader ? Colors.blue : Colors.grey[100],
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: isLeader ? Colors.white : Colors.grey[700],
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: value.length > 3 ? 14 : 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
+  /// Inisial dari nama: huruf pertama dari maksimal dua kata pertama.
+  String _initials(String nama) {
+    final parts = nama
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
   Widget _buildProgressItem(dynamic progress) {
@@ -261,20 +313,34 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => WorkOrderReportPage(
-                  mode: progress.progressType ?? '-',
-                  status: widget.status,
-                  isAssignee: false,
-                  progressId: progress.id,
-                  workOrderId: progress.workOrderId,
-                  workOrderTypeId: widget.workOrderTypeId,
-                  lngLat: widget.lngLat,
-                  locationName: widget.locationName,
-                  radiusMeter: widget.radiusMeter,
-                  kategoriForm: widget.kategoriForm,
-                  workOrderTypeName: widget.workOrderTypeName,
-                  initialDescription: progress.description,
-                ),
+                builder: (_) => widget.isOvertime
+                    ? WorkOrderReportPageLembur(
+                        mode: progress.progressType ?? '-',
+                        status: widget.status,
+                        isAssignee: false,
+                        progressId: progress.id,
+                        workOrderId: progress.workOrderId,
+                        workOrderTypeId: widget.workOrderTypeId,
+                        lngLat: widget.lngLat,
+                        locationName: widget.locationName,
+                        radiusMeter: widget.radiusMeter,
+                        kategoriForm: widget.kategoriForm,
+                        initialDescription: progress.description,
+                      )
+                    : WorkOrderReportPage(
+                        mode: progress.progressType ?? '-',
+                        status: widget.status,
+                        isAssignee: false,
+                        progressId: progress.id,
+                        workOrderId: progress.workOrderId,
+                        workOrderTypeId: widget.workOrderTypeId,
+                        lngLat: widget.lngLat,
+                        locationName: widget.locationName,
+                        radiusMeter: widget.radiusMeter,
+                        kategoriForm: widget.kategoriForm,
+                        workOrderTypeName: widget.workOrderTypeName,
+                        initialDescription: progress.description,
+                      ),
               ),
             );
           },
@@ -302,7 +368,7 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        progress.progressType ?? 'Progress',
+                        _progressLabel(progress),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -332,6 +398,14 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
         ),
       ),
     );
+  }
+
+  /// Label riwayat = tipe + order (pembeda unik) digabung nama tahapan bila ada.
+  /// Contoh: "Progress 3 · Pengerjaan". Nama tahapan dari kolom `tahapan`.
+  String _progressLabel(dynamic progress) {
+    final String base = progress.progressType ?? 'Progress';
+    final String? tahapanName = TahapanWorkorder.label(progress.tahapan);
+    return tahapanName != null ? '$base · $tahapanName' : base;
   }
 
   Color _getProgressTypeColor(int? tipeProgressId) {

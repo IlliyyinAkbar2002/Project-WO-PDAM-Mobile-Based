@@ -10,6 +10,7 @@ class MaterialModel extends MaterialEntity {
     super.satuan,
     super.jumlahStok,
     super.terpakai,
+    super.rusak,
   });
 
   factory MaterialModel.fromMap(Map<String, dynamic> map) {
@@ -29,6 +30,7 @@ class MaterialModel extends MaterialEntity {
       terpakai: map['terpakai'] != null
           ? int.tryParse(map['terpakai'].toString())
           : null,
+      rusak: map['rusak'] != null ? int.tryParse(map['rusak'].toString()) : null,
     );
   }
 
@@ -41,6 +43,7 @@ class MaterialModel extends MaterialEntity {
       'satuan': satuan,
       'jumlah_stok': jumlahStok,
       'terpakai': terpakai,
+      'rusak': rusak,
     };
   }
 

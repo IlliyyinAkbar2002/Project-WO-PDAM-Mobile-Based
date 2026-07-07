@@ -7,11 +7,13 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
   const PeminjamanMaterialModel({
     super.id,
     super.workorderId,
-    super.materialId,
+    super.materialKode,
     super.userId,
     super.jumlahPinjam,
     super.waktuPinjam,
     super.jumlahKembali,
+    super.jumlahRusak,
+    super.jumlahTerpasang,
     super.waktuKembali,
     super.kondisiKembali,
     super.status,
@@ -23,7 +25,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
     return PeminjamanMaterialModel(
       id: map['id'],
       workorderId: map['workorder_id'],
-      materialId: map['material_id'] ?? (map['material_kode'] != null ? int.tryParse(map['material_kode'].toString()) : null),
+      materialKode: map['material_kode']?.toString(),
       userId: map['user_id'] ?? map['diajukan_oleh'],
       jumlahPinjam: map['jumlah_pinjam'] != null
           ? int.tryParse(map['jumlah_pinjam'].toString())
@@ -33,6 +35,12 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
           : (map['diajukan_at'] != null ? DateTime.tryParse(map['diajukan_at'].toString())?.toLocal() : null),
       jumlahKembali: map['jumlah_kembali'] != null
           ? int.tryParse(map['jumlah_kembali'].toString())
+          : null,
+      jumlahRusak: map['jumlah_rusak'] != null
+          ? int.tryParse(map['jumlah_rusak'].toString())
+          : null,
+      jumlahTerpasang: map['jumlah_terpasang'] != null
+          ? int.tryParse(map['jumlah_terpasang'].toString())
           : null,
       waktuKembali: map['waktu_kembali'] != null
           ? DateTime.tryParse(map['waktu_kembali'].toString())?.toLocal()
@@ -52,11 +60,13 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
     return {
       'id': id,
       'workorder_id': workorderId,
-      'material_id': materialId,
+      'material_kode': materialKode,
       'user_id': userId,
       'jumlah_pinjam': jumlahPinjam,
       'waktu_pinjam': waktuPinjam?.toIso8601String(),
       'jumlah_kembali': jumlahKembali,
+      'jumlah_rusak': jumlahRusak,
+      'jumlah_terpasang': jumlahTerpasang,
       'waktu_kembali': waktuKembali?.toIso8601String(),
       'kondisi_kembali': kondisiKembali,
       'status': status,

@@ -5,11 +5,17 @@ import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_enti
 class PeminjamanMaterialEntity extends Equatable {
   final int? id;
   final int? workorderId;
-  final int? materialId;
+  final String? materialKode;
   final int? userId;
   final int? jumlahPinjam;
   final DateTime? waktuPinjam;
   final int? jumlahKembali;
+  final int? jumlahRusak;
+
+  /// Jumlah material yang terpasang/dikonsumsi permanen (= jumlah_pinjam −
+  /// jumlah_kembali). Nullable: `null` saat status `DIPINJAM` dan setelah
+  /// verifikasi `REJECTED`; terisi mulai `PENDING_KEMBALI` dan `DIKEMBALIKAN`.
+  final int? jumlahTerpasang;
   final DateTime? waktuKembali;
   final String? kondisiKembali;
   final String? status;
@@ -19,11 +25,13 @@ class PeminjamanMaterialEntity extends Equatable {
   const PeminjamanMaterialEntity({
     this.id,
     this.workorderId,
-    this.materialId,
+    this.materialKode,
     this.userId,
     this.jumlahPinjam,
     this.waktuPinjam,
     this.jumlahKembali,
+    this.jumlahRusak,
+    this.jumlahTerpasang,
     this.waktuKembali,
     this.kondisiKembali,
     this.status,
@@ -35,11 +43,13 @@ class PeminjamanMaterialEntity extends Equatable {
   List<Object?> get props => [
     id,
     workorderId,
-    materialId,
+    materialKode,
     userId,
     jumlahPinjam,
     waktuPinjam,
     jumlahKembali,
+    jumlahRusak,
+    jumlahTerpasang,
     waktuKembali,
     kondisiKembali,
     status,

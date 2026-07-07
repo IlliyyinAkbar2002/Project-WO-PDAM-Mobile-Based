@@ -4,17 +4,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_progress_entity.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/work_order_report_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/work_order_report_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/pages/inventory/peminjaman_item_list.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/progress_card.dart';
-import 'package:project_mobile_pdam/core/constants/tahapan_labels.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/tahapan_stepper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
@@ -66,7 +67,8 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = 100, // Default 100 meter jika tidak ada
+    this.radiusMeter =
+        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
   });
 
   @override
@@ -140,7 +142,37 @@ class _AssigneeWorkOrderDetailPageState
     if (workOrderBloc.state is WorkOrderDetailLoaded) {
       _workOrder = (workOrderBloc.state as WorkOrderDetailLoaded).workOrder;
     }
+    // Muat detail WO (termasuk assignment: koordinat & lokasi) supaya titik
+    // peta bisa diteruskan ke WorkOrderReportPage. lngLat dari daftar WO kosong
+    // karena endpoint index BE tidak menyertakan assignment.
+    if (widget.workOrderId != null) {
+      workOrderBloc.add(GetWorkOrderDetailEvent(widget.workOrderId!));
+    }
   }
+
+  /// Titik peta WO. Prioritaskan nilai dari konstruktor (daftar WO); bila kosong
+  /// — yang terjadi pada BE terintegrasi karena index tidak memuat assignment —
+  /// ambil dari assignment hasil fetch detail.
+  LatLng? get _resolvedLngLat {
+    if (widget.lngLat != null) return widget.lngLat;
+    final assignment = _workOrder?.assignment;
+    final double? lat = assignment?.latitude ?? assignment?.location?.latitude;
+    final double? lng =
+        assignment?.longitude ?? assignment?.location?.longitude;
+    if (lat != null && lng != null) return LatLng(lat, lng);
+    return null;
+  }
+
+  String? get _resolvedLocationName =>
+      widget.locationName ?? _workOrder?.assignment?.location?.nama;
+
+  int get _resolvedRadiusMeter =>
+      _workOrder?.assignment?.location?.radiusMeter ?? widget.radiusMeter;
+
+  /// Status WO terkini. `widget.status` dibekukan saat halaman dibuka, sehingga
+  /// basi setelah staf submit "Selesai" (status BE berpindah ke pengecekan).
+  /// Utamakan `statusId` dari detail WO yang ikut ter-refresh lewat WorkOrderBloc.
+  int? get _liveStatus => _workOrder?.statusId ?? widget.status;
 
   /// Fetch progresses directly from remote data source — bypass BLoC
   /// to avoid race condition with shared WorkOrderBloc state.
@@ -214,9 +246,7 @@ class _AssigneeWorkOrderDetailPageState
       return const Center(child: CircularProgressIndicator());
     }
 
-    final List<WorkOrderProgressEntity> visibleProgresses = progresses
-        .where((p) => !p.isDibatalkan)
-        .toList();
+    final List<WorkOrderProgressEntity> visibleProgresses = progresses;
 
     final bool hasInspeksi = visibleProgresses.any((item) => item.isInspeksi);
     final bool hasMulai = visibleProgresses.any((item) => item.isMulai);
@@ -234,7 +264,8 @@ class _AssigneeWorkOrderDetailPageState
             status: widget.status,
             enableInnerScroll: false,
           ),
-          if (_workOrder != null) _buildTahapanStepper(),
+          if (_workOrder != null)
+            TahapanStepper(workOrder: _workOrder, progresses: progresses),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -292,9 +323,11 @@ class _AssigneeWorkOrderDetailPageState
               ],
             ),
           ],
-          if (hasSelesai &&
-              (widget.status == WorkOrderStatusId.pengecekan ||
-                  widget.status == WorkOrderStatusId.selesai)) ...[
+          // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
+          // ke status WO numerik (5/6): BE terintegrasi memakai status string
+          // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
+          // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
+          if (hasSelesai) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -307,6 +340,7 @@ class _AssigneeWorkOrderDetailPageState
                         MaterialPageRoute(
                           builder: (_) => PeminjamanItemListPage(
                             workOrderId: widget.workOrderId,
+                            returnMode: true,
                           ),
                         ),
                       );
@@ -319,125 +353,6 @@ class _AssigneeWorkOrderDetailPageState
               ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTahapanStepper() {
-    int computedTahapan = 0;
-    if (_workOrder?.tahapanTertinggi != null) {
-      computedTahapan = _workOrder!.tahapanTertinggi!;
-    } else {
-      for (final p in progresses) {
-        if (!p.isDibatalkan &&
-            p.tahapan != null &&
-            p.tahapan! > computedTahapan) {
-          computedTahapan = p.tahapan!;
-        }
-      }
-    }
-
-    final labels = tahapanLabelsFor(_workOrder?.workOrderType?.name);
-
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.foreground[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Tahapan Pekerjaan',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: List.generate(4, (index) {
-              final stepTahapan = index + 1;
-              final isCompleted = computedTahapan >= stepTahapan;
-              final isCurrent =
-                  computedTahapan + 1 == stepTahapan && computedTahapan != 4;
-              // Jika selesai semua, step 4 akan isCompleted=true, isCurrent=false
-
-              final Color circleColor = isCompleted
-                  ? color.status[2]! // hijau
-                  : isCurrent
-                  ? color.primary[500]! // biru primary
-                  : color.foreground[300]!; // abu-abu
-
-              return Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: isCompleted
-                                  ? circleColor
-                                  : Colors.transparent,
-                              border: Border.all(color: circleColor, width: 2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: isCompleted
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
-                                : isCurrent
-                                ? Center(
-                                    child: Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: circleColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            labels[index],
-                            textAlign: TextAlign.center,
-                            style: textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              fontWeight: isCurrent || isCompleted
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: isCurrent || isCompleted
-                                  ? color.foreground[900]
-                                  : color.foreground[500],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (index < 3)
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 11),
-                          height: 2,
-                          color: isCompleted
-                              ? color.status[2]
-                              : color.foreground[200],
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          ),
         ],
       ),
     );
@@ -469,14 +384,14 @@ class _AssigneeWorkOrderDetailPageState
               MaterialPageRoute(
                 builder: (_) => WorkOrderReportPage(
                   mode: progress.progressType ?? '-',
-                  status: widget.status,
+                  status: _liveStatus,
                   isAssignee: widget.isAssignee,
                   progressId: progress.id,
                   workOrderId: widget.workOrderId,
                   workOrderTypeId: widget.workOrderTypeId,
-                  lngLat: widget.lngLat,
-                  locationName: widget.locationName,
-                  radiusMeter: widget.radiusMeter,
+                  lngLat: _resolvedLngLat,
+                  locationName: _resolvedLocationName,
+                  radiusMeter: _resolvedRadiusMeter,
                   kategoriForm: widget.kategoriForm,
                   initialKategoriData: _workOrder != null
                       ? _buildKategoriFormData(_workOrder!)
@@ -491,88 +406,8 @@ class _AssigneeWorkOrderDetailPageState
             }
           },
         ),
-        if (progress.canCancel)
-          Positioned(top: 8, right: 8, child: _buildCancelButton(progress)),
       ],
     );
-  }
-
-  Widget _buildCancelButton(WorkOrderProgressEntity progress) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _confirmCancel(progress),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.danger.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.danger, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.undo, size: 14, color: color.danger),
-              const SizedBox(width: 4),
-              Text(
-                'Batalkan',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color.danger,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmCancel(WorkOrderProgressEntity progress) async {
-    final String message =
-        'Laporan ini akan dibatalkan. Tindakan ini tidak dapat diurungkan.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan Laporan?'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Tidak'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: color.danger),
-            child: const Text('Ya, Batalkan'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    await _executeCancelProgress(progress);
-  }
-
-  Future<void> _executeCancelProgress(WorkOrderProgressEntity progress) async {
-    if (progress.id == null) return;
-    final result = await _progressRemoteDataSource.cancelProgress(progress.id!);
-    if (!mounted) return;
-    if (result is DataSuccess) {
-      final String successMsg = 'Laporan berhasil dibatalkan.';
-      AppSnackbar.showSuccess(successMsg);
-      _handleRefresh();
-    } else {
-      final errorMsg = result.error?.response?.data is Map
-          ? (result.error!.response!.data['message'] ??
-                'Gagal membatalkan laporan.')
-          : 'Gagal membatalkan laporan. Mungkin sudah melewati batas waktu 5 menit.';
-      AppSnackbar.showError(errorMsg.toString());
-    }
   }
 
   Future<bool> _needsPinjamMaterialFirst() async {
@@ -629,6 +464,75 @@ class _AssigneeWorkOrderDetailPageState
     }
   }
 
+  /// Tahap tertinggi yang sudah tersubmit (acuan urutan tahapan). Dihitung dari
+  /// daftar [progresses] — sama seperti [TahapanStepper]. Detail WO dari BE
+  /// tidak mengembalikan `tahapan_tertinggi`, jadi `_workOrder.tahapanTertinggi`
+  /// umumnya null; gunakan progress sebagai sumber yang andal.
+  int _highestSubmittedTahapan() {
+    final entityVal = _workOrder?.tahapanTertinggi;
+    if (entityVal != null) return entityVal;
+    int computed = 0;
+    for (final p in progresses) {
+      if (p.tahapan != null && p.tahapan! > computed) {
+        computed = p.tahapan!;
+      }
+    }
+    return computed;
+  }
+
+  Future<void> _showBelumWaktunyaReminder(DateTime scheduledStart) async {
+    final String tanggal = DateFormat('dd/MM/yyyy').format(scheduledStart);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Belum Waktunya',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Work order ini dijadwalkan mulai pada $tanggal. '
+          'Anda belum dapat memulainya sebelum tanggal tersebut.',
+          style: const TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTahapanIncompleteReminder() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Tahapan Belum Selesai',
+          style: TextStyle(
+            color: Color(0xFF001F54),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Selesaikan tahap Pengujian terlebih dahulu sebelum menyelesaikan '
+          'work order. Tahapan harus dikerjakan berurutan.',
+          style: TextStyle(color: Color(0xFF001F54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(String mode, {bool disabled = false}) {
     // Map mode 'Laporan' ke tipeProgressId 2 (Progress) di WorkOrderReportPage
     final String reportMode = mode == 'Laporan' ? 'Progress' : mode;
@@ -641,6 +545,30 @@ class _AssigneeWorkOrderDetailPageState
       }
       _isNavigatingToReport = true;
       try {
+        if (mode == 'Mulai' || mode == 'Inspeksi') {
+          final DateTime? rawStart =
+              _workOrder?.assignment?.startDateTime ??
+              _workOrder?.startDateTime;
+          if (rawStart != null) {
+            // startDateTime bisa ber-flag UTC → normalisasi dulu sebelum
+            // dibandingkan (lihat work_order_model).
+            final DateTime scheduledStart = rawStart.isUtc
+                ? rawStart.toLocal()
+                : rawStart;
+            final DateTime now = DateTime.now();
+            final DateTime startDay = DateTime(
+              scheduledStart.year,
+              scheduledStart.month,
+              scheduledStart.day,
+            );
+            final DateTime todayDay = DateTime(now.year, now.month, now.day);
+            if (todayDay.isBefore(startDay)) {
+              await _showBelumWaktunyaReminder(scheduledStart);
+              return;
+            }
+          }
+        }
+
         // Pencegatan tombol "Mulai": bila belum ada peminjaman material untuk
         // WO ini, arahkan staff untuk meminjam material lebih dulu.
         if (mode == 'Mulai') {
@@ -652,24 +580,34 @@ class _AssigneeWorkOrderDetailPageState
           }
         }
 
+        // Pencegatan tombol "Selesai": tahap Pengujian (3) harus tercapai dulu
+        // agar WO tidak diselesaikan dengan melompati tahapan (Bug 3).
+        if (mode == 'Selesai' &&
+            _highestSubmittedTahapan() < TahapanWorkorder.pengujian) {
+          await _showTahapanIncompleteReminder();
+          return;
+        }
+
         final bool? shouldRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (_) => WorkOrderReportPage(
               mode: reportMode,
-              status: widget.status,
+              status: _liveStatus,
               isAssignee: widget.isAssignee,
               progressId: null,
               workOrderId: widget.workOrderId,
               workOrderTypeId: widget.workOrderTypeId,
-              lngLat: widget.lngLat,
-              locationName: widget.locationName,
-              radiusMeter: widget.radiusMeter,
+              lngLat: _resolvedLngLat,
+              locationName: _resolvedLocationName,
+              radiusMeter: _resolvedRadiusMeter,
               kategoriForm: widget.kategoriForm,
               initialKategoriData: _workOrder != null
                   ? _buildKategoriFormData(_workOrder!)
                   : null,
               workOrderTypeName: _workOrder?.workOrderType?.name,
+              prioritas: _workOrder?.prioritas,
+              currentTahapanTertinggi: _highestSubmittedTahapan(),
             ),
           ),
         );

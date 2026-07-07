@@ -47,7 +47,7 @@ class _StatsCard extends StatelessWidget {
     const muted = Color(0xFF90A1B9);
     const iconBg = Color(0xFFEAF1FF);
     const iconColor = Color(0xFF2E7BFF);
-    const liveBg = Color(0xFFFFF4B8);
+    // const liveBg = Color(0xFFFFF4B8);
     const successText = Color(0xFF009966);
     const trendStart = Color(0xFF2E7BFF);
     const trendEnd = Color(0xFF0B2A6B);
@@ -98,7 +98,7 @@ class _StatsCard extends StatelessWidget {
                 .toList();
 
             if (areas.isEmpty) {
-              focusArea = 'All Sectors';
+              focusArea = 'No Sectors';
             } else if (areas.length == 1) {
               focusArea = areas.first;
             } else if (areas.length <= 2) {
@@ -244,25 +244,25 @@ class _StatsCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: liveBg,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'Live',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: navy,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
+                  // Container(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     horizontal: 8,
+                  //     vertical: 3,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: liveBg,
+                  //     borderRadius: BorderRadius.circular(999),
+                  //   ),
+                  //   child: Text(
+                  //     'Live',
+                  //     style: textTheme.labelSmall?.copyWith(
+                  //       color: navy,
+                  //       fontSize: 11,
+                  //       fontWeight: FontWeight.w500,
+                  //       height: 1.5,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -283,7 +283,8 @@ class _StatsCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Expanded(
+                    Offstage(
+                      offstage: true,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

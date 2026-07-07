@@ -40,11 +40,7 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         normalized == 'approve' ||
         normalized == 'setuju') {
       return 'accept';
-    } else if (normalized == 'reject' ||
-        normalized == 'tolak' ||
-        normalized == 'rejected') {
-      return 'tolak';
-    } else if (normalized == 'revision' ||
+    }else if (normalized == 'revision' ||
         normalized == 'revisi' ||
         normalized == 'revise') {
       return 'revisi';
@@ -131,20 +127,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
       final dioError = _toDioException(e, '/v1/progress-workorder');
       _logDioError('fetchProgressByWorkOrderId', dioError);
       debugPrint("❌ fetchProgressByWorkOrderId stack: $st");
-      return DataFailed(dioError);
-    }
-  }
-
-  Future<DataState<void>> cancelProgress(int progressId) async {
-    try {
-      await post(path: '/v1/progress-workorder/$progressId/cancel');
-      return const DataSuccess(null);
-    } catch (e) {
-      final dioError = _toDioException(
-        e,
-        '/v1/progress-workorder/$progressId/cancel',
-      );
-      _logDioError('cancelProgress', dioError);
       return DataFailed(dioError);
     }
   }
@@ -462,12 +444,6 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         final decision = _normalizeReviewDecision(
           workOrderProgress.reviewAction!,
         );
-        // BE kontrak (§9 FE_adjustment_BE.md):
-        //   - decision=accept   → kirim `approval_notes` (catatan SPV)
-        //   - decision=revisi   → kirim `alasan_penolakan` + opsional `field_to_revise`
-        //   - decision=tolak    → kirim `alasan_penolakan`
-        // Multipart pakai field tunggal (BE menerima string biasa, bukan array
-        // dengan bracket) supaya Laravel `Validator::make` baca langsung.
         final String note = (workOrderProgress.description ?? '').trim();
         formData.fields.add(
           MapEntry('progress_id', workOrderProgress.id.toString()),
@@ -476,8 +452,9 @@ class WorkOrderProgressRemoteDataSource extends RemoteDatasource {
         if (note.isNotEmpty) {
           if (decision == 'accept') {
             formData.fields.add(MapEntry('approval_notes', note));
-          } else {
-            formData.fields.add(MapEntry('alasan_penolakan', note));
+          } else if (decision == 'revisi') {
+            // Key disamakan dengan kolom DB `alasan_revisi` (kontrak BE).
+            formData.fields.add(MapEntry('alasan_revisi', note));
           }
         }
         response = await post(

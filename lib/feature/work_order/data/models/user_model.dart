@@ -19,14 +19,15 @@ class UserModel extends UserEntity {
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     debugPrint("📢 parsing user: $map");
+    final hasFlatEmployee = map['pegawai'] == null && (map['nama'] != null || map['name'] != null);
     return UserModel(
       id: map['id'],
-      employeeId: map['pegawai_id'],
+      employeeId: map['pegawai_id'] ?? (hasFlatEmployee ? map['id'] : null),
       roleId: map['role_id'],
       email: map['email'],
       employee: map['pegawai'] != null
           ? EmployeeModel.fromMap(map['pegawai'])
-          : null,
+          : (hasFlatEmployee ? EmployeeModel.fromMap(map) : null),
     );
   }
 

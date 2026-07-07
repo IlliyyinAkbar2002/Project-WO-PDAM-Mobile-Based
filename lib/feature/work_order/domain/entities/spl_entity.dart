@@ -5,6 +5,11 @@ import 'user_entity.dart';
 class SplEntity extends Equatable {
   final int? id;
   final int? statusId;
+
+  /// Status enum string sesuai kontrak BE TARGET (MergerManual):
+  /// 'pending' | 'approved' | 'rejected'. Dipakai untuk PUT /v1/lembur-spl/{id}
+  /// — BE mewajibkan field `status` dan MENGABAIKAN `status_id`/`decision`.
+  final String? statusCode;
   final String? decision;
   final int? verificatorId;
   final DateTime? createdAt;
@@ -24,6 +29,7 @@ class SplEntity extends Equatable {
   const SplEntity({
     this.id,
     this.statusId,
+    this.statusCode,
     this.decision,
     this.verificatorId,
     this.createdAt,
@@ -45,6 +51,7 @@ class SplEntity extends Equatable {
   List<Object?> get props => [
         id,
         statusId,
+        statusCode,
         decision,
         verificatorId,
         createdAt,
@@ -65,6 +72,7 @@ class SplEntity extends Equatable {
   SplEntity copyWith({
     int? id,
     int? statusId,
+    String? statusCode,
     String? decision,
     int? verificatorId,
     DateTime? createdAt,
@@ -84,6 +92,7 @@ class SplEntity extends Equatable {
     return SplEntity(
       id: id ?? this.id,
       statusId: statusId ?? this.statusId,
+      statusCode: statusCode ?? this.statusCode,
       decision: decision ?? this.decision,
       verificatorId: verificatorId ?? this.verificatorId,
       createdAt: createdAt ?? this.createdAt,

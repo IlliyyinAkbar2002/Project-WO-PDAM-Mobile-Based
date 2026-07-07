@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
+import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
+import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_state.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/assignee_page/assignee_work_order_detail_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assignee_page/assignee_work_order_detail_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_lembur/detail_work_order_page_lembur.dart';
 
 class WorkOrderList extends StatefulWidget {
@@ -18,6 +20,15 @@ class WorkOrderList extends StatefulWidget {
   final int? userId;
   final int? creatorId;
   final bool isAssignee;
+  final int? assignedToPegawaiId;
+  // final int? departemenId;
+  final bool onlyActive;
+  final List<String>? includeStatusNames;
+  final List<String>? excludeStatusNames;
+
+  /// Bila true, WO yang sudah diajukan lembur (`splId != null`) disembunyikan.
+  /// Dipakai WO Masuk supaya hanya WO reguler yang tampil.
+  final bool excludeLembur;
 
   const WorkOrderList({
     super.key,
@@ -27,6 +38,12 @@ class WorkOrderList extends StatefulWidget {
     this.userId,
     this.creatorId,
     this.isAssignee = false,
+    this.assignedToPegawaiId,
+    // this.departemenId,
+    this.onlyActive = false,
+    this.includeStatusNames,
+    this.excludeStatusNames,
+    this.excludeLembur = false,
   });
 
   @override
@@ -52,6 +69,12 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         excludeStatus: widget.excludeStatus,
         picId: widget.creatorId ?? widget.picId,
         userId: widget.userId,
+        assignedToPegawaiId: widget.assignedToPegawaiId,
+        // departemenId: widget.departemenId,
+        onlyActive: widget.onlyActive ? true : null,
+        includeStatusNames: widget.includeStatusNames,
+        excludeStatusNames: widget.excludeStatusNames,
+        excludeLembur: widget.excludeLembur ? true : null,
       ),
     );
   }
@@ -68,6 +91,12 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           excludeStatus: widget.excludeStatus,
           picId: widget.picId,
           userId: widget.userId,
+          assignedToPegawaiId: widget.assignedToPegawaiId,
+          //  departemenId: widget.departemenId,
+          onlyActive: widget.onlyActive ? true : null,
+          includeStatusNames: widget.includeStatusNames,
+          excludeStatusNames: widget.excludeStatusNames,
+          excludeLembur: widget.excludeLembur ? true : null,
         ),
       );
     }
@@ -172,7 +201,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
               : null;
           // Ambil radius dan nama lokasi dari location jika ada
           final radiusMeter =
-              workOrder.assignment?.location?.radiusMeter ?? 100;
+              workOrder.assignment?.location?.radiusMeter ??
+              MapsSeedModel.defaultRadiusMeter;
           final locationName = workOrder.assignment?.location?.nama;
           await Navigator.push(
             context,
@@ -253,19 +283,25 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         typeColor = color.success;
     }
 
-    final status = workOrder.status?.status;
-    final statusColor =
-        color.status[workOrder.status?.id ?? workOrder.statusId] ??
-        color.primary[100]!;
+    final status = WorkOrderStatusHelper.getLabel(workOrder);
+    final statusColor = WorkOrderStatusHelper.getColor(workOrder, color);
 
     return Wrap(
       spacing: 4,
       runSpacing: 4,
       children: [
-        if (workOrder.isLembur) _buildChip('Lembur', Colors.orange.shade700),
+        _buildChip(
+          workOrder.isLembur ? 'Lembur' : 'Normal',
+          workOrder.isLembur ? Colors.orange.shade700 : const Color(0xFF64748B),
+        ),
         _buildChip(typeLabel, typeColor),
-        if (status != null && status.isNotEmpty)
+        // if (workOrder.departemenNama != null &&
+        //     workOrder.departemenNama!.isNotEmpty)
+        //   _buildChip(workOrder.departemenNama!, const Color(0xFF0EA5E9)),
+        if (status.isNotEmpty && status != '-')
           _buildChip(status, statusColor),
+        if (workOrder.isActive == false)
+          _buildChip('Nonaktif', const Color(0xFF94A3B8)),
         if (_progresPersen(workOrder) != null)
           _buildChip('${_progresPersen(workOrder)}%', color.primary[500]!),
       ],

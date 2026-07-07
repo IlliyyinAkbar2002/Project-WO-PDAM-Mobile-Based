@@ -96,6 +96,7 @@ class FormFieldsConfig {
         "label": "Lokasi",
         "hint": "Nama lokasi",
         "isReadOnly": readOnlyInDetail,
+        "copyable": true,
       },
       {
         "key": "locationPicker",
@@ -131,7 +132,13 @@ class FormFieldsConfig {
         "key": "picId",
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
+        // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff).
         "options": assigneeOptions
+            .where(
+              (e) =>
+                  (e.employee?.jabatan ?? '').trim().toLowerCase() ==
+                  'staff senior',
+            )
             .map(
               (e) => {
                 "value": e.id,
@@ -183,6 +190,7 @@ class FormFieldsConfig {
           "key": "diameter_pipa",
           "label": "Diameter Pipa (inch)",
           "hint": "Contoh: 4",
+          "keyboardType": "number",
           "isReadOnly": isReadOnly,
         },
         {
@@ -247,10 +255,14 @@ class FormFieldsConfig {
           "isReadOnly": isReadOnly,
         },
         {
-          "type": "text",
+          "type": "dropdown",
           "key": "kondisi_meter_awal",
           "label": "Kondisi Meter Awal",
           "hint": "Contoh: Normal",
+          "options": [
+            {"value": "Normal", "label": "Normal"},
+            {"value": "Rusak", "label": "Rusak"},
+          ],
           "isReadOnly": isReadOnly,
         },
       ];
@@ -294,6 +306,7 @@ class FormFieldsConfig {
           "label": "Jadwal Pemeliharaan Selanjutnya",
           "hint": "Pilih tanggal",
           "isReadOnly": isReadOnly,
+          "noPast": true,
         },
         {
           "type": "textarea",

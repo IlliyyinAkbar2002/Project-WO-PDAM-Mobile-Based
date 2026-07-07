@@ -58,11 +58,6 @@ class WorkOrderLemburRepositoryImpl implements WorkOrderLemburRepository {
   }
 
   @override
-  Future<DataState<void>> cancelProgress(int progressId) async {
-    return _remoteDataSource.cancelProgress(progressId);
-  }
-
-  @override
   Future<DataState<List<dynamic>>> getProgressDetailsHistory(
     int progressWorkorderId,
   ) async {

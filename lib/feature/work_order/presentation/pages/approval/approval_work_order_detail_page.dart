@@ -4,7 +4,7 @@ import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/spl_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_keluar/detail_work_order_keluar/detail_work_order_page.dart';
+import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/detail_work_order/detail_work_order_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/button_interaction.dart';
 
 class ApprovalWorkOrderDetailPage extends StatefulWidget {
@@ -48,10 +48,13 @@ class _ApprovalWorkOrderDetailPageState
 
   void _onSubmit(String action) {
     final isAccept = action == 'Accept';
+    // Kontrak BE TARGET (MergerManual) PUT /v1/lembur-spl/{id} mewajibkan
+    // `status` enum ('approved'/'rejected'), bukan `status_id`. Lihat
+    // SplModel.toMap().
     final approval = SplModel(
       id: widget.splId,
-      statusId: isAccept ? 2 : 4,
-      decision: isAccept ? 'accept' : 'reject',
+      statusCode: isAccept ? 'approved' : 'rejected',
+      // verifikator_id = users.id approver (nullable di BE).
       verificatorId: widget.userId,
     );
 

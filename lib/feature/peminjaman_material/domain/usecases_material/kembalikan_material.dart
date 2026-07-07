@@ -6,11 +6,13 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/domain/repositor
 class KembalikanMaterialParams {
   final int peminjamanId;
   final int jumlahKembali;
+  final int jumlahRusak;
   final String? kondisiKembali;
 
   KembalikanMaterialParams({
     required this.peminjamanId,
     required this.jumlahKembali,
+    this.jumlahRusak = 0,
     this.kondisiKembali,
   });
 }
@@ -31,6 +33,7 @@ class KembalikanMaterial
     return _repository.kembalikanMaterial(
       peminjamanId: params.peminjamanId,
       jumlahKembali: params.jumlahKembali,
+      jumlahRusak: params.jumlahRusak,
       kondisiKembali: params.kondisiKembali,
     );
   }

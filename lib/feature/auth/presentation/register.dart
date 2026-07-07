@@ -1,15 +1,12 @@
 import 'dart:ui';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_mobile_pdam/config/app_config.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
+import 'package:project_mobile_pdam/core/auth/mobile_access.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/feature/auth/data/remote/auth_remote_data_source.dart';
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/landing/landing_page.dart'
-    as admin;
-import 'package:project_mobile_pdam/feature/work_order/presentation/pages/manajer/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/staff/landing_page.dart';
 
@@ -931,26 +928,22 @@ class _RegisterPageState extends State<RegisterPage> {
         await AuthStorage.saveToken(authResponse.token!);
       }
 
-      final meResult = await authDataSource.fetchMe();
-
       if (!mounted) return;
 
-      int? roleId = authResponse.user?['role_id'];
-      int? positionId;
+      // Respons login adalah sumber data terkaya. Pegawai yang belum di-ACC
+      // SuperAdmin belum terhubung ke data pegawai, sehingga jabatan_id null.
+      final rawUser = authResponse.user;
+      final roleId = rawUser?['role_id'] as int?;
+      final positionId = rawUser?['jabatan_id'] as int?;
 
-      if (meResult is DataSuccess<Map<String, dynamic>>) {
-        final userData = meResult.data!;
-        roleId = userData['role_id'] as int? ?? roleId;
-        positionId = userData['employee']?['position_id'] as int?;
-        await AuthStorage.saveUser(userData);
-      } else if (authResponse.user != null) {
-        await AuthStorage.saveUser(authResponse.user!);
+      if (rawUser != null) {
+        await AuthStorage.saveUser(AuthStorage.normalizeLoginUser(rawUser));
       }
 
       debugPrint('🎭 After-register Role ID: $roleId');
-      debugPrint('👔 After-register Position ID: $positionId');
+      debugPrint('👔 After-register Jabatan ID: $positionId');
 
-      // Jika pegawai belum di-ACC (position_id masih null) → jangan auto-masuk.
+      // Jika pegawai belum di-ACC (jabatan masih null) → jangan auto-masuk.
       if (positionId == null) {
         // Clear token supaya user harus re-login setelah di-ACC.
         await AuthStorage.clearAuth();
@@ -967,7 +960,7 @@ class _RegisterPageState extends State<RegisterPage> {
       await _showSuccessDialog();
       if (!mounted) return;
 
-      final targetPage = _resolveLandingPage(roleId: roleId);
+      final targetPage = _resolveLandingPage();
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => targetPage),
         (route) => false,
@@ -979,18 +972,11 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Widget _resolveLandingPage({required int? roleId}) {
-    if (roleId == 1) {
-      return const admin.LandingPage();
-    } else if (roleId == 2) {
-      return const ManajerLandingPage();
-    } else if (roleId == 3) {
-      if (AuthStorage.getJabatanKodeSync() == 'SPV') {
-        return const SpvLandingPage();
-      }
-      return const StaffLandingPage();
-    }
-    return const admin.LandingPage();
+  Widget _resolveLandingPage() {
+    // Mobile hanya untuk employee (Staff/SPV); SPV punya dashboard tersendiri.
+    return AuthStorage.getJabatanKodeSync() == JabatanKode.spv
+        ? const SpvLandingPage()
+        : const StaffLandingPage();
   }
 
   Future<void> _showSuccessDialog() {
