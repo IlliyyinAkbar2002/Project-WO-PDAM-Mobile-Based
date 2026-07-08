@@ -85,14 +85,28 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
         );
       } else if (result is DataFailed<String>) {
-        await _AuthDialogs.showError(
-          context,
-          title: 'Email Tidak Ditemukan',
-          message: _resolveErrorMessage(
-            result.error,
-            fallback: 'Email tidak terdaftar.',
-          ),
-        );
+        final apiException = _extractApiException(result.error);
+
+        if (apiException != null && apiException.isForbidden) {
+          // 403 → email terdaftar tapi akunnya non-aktif.
+          await _AuthDialogs.showError(
+            context,
+            title: 'Akun Tidak Aktif',
+            message: _resolveErrorMessage(
+              result.error,
+              fallback: 'Akun Anda tidak aktif. Silakan hubungi admin.',
+            ),
+          );
+        } else {
+          await _AuthDialogs.showError(
+            context,
+            title: 'Email Tidak Ditemukan',
+            message: _resolveErrorMessage(
+              result.error,
+              fallback: 'Email tidak terdaftar.',
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -299,6 +313,17 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 // ===========================================================================
 // Shared helpers / widgets
 // ===========================================================================
+
+/// Unwrap the [ApiException] the [ApiErrorInterceptor] attaches to a
+/// [DioException.error], if present. Lets callers branch on `statusCode`
+/// (e.g. [ApiException.isForbidden] vs [ApiException.isNotFound]) instead of
+/// pattern-matching on the error message text.
+ApiException? _extractApiException(dynamic error) {
+  if (error is DioException && error.error is ApiException) {
+    return error.error as ApiException;
+  }
+  return null;
+}
 
 /// Extract a user-friendly message from the [DataFailed] error. The
 /// [ApiErrorInterceptor] wraps backend errors into an [ApiException] whose
