@@ -73,7 +73,7 @@ class _AssignerWorkOrderListPageState
         excludeStatus: widget.excludeStatus,
         status: _currentFilter?.statusIds,
         userId: _currentFilter?.assigneeId,
-        type: _currentFilter?.workOrderTypeId,
+        kategori: _currentFilter?.kategoriForm,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -162,6 +162,8 @@ class _AssignerWorkOrderListPageState
               includeStatusNames: widget.includeStatusNames,
               excludeStatusNames: widget.excludeStatusNames,
               excludeLembur: widget.excludeLembur,
+              kategoriForm: _currentFilter?.kategoriForm,
+              onlyLembur: _currentFilter?.onlyLembur,
             ),
           ),
         ],

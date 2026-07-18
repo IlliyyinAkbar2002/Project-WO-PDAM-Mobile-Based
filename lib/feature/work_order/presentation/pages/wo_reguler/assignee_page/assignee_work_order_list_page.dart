@@ -51,7 +51,7 @@ class _AssigneeWorkOrderListPageState
       GetWorkOrdersEvent(
         userId: widget.userId,
         status: _currentFilter?.statusIds ?? activeStatuses,
-        type: _currentFilter?.workOrderTypeId,
+        kategori: _currentFilter?.kategoriForm,
         onlyLembur: _currentFilter?.onlyLembur,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
@@ -141,6 +141,8 @@ class _AssigneeWorkOrderListPageState
           WorkOrderStatusId.pengecekan,
         ],
         userId: widget.userId,
+        kategoriForm: _currentFilter?.kategoriForm,
+        onlyLembur: _currentFilter?.onlyLembur,
       ),
     );
   }

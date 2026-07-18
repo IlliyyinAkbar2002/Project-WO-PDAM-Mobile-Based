@@ -49,7 +49,7 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
       GetWorkOrdersEvent(
         userId: widget.userId,
         status: _currentFilter?.statusIds ?? historyStatuses,
-        type: _currentFilter?.workOrderTypeId,
+        kategori: _currentFilter?.kategoriForm,
         onlyLembur: _currentFilter?.onlyLembur,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
@@ -132,6 +132,8 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
                 WorkOrderStatusId.ditolakManager,
               ],
               userId: widget.userId,
+              kategoriForm: _currentFilter?.kategoriForm,
+              onlyLembur: _currentFilter?.onlyLembur,
             ),
           ),
         ],

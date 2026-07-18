@@ -44,6 +44,10 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
   /// true = hanya Lembur, false = hanya Normal. Dipakai filter WO Keluar.
   final bool? onlyLembur;
 
+  /// Filter kategori WO (FE-side via `kategoriForm`): 'jaringan' /
+  /// 'infrastruktur' / 'meter'. null = tak memfilter. Lihat WorkOrderBloc.
+  final String? kategori;
+
   GetWorkOrdersEvent({
     this.status,
     this.excludeStatus,
@@ -61,6 +65,7 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
     this.excludeStatusNames,
     this.excludeLembur,
     this.onlyLembur,
+    this.kategori,
   });
 }
 
@@ -82,6 +87,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
   final List<String>? excludeStatusNames;
   final bool? excludeLembur;
   final bool? onlyLembur;
+  final String? kategori;
 
   LoadMoreWorkOrdersEvent(
     this.page,
@@ -101,6 +107,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
     this.excludeStatusNames,
     this.excludeLembur,
     this.onlyLembur,
+    this.kategori,
   });
 }
 
@@ -121,6 +128,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
   final List<String>? excludeStatusNames;
   final bool? excludeLembur;
   final bool? onlyLembur;
+  final String? kategori;
 
   SearchWorkOrdersEvent(
     this.query, {
@@ -139,6 +147,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
     this.excludeStatusNames,
     this.excludeLembur,
     this.onlyLembur,
+    this.kategori,
   });
 }
 

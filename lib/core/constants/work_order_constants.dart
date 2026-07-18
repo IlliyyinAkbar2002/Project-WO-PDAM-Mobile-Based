@@ -102,6 +102,21 @@ class WorkOrderListFilterTypeId {
   static const int infrastruktur = 1;
   static const int jaringan = 2;
   static const int meter = 3;
+
+  /// Petakan id pilihan filter ke string kategori (`kategoriForm`) yang
+  /// dipakai untuk memfilter WO di sisi FE. Null = tidak memfilter kategori.
+  static String? kategoriOf(int? id) {
+    switch (id) {
+      case infrastruktur:
+        return 'infrastruktur';
+      case jaringan:
+        return 'jaringan';
+      case meter:
+        return 'meter';
+      default:
+        return null;
+    }
+  }
 }
 
 /// Kategori form WO — sesuai m_jenis_workorder.kategori_form di backend.

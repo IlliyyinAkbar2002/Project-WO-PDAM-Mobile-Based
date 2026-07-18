@@ -48,7 +48,7 @@ class _ApprovalWorkOrderListPageState
         status: _currentFilter?.statusIds ?? const [WorkOrderStatusId.selesai],
         picId: widget.picId,
         userId: _currentFilter?.assigneeId ?? widget.userId,
-        type: _currentFilter?.workOrderTypeId,
+        kategori: _currentFilter?.kategoriForm,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -127,6 +127,7 @@ class _ApprovalWorkOrderListPageState
                   const [WorkOrderStatusId.selesai],
               picId: widget.picId,
               userId: widget.userId,
+              kategoriForm: _currentFilter?.kategoriForm,
             ),
           ),
         ],

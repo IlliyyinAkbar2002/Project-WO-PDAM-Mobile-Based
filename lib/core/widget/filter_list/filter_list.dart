@@ -33,6 +33,10 @@ class FilterResult {
     this.onlyLembur,
   });
 
+  /// Kategori WO (`kategoriForm`) turunan dari [workOrderTypeId], untuk filter
+  /// FE-side. null = tidak memfilter kategori.
+  String? get kategoriForm => WorkOrderListFilterTypeId.kategoriOf(workOrderTypeId);
+
   bool get hasFilters =>
       workOrderTypeId != null ||
       assigneeId != null ||

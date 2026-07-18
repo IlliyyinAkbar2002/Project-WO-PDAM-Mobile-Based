@@ -850,8 +850,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
         .whereType<int>()
         .toList();
 
-    if (staffIds.isEmpty) {
-      AppSnackbar.showError("Minimal 1 petugas harus dipilih.");
+    if (staffIds.length < 2) {
+      AppSnackbar.showError("Minimal 2 petugas harus dipilih.");
       return;
     }
 

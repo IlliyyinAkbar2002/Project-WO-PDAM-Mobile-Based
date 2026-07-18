@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/resource/api_exception.dart';
 import 'package:project_mobile_pdam/core/usecase/usecase.dart';
+import 'package:project_mobile_pdam/core/utils/work_order_kategori_helper.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/form_usecases/get_forms_usecase.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/location_type_usecases/get_location_type_detail_usecase.dart';
@@ -200,6 +201,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               excludeStatusNames: event.excludeStatusNames,
               excludeLembur: event.excludeLembur,
               onlyLembur: event.onlyLembur,
+              kategoriForm: event.kategori,
             ),
           ),
         );
@@ -224,6 +226,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     List<String>? excludeStatusNames,
     bool? excludeLembur,
     bool? onlyLembur,
+    String? kategoriForm,
   }) {
     final include = includeStatusNames
         ?.map((s) => s.toLowerCase())
@@ -237,6 +240,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         onlyActive != true &&
         excludeLembur != true &&
         onlyLembur == null &&
+        kategoriForm == null &&
         (include == null || include.isEmpty) &&
         (exclude == null || exclude.isEmpty)) {
       return workOrders;
@@ -246,6 +250,10 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (excludeLembur == true && wo.isLembur) return false;
       if (onlyLembur == true && !wo.isLembur) return false; // hanya Lembur
       if (onlyLembur == false && wo.isLembur) return false; // hanya Normal
+      if (kategoriForm != null &&
+          WorkOrderKategoriHelper.resolve(wo) != kategoriForm) {
+        return false; // filter kategori (sama seperti chip di kartu)
+      }
       if (assignedToPegawaiId != null &&
           wo.assignedToPegawaiId != assignedToPegawaiId) {
         return false;
@@ -295,6 +303,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         excludeStatusNames: event.excludeStatusNames,
         excludeLembur: event.excludeLembur,
         onlyLembur: event.onlyLembur,
+        kategoriForm: event.kategori,
       );
       final updatedList = List<WorkOrderEntity>.from(
         (state as WorkOrderLoaded).workOrders,
@@ -478,6 +487,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               excludeStatusNames: event.excludeStatusNames,
               excludeLembur: event.excludeLembur,
               onlyLembur: event.onlyLembur,
+              kategoriForm: event.kategori,
             ),
           ),
         );

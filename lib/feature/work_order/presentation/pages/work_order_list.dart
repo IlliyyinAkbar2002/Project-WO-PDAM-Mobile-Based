@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
+import 'package:project_mobile_pdam/core/utils/work_order_kategori_helper.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_bloc.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/bloc/work_order_event.dart';
@@ -30,6 +31,16 @@ class WorkOrderList extends StatefulWidget {
   /// Dipakai WO Masuk supaya hanya WO reguler yang tampil.
   final bool excludeLembur;
 
+  /// Filter kategori WO (FE-side, via `kategoriForm`): 'jaringan' /
+  /// 'infrastruktur' / 'meter'. null = tak memfilter. Diteruskan ke tiap
+  /// fetch mandiri list (initState / load-more / kembali dari detail) supaya
+  /// filter kategori bertahan.
+  final String? kategoriForm;
+
+  /// Filter tipe WO (FE-side via `isLembur`). null = semua, true = Lembur,
+  /// false = Normal.
+  final bool? onlyLembur;
+
   const WorkOrderList({
     super.key,
     this.status,
@@ -44,6 +55,8 @@ class WorkOrderList extends StatefulWidget {
     this.includeStatusNames,
     this.excludeStatusNames,
     this.excludeLembur = false,
+    this.kategoriForm,
+    this.onlyLembur,
   });
 
   @override
@@ -75,6 +88,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         includeStatusNames: widget.includeStatusNames,
         excludeStatusNames: widget.excludeStatusNames,
         excludeLembur: widget.excludeLembur ? true : null,
+        onlyLembur: widget.onlyLembur,
+        kategori: widget.kategoriForm,
       ),
     );
   }
@@ -97,6 +112,8 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           includeStatusNames: widget.includeStatusNames,
           excludeStatusNames: widget.excludeStatusNames,
           excludeLembur: widget.excludeLembur ? true : null,
+          onlyLembur: widget.onlyLembur,
+          kategori: widget.kategoriForm,
         ),
       );
     }
@@ -254,13 +271,11 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
   }
 
   Widget _buildStatusChip(WorkOrderEntity workOrder) {
-    final kategori =
-        workOrder.kategoriForm ?? _inferKategoriFromType(workOrder);
+    final kategori = WorkOrderKategoriHelper.resolve(workOrder);
     debugPrint(
       "🎫 List chip — id: ${workOrder.id}, title: '${workOrder.title}', "
       "type: '${workOrder.workOrderType?.name}', "
       "model.kategoriForm: ${workOrder.kategoriForm}, "
-      "inferred: ${_inferKategoriFromType(workOrder)}, "
       "final: $kategori",
     );
     final String typeLabel;
@@ -346,30 +361,6 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         : Colors.white;
   }
 
-  /// Fallback: derive kategori dari nama workOrderType atau title WO
-  String? _inferKategoriFromType(WorkOrderEntity workOrder) {
-    final nama = workOrder.workOrderType?.name.toLowerCase() ?? '';
-    final title = workOrder.title.toLowerCase();
-    final combined = '$nama $title';
-    if (combined.contains('pipa') ||
-        combined.contains('jaringan') ||
-        combined.contains('saluran') ||
-        combined.contains('kebocoran')) {
-      return 'jaringan';
-    }
-    if (combined.contains('pompa') ||
-        combined.contains('reservoir') ||
-        combined.contains('infrastruktur') ||
-        combined.contains('aset') ||
-        combined.contains('inspeksi') ||
-        combined.contains('pemeliharaan')) {
-      return 'infrastruktur';
-    }
-    if (combined.contains('meter') || combined.contains('kalibrasi')) {
-      return 'meter';
-    }
-    return null;
-  }
 }
 
 class _WorkOrderListErrorView extends StatelessWidget {

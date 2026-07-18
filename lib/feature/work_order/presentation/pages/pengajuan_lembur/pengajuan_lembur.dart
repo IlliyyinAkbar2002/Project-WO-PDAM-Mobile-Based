@@ -596,8 +596,8 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (_alasanController.text.trim().isEmpty) {
       return 'Alasan lembur wajib diisi.';
     }
-    if (_selectedMembers.isEmpty) {
-      return 'Anggota tim wajib dipilih.';
+    if (_selectedMembers.length < 2) {
+      return 'Anggota tim minimal 2 orang.';
     }
     if (_koordinatorUserId == null) {
       return 'Koordinator wajib dipilih (jabatan Staff Senior).';
