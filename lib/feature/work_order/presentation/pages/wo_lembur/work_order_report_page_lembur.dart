@@ -130,9 +130,10 @@ class _WorkOrderReportPageLemburState
   Position? _currentPosition;
   final GeofenceService _geofence = sl<GeofenceService>();
 
-  /// Status geofence untuk banner UX. `_withinRange` null = belum/ gagal cek.
-  bool? _withinRange;
+  /// Status geofence untuk banner UX. `_geoStatus` null = belum/ gagal cek.
+  GeofenceStatus? _geoStatus;
   double? _lastDistanceMeters;
+  double? _accuracyMeters;
   bool _poorAccuracy = false;
   String? _geoStatusError;
 
@@ -912,6 +913,20 @@ class _WorkOrderReportPageLemburState
                     BitmapDescriptor.hueRed,
                   ),
                 ),
+                // Posisi perangkat (bila sudah dicek) — membantu staff melihat
+                // di mana GPS menaruh mereka relatif ke titik WO.
+                if (_currentPosition != null)
+                  Marker(
+                    markerId: const MarkerId('device_location'),
+                    position: LatLng(
+                      _currentPosition!.latitude,
+                      _currentPosition!.longitude,
+                    ),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueAzure,
+                    ),
+                    infoWindow: const InfoWindow(title: 'Posisi Anda'),
+                  ),
               },
               scrollGesturesEnabled: false,
               zoomGesturesEnabled: false,
@@ -1141,8 +1156,9 @@ class _WorkOrderReportPageLemburState
           if (!mounted) return;
           setState(() {
             _currentPosition = geo.position;
-            _withinRange = geo.withinRadius;
+            _geoStatus = geo.status;
             _lastDistanceMeters = geo.distanceMeters;
+            _accuracyMeters = geo.position.accuracy;
             _poorAccuracy = geo.accuracyPoor;
             _geoStatusError = null;
           });
@@ -1155,12 +1171,16 @@ class _WorkOrderReportPageLemburState
             );
           }
 
-          if (GeofenceService.enforceGeofence && !geo.withinRadius) {
+          // Gate memperhitungkan ketidakpastian GPS (allowed), bukan jarak
+          // mentah — mencegah penolakan keliru saat di dalam/di dekat batas.
+          if (GeofenceService.enforceGeofence && !geo.allowed) {
             setState(() => _isSubmitting = false);
             AppSnackbar.showError(
               "Anda berada di luar jangkauan lokasi WO "
               "(±${geo.distanceMeters.toStringAsFixed(0)} m, "
-              "radius ${widget.radiusMeter} m). Submit ditolak.",
+              "radius ${widget.radiusMeter} m, "
+              "akurasi GPS ±${geo.position.accuracy.toStringAsFixed(0)} m). "
+              "Submit ditolak.",
             );
             return;
           }
@@ -1634,8 +1654,9 @@ class _WorkOrderReportPageLemburState
       setState(() {
         _isCheckingDistance = false;
         _currentPosition = result.position;
-        _withinRange = result.withinRadius;
+        _geoStatus = result.status;
         _lastDistanceMeters = result.distanceMeters;
+        _accuracyMeters = result.position.accuracy;
         _poorAccuracy = result.accuracyPoor;
         _geoStatusError = null;
       });
@@ -1643,14 +1664,14 @@ class _WorkOrderReportPageLemburState
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
-        _withinRange = null;
+        _geoStatus = null;
         _geoStatusError = e.message;
       });
     } on TimeoutException catch (_) {
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
-        _withinRange = null;
+        _geoStatus = null;
         _geoStatusError = "Tidak dapat menentukan lokasi. Coba lagi.";
       });
     } catch (e) {
@@ -1658,7 +1679,7 @@ class _WorkOrderReportPageLemburState
       if (!mounted) return;
       setState(() {
         _isCheckingDistance = false;
-        _withinRange = null;
+        _geoStatus = null;
         _geoStatusError = "Error: ${e.toString()}";
       });
     }
@@ -1690,34 +1711,47 @@ class _WorkOrderReportPageLemburState
       );
     }
 
-    if (_withinRange != null) {
+    if (_geoStatus != null) {
       final dist = _lastDistanceMeters?.toStringAsFixed(0) ?? '-';
+      final acc = _accuracyMeters?.toStringAsFixed(0) ?? '-';
       final accNote = _poorAccuracy
           ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
           : "";
-      if (_withinRange == true) {
-        return _geoStatusBox(
-          bg: color.status[2]!.withValues(alpha: 0.12),
-          border: color.status[2]!,
-          icon: Icons.check_circle,
-          iconColor: color.status[2]!,
-          title: "Anda berada dalam jangkauan",
-          subtitle:
-              "±$dist m dari titik WO (radius ${widget.radiusMeter} m).$accNote",
-          showRecheck: true,
-        );
+      final detail =
+          "±$dist m dari titik WO (radius ${widget.radiusMeter} m, "
+          "akurasi GPS ±$acc m).";
+      switch (_geoStatus!) {
+        case GeofenceStatus.inside:
+          return _geoStatusBox(
+            bg: color.status[2]!.withValues(alpha: 0.12),
+            border: color.status[2]!,
+            icon: Icons.check_circle,
+            iconColor: color.status[2]!,
+            title: "Anda berada dalam jangkauan",
+            subtitle: "$detail$accNote",
+            showRecheck: true,
+          );
+        case GeofenceStatus.withinTolerance:
+          return _geoStatusBox(
+            bg: Colors.orange.withValues(alpha: 0.1),
+            border: Colors.orange,
+            icon: Icons.my_location,
+            iconColor: Colors.orange.shade800,
+            title: "Dalam jangkauan (perkiraan)",
+            subtitle: "$detail Submit diizinkan.$accNote",
+            showRecheck: true,
+          );
+        case GeofenceStatus.outside:
+          return _geoStatusBox(
+            bg: color.danger.withValues(alpha: 0.1),
+            border: color.danger,
+            icon: Icons.location_off,
+            iconColor: color.danger,
+            title: "Anda di luar jangkauan",
+            subtitle: "$detail Submit akan ditolak.$accNote",
+            showRecheck: true,
+          );
       }
-      return _geoStatusBox(
-        bg: color.danger.withValues(alpha: 0.1),
-        border: color.danger,
-        icon: Icons.location_off,
-        iconColor: color.danger,
-        title: "Anda di luar jangkauan",
-        subtitle:
-            "±$dist m dari titik WO (radius ${widget.radiusMeter} m). "
-            "Submit akan ditolak.$accNote",
-        showRecheck: true,
-      );
     }
 
     return const SizedBox.shrink();
