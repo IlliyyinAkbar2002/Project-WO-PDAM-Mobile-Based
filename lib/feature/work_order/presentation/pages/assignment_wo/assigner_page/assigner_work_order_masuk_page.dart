@@ -3,6 +3,7 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
+import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/approval/approval_work_order_list_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/wo_reguler/assigner_page/assigner_work_order_list_page.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/work_order_filter.dart';
@@ -56,6 +57,7 @@ class _AssignerWorkOrderMasukPageState
       return AssignerWorkOrderListPage(
         picId: widget.picId,
         assignedToPegawaiId: _assignedToPegawaiId,
+        filterVariant: WorkOrderFilterVariant.woMasuk,
         // departemenId: _departemenId,
         // WO Masuk = WO yang belum di-assign SPV (status `Pending`). WO nonaktif
         // TETAP ditampilkan (tidak di-onlyActive) supaya SPV tahu ada WO masuk;

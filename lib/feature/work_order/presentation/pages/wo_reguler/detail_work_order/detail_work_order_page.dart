@@ -136,7 +136,26 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   void _loadAssignableUsers(WorkOrderBloc bloc, Map<String, dynamic>? user) {
     if (_assignableUsersRequested) return;
     _assignableUsersRequested = true;
-    bloc.add(GetUsersEvent(jabatanIds: _assignableJabatanIds(user)));
+    // Batasi kandidat ke departemen SPV agar staff yang tampil (dan dropdown
+    // Koordinator yang menarik dari list sama) hanya dari departemen yang sama.
+    bloc.add(
+      GetUsersEvent(
+        departemenId: _callerDepartemenId(user),
+        jabatanIds: _assignableJabatanIds(user),
+      ),
+    );
+  }
+
+  /// Departemen SPV pemanggil: baca flat `departemen_id` lebih dulu, lalu
+  /// fallback ke nested `employee['department_id']/['departemen_id']`.
+  int? _callerDepartemenId(Map<String, dynamic>? user) {
+    final employee = user?['employee'];
+    final dynamic raw =
+        user?['departemen_id'] ??
+        (employee is Map
+            ? (employee['department_id'] ?? employee['departemen_id'])
+            : null);
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
   }
 
   bool _canAssignStaffFor({

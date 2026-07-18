@@ -5,6 +5,8 @@ import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/user_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/models/user_model.dart';
 
+enum WorkOrderFilterVariant { full, woMasuk, woKeluar }
+
 /// Filter result class to hold all filter values
 class FilterResult {
   /// null = semua jenis; nilai lain = query `type` (id jenis WO).
@@ -16,6 +18,10 @@ class FilterResult {
   final DateTime? endDate;
   final String? quickDate;
 
+  /// Filter tipe WO (FE-side via `isLembur`). null = semua, true = Lembur,
+  /// false = Normal. Hanya dipakai varian [WorkOrderFilterVariant.woKeluar].
+  final bool? onlyLembur;
+
   const FilterResult({
     this.workOrderTypeId,
     this.assigneeId,
@@ -24,6 +30,7 @@ class FilterResult {
     this.startDate,
     this.endDate,
     this.quickDate,
+    this.onlyLembur,
   });
 
   bool get hasFilters =>
@@ -32,7 +39,8 @@ class FilterResult {
       (statusIds != null && statusIds!.isNotEmpty) ||
       startDate != null ||
       endDate != null ||
-      quickDate != null;
+      quickDate != null ||
+      onlyLembur != null;
 
   int get filterCount {
     int count = 0;
@@ -40,6 +48,7 @@ class FilterResult {
     if (assigneeId != null) count++;
     if (statusIds != null && statusIds!.isNotEmpty) count++;
     if (startDate != null || endDate != null || quickDate != null) count++;
+    if (onlyLembur != null) count++;
     return count;
   }
 }
@@ -80,7 +89,13 @@ class WorkOrderStatus {
 }
 
 class CustomFilterDialog extends StatefulWidget {
-  const CustomFilterDialog({super.key});
+  /// Varian tampilan (menentukan section mana yang dirender).
+  final WorkOrderFilterVariant variant;
+
+  const CustomFilterDialog({
+    super.key,
+    this.variant = WorkOrderFilterVariant.full,
+  });
 
   @override
   State<CustomFilterDialog> createState() => _CustomFilterDialogState();
@@ -95,6 +110,9 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
   DateTime? endDate;
   String? selectedQuickDate;
 
+  /// null = semua, true = Lembur, false = Normal (varian woKeluar).
+  bool? selectedOnlyLembur;
+
   int _getFilterCount() {
     int count = 0;
     if (selectedWorkOrderTypeId != null) count++;
@@ -103,6 +121,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
     if (startDate != null || endDate != null || selectedQuickDate != null) {
       count++;
     }
+    if (selectedOnlyLembur != null) count++;
     return count;
   }
 
@@ -115,6 +134,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
       startDate = null;
       endDate = null;
       selectedQuickDate = null;
+      selectedOnlyLembur = null;
     });
   }
 
@@ -162,16 +182,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildWorkOrderTypeFilter(),
-                  _buildDivider(),
-                  _buildAssigneeFilter(),
-                  _buildDivider(),
-                  _buildStatusFilter(),
-                  _buildDivider(),
-                  _buildDateFilter(),
-                  _buildDivider(),
-                ],
+                children: _buildSections(),
               ),
             ),
           ),
@@ -181,6 +192,39 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
         ],
       ),
     );
+  }
+
+  /// Susun daftar section sesuai [CustomFilterDialog.variant].
+  List<Widget> _buildSections() {
+    switch (widget.variant) {
+      case WorkOrderFilterVariant.woMasuk:
+        return [
+          _buildWorkOrderTypeFilter(),
+          _buildDivider(),
+          _buildDateFilter(showQuickButtons: false),
+          _buildDivider(),
+        ];
+      case WorkOrderFilterVariant.woKeluar:
+        return [
+          _buildWorkOrderTypeFilter(),
+          _buildDivider(),
+          _buildTipeWorkOrderFilter(),
+          _buildDivider(),
+          _buildDateFilter(showQuickButtons: false),
+          _buildDivider(),
+        ];
+      case WorkOrderFilterVariant.full:
+        return [
+          _buildWorkOrderTypeFilter(),
+          _buildDivider(),
+          _buildAssigneeFilter(),
+          _buildDivider(),
+          _buildStatusFilter(),
+          _buildDivider(),
+          _buildDateFilter(),
+          _buildDivider(),
+        ];
+    }
   }
 
   Widget _buildDivider() {
@@ -213,6 +257,38 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
                 selectedWorkOrderTypeId == options[i].$2,
                 () {
                   setState(() => selectedWorkOrderTypeId = options[i].$2);
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipeWorkOrderFilter() {
+    // (label, nilai onlyLembur): Normal = false, Lembur = true.
+    const options = [('Normal', false), ('Lembur', true)];
+    return _buildSection(
+      title: 'Tipe Work Order',
+      onReset: () {
+        setState(() => selectedOnlyLembur = null);
+      },
+      child: Row(
+        children: [
+          for (var i = 0; i < options.length; i++) ...[
+            if (i > 0) const SizedBox(width: 11),
+            Expanded(
+              child: _filterButton(
+                options[i].$1,
+                selectedOnlyLembur == options[i].$2,
+                () {
+                  setState(() {
+                    // Tap ulang pada pilihan yang sama = kembali ke "semua".
+                    selectedOnlyLembur = selectedOnlyLembur == options[i].$2
+                        ? null
+                        : options[i].$2;
+                  });
                 },
               ),
             ),
@@ -323,7 +399,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
     );
   }
 
-  Widget _buildDateFilter() {
+  Widget _buildDateFilter({bool showQuickButtons = true}) {
     return _buildSection(
       title: 'Tanggal',
       onReset: () {
@@ -382,21 +458,23 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 11),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _quickDateButton('Hari Ini'),
-                const SizedBox(width: 11),
-                _quickDateButton('Minggu Ini'),
-                const SizedBox(width: 11),
-                _quickDateButton('Bulan Ini'),
-                const SizedBox(width: 11),
-                _quickDateButton('3 Bulan'),
-              ],
+          if (showQuickButtons) ...[
+            const SizedBox(height: 11),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _quickDateButton('Hari Ini'),
+                  const SizedBox(width: 11),
+                  _quickDateButton('Minggu Ini'),
+                  const SizedBox(width: 11),
+                  _quickDateButton('Bulan Ini'),
+                  const SizedBox(width: 11),
+                  _quickDateButton('3 Bulan'),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -445,6 +523,7 @@ class _CustomFilterDialogState extends AppStatePage<CustomFilterDialog> {
                   startDate: startDate,
                   endDate: endDate,
                   quickDate: selectedQuickDate,
+                  onlyLembur: selectedOnlyLembur,
                 ),
               );
             },

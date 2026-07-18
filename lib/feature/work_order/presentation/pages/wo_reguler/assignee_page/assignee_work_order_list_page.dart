@@ -52,6 +52,7 @@ class _AssigneeWorkOrderListPageState
         userId: widget.userId,
         status: _currentFilter?.statusIds ?? activeStatuses,
         type: _currentFilter?.workOrderTypeId,
+        onlyLembur: _currentFilter?.onlyLembur,
         startDate: _currentFilter?.startDate
             ?.toIso8601String()
             .split('T')
@@ -68,7 +69,8 @@ class _AssigneeWorkOrderListPageState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => const CustomFilterDialog(),
+      builder: (context) =>
+          const CustomFilterDialog(variant: WorkOrderFilterVariant.woKeluar),
     );
 
     if (result != null) {

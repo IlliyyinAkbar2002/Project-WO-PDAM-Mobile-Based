@@ -199,6 +199,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               includeStatusNames: event.includeStatusNames,
               excludeStatusNames: event.excludeStatusNames,
               excludeLembur: event.excludeLembur,
+              onlyLembur: event.onlyLembur,
             ),
           ),
         );
@@ -222,6 +223,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     List<String>? includeStatusNames,
     List<String>? excludeStatusNames,
     bool? excludeLembur,
+    bool? onlyLembur,
   }) {
     final include = includeStatusNames
         ?.map((s) => s.toLowerCase())
@@ -234,6 +236,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         departemenId == null &&
         onlyActive != true &&
         excludeLembur != true &&
+        onlyLembur == null &&
         (include == null || include.isEmpty) &&
         (exclude == null || exclude.isEmpty)) {
       return workOrders;
@@ -241,6 +244,8 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
     return workOrders.where((wo) {
       if (onlyActive == true && wo.isActive == false) return false;
       if (excludeLembur == true && wo.isLembur) return false;
+      if (onlyLembur == true && !wo.isLembur) return false; // hanya Lembur
+      if (onlyLembur == false && wo.isLembur) return false; // hanya Normal
       if (assignedToPegawaiId != null &&
           wo.assignedToPegawaiId != assignedToPegawaiId) {
         return false;
@@ -289,6 +294,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         includeStatusNames: event.includeStatusNames,
         excludeStatusNames: event.excludeStatusNames,
         excludeLembur: event.excludeLembur,
+        onlyLembur: event.onlyLembur,
       );
       final updatedList = List<WorkOrderEntity>.from(
         (state as WorkOrderLoaded).workOrders,
@@ -471,6 +477,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
               includeStatusNames: event.includeStatusNames,
               excludeStatusNames: event.excludeStatusNames,
               excludeLembur: event.excludeLembur,
+              onlyLembur: event.onlyLembur,
             ),
           ),
         );

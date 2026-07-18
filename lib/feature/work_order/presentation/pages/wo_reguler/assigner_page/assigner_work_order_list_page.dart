@@ -15,12 +15,15 @@ class AssignerWorkOrderListPage extends StatefulWidget {
   final int? assignedToPegawaiId;
   // final int? departemenId;
   final bool onlyActive;
-  final List<String>? includeStatusNames;
+final List<String>? includeStatusNames;
   final List<String>? excludeStatusNames;
 
   /// Bila true, WO yang sudah diajukan lembur disembunyikan (FE-side).
   /// Dipakai WO Masuk supaya hanya WO reguler yang tampil.
   final bool excludeLembur;
+
+  /// Varian tampilan filter dialog untuk halaman ini (default: filter penuh).
+  final WorkOrderFilterVariant filterVariant;
 
   const AssignerWorkOrderListPage({
     super.key,
@@ -33,6 +36,7 @@ class AssignerWorkOrderListPage extends StatefulWidget {
     this.includeStatusNames,
     this.excludeStatusNames,
     this.excludeLembur = false,
+    this.filterVariant = WorkOrderFilterVariant.full,
   });
 
   @override
@@ -81,6 +85,7 @@ class _AssignerWorkOrderListPageState
         includeStatusNames: widget.includeStatusNames,
         excludeStatusNames: widget.excludeStatusNames,
         excludeLembur: widget.excludeLembur ? true : null,
+        onlyLembur: _currentFilter?.onlyLembur,
       ),
     );
   }
@@ -92,7 +97,7 @@ class _AssignerWorkOrderListPageState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => const CustomFilterDialog(),
+      builder: (context) => CustomFilterDialog(variant: widget.filterVariant),
     );
     if (result != null) {
       setState(() {

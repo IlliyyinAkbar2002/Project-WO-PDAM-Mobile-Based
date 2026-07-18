@@ -425,7 +425,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Pilih Anggota Tim',
+                        'Pilih Petugas Tim',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -1178,7 +1178,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  const _FieldLabel('Anggota Tim'),
+                                  const _FieldLabel('Petugas'),
                                   const Spacer(),
                                   TextButton.icon(
                                     onPressed: _pickMembers,
@@ -1191,7 +1191,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 const Padding(
                                   padding: EdgeInsets.only(bottom: 8),
                                   child: Text(
-                                    'Pilih anggota tim, lalu tentukan koordinator (Staff Senior) pada field Koordinator di bawah.',
+                                    'Pilih petugas tim, lalu tentukan koordinator (Staff Senior) pada field Koordinator di bawah.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF64748B),
@@ -1202,7 +1202,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 Text(
                                   _availableUsers.isEmpty
                                       ? 'Memuat daftar pegawai...'
-                                      : 'Belum ada anggota dipilih',
+                                      : 'Belum ada petugas dipilih',
                                   style: const TextStyle(
                                     color: Color(0xFF94A3B8),
                                     fontSize: 13,

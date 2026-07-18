@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/widget/input_chip/editable_chip_field.dart';
+import 'package:project_mobile_pdam/core/widget/input_chip/selectable_chip_field.dart';
 import 'package:project_mobile_pdam/core/widget/location_picker.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/widgets/time_estimate.dart';
 
@@ -102,10 +103,13 @@ class CustomFieldWidgets {
       key: ValueKey(formData["assignees"]), // 🔹 Supaya UI ter-refresh
     ),
 
-    "assignee": (field, formData, onFieldChanged) => EditableChipField(
+    "assignee": (field, formData, onFieldChanged) => SelectableChipField(
       isReadOnly: field["isReadOnly"] ?? false,
       userList: field["options"] ?? [],
       initialSelectedUsers: formData["assignee"] ?? [], // ✅ Data awal
+      coordinatorId: formData["picId"] is int
+          ? formData["picId"]
+          : int.tryParse(formData["picId"]?.toString() ?? ''),
       onChanged: (selectedUsers) {
         onFieldChanged("assignee", selectedUsers); // ✅ Update formData
       },
