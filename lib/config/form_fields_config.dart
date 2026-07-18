@@ -198,6 +198,7 @@ class FormFieldsConfig {
           "key": "panjang_pipa",
           "label": "Panjang Pipa (meter)",
           "hint": "Contoh: 50",
+          "keyboardType": "number",
           "isReadOnly": isReadOnly,
         },
         {
@@ -258,10 +259,11 @@ class FormFieldsConfig {
           "type": "dropdown",
           "key": "kondisi_meter_awal",
           "label": "Kondisi Meter Awal",
-          "hint": "Contoh: Normal",
+          "hint": "Contoh: Sedang",
           "options": [
-            {"value": "Normal", "label": "Normal"},
-            {"value": "Rusak", "label": "Rusak"},
+            {"value": "Ringan", "label": "Ringan"},
+            {"value": "Sedang", "label": "Sedang"},
+            {"value": "Berat", "label": "Berat"},
           ],
           "isReadOnly": isReadOnly,
         },
