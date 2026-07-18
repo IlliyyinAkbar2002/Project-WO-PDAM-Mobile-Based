@@ -22,6 +22,11 @@ class WorkOrderList extends StatefulWidget {
   final int? creatorId;
   final bool isAssignee;
   final int? assignedToPegawaiId;
+
+  /// Filter FE-side keanggotaan staff: bila di-set, hanya WO di mana pegawai ini
+  /// jadi anggota assignment yang ditampilkan. Dipakai daftar WO staff
+  /// (Pengerjaan & Riwayat). Diteruskan ke tiap fetch mandiri list.
+  final int? memberPegawaiId;
   // final int? departemenId;
   final bool onlyActive;
   final List<String>? includeStatusNames;
@@ -50,6 +55,7 @@ class WorkOrderList extends StatefulWidget {
     this.creatorId,
     this.isAssignee = false,
     this.assignedToPegawaiId,
+    this.memberPegawaiId,
     // this.departemenId,
     this.onlyActive = false,
     this.includeStatusNames,
@@ -83,6 +89,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
         picId: widget.creatorId ?? widget.picId,
         userId: widget.userId,
         assignedToPegawaiId: widget.assignedToPegawaiId,
+        memberPegawaiId: widget.memberPegawaiId,
         // departemenId: widget.departemenId,
         onlyActive: widget.onlyActive ? true : null,
         includeStatusNames: widget.includeStatusNames,
@@ -107,6 +114,7 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
           picId: widget.picId,
           userId: widget.userId,
           assignedToPegawaiId: widget.assignedToPegawaiId,
+          memberPegawaiId: widget.memberPegawaiId,
           //  departemenId: widget.departemenId,
           onlyActive: widget.onlyActive ? true : null,
           includeStatusNames: widget.includeStatusNames,

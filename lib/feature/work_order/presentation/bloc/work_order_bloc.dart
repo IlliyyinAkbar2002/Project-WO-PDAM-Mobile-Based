@@ -195,6 +195,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
             _applyMobileFilters(
               dataState.data!,
               assignedToPegawaiId: event.assignedToPegawaiId,
+              memberPegawaiId: event.memberPegawaiId,
               departemenId: event.departemenId,
               onlyActive: event.onlyActive,
               includeStatusNames: event.includeStatusNames,
@@ -220,6 +221,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
   List<WorkOrderEntity> _applyMobileFilters(
     List<WorkOrderEntity> workOrders, {
     int? assignedToPegawaiId,
+    int? memberPegawaiId,
     int? departemenId,
     bool? onlyActive,
     List<String>? includeStatusNames,
@@ -236,6 +238,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         .toList(growable: false);
 
     if (assignedToPegawaiId == null &&
+        memberPegawaiId == null &&
         departemenId == null &&
         onlyActive != true &&
         excludeLembur != true &&
@@ -257,6 +260,14 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       if (assignedToPegawaiId != null &&
           wo.assignedToPegawaiId != assignedToPegawaiId) {
         return false;
+      }
+      // Filter keanggotaan staff: hanya WO di mana pegawai ini jadi anggota
+      // assignment. WO tanpa anggota ter-parse dianggap "bukan milik saya".
+      if (memberPegawaiId != null) {
+        final isMember =
+            wo.assignment?.assignees?.any((u) => u.id == memberPegawaiId) ??
+            false;
+        if (!isMember) return false;
       }
       // if (departemenId != null && wo.departemenId != departemenId) return false;
       final status = wo.statusName?.toLowerCase();
@@ -297,6 +308,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
       final filteredPage = _applyMobileFilters(
         List<WorkOrderEntity>.from(dataState.data!),
         assignedToPegawaiId: event.assignedToPegawaiId,
+        memberPegawaiId: event.memberPegawaiId,
         departemenId: event.departemenId,
         onlyActive: event.onlyActive,
         includeStatusNames: event.includeStatusNames,
@@ -481,6 +493,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
             _applyMobileFilters(
               dataState.data!,
               assignedToPegawaiId: event.assignedToPegawaiId,
+              memberPegawaiId: event.memberPegawaiId,
               departemenId: event.departemenId,
               onlyActive: event.onlyActive,
               includeStatusNames: event.includeStatusNames,

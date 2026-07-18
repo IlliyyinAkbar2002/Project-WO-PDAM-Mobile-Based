@@ -192,7 +192,9 @@ class WorkOrderModel extends WorkOrderEntity {
       assignees = rawAssignmentMembers
           .whereType<Map>()
           .map((member) {
-            final userMap = member['user'];
+            // `index`/`show` mengirim anggota di key `user`; endpoint `history`
+            // mengirimnya di key `pegawai`. Keduanya = objek Pegawai (id = pegawai_id).
+            final userMap = member['user'] ?? member['pegawai'];
             UserModel? parsedUser;
             if (userMap is Map) {
               parsedUser = UserModel.fromMap(

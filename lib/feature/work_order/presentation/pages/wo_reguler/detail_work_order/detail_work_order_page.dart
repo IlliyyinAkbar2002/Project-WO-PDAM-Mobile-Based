@@ -868,10 +868,6 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     staffIds.remove(picId);
     staffIds.insert(0, picId);
 
-    // Build form_kategori berdasarkan kategoriForm.
-    // Field kategori "awal" kini diisi oleh staff lapangan saat menekan
-    // "Mulai" (lihat WorkOrderReportPage). SPV cukup menentukan petugas, PIC,
-    // dan deskripsi, sehingga form_kategori dikirim kosong.
     final String kategoriForm = _readTrimmedString("kategoriForm");
     final String kategori = kategoriForm.isEmpty
         ? WoKategoriForm.meter

@@ -21,6 +21,10 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
   /// menampilkan WO yang `assigned_to`-nya pegawai ini. Lihat WorkOrderBloc.
   final int? assignedToPegawaiId;
 
+  /// Filter FE-side keanggotaan staff. Bila di-set, daftar WO hanya menampilkan
+  /// WO di mana pegawai ini termasuk anggota assignment. Lihat WorkOrderBloc.
+  final int? memberPegawaiId;
+
   /// Filter FE-side berdasar departemen pemilik WO.
   final int? departemenId;
 
@@ -59,6 +63,7 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
     this.endDate,
     this.search,
     this.assignedToPegawaiId,
+    this.memberPegawaiId,
     this.departemenId,
     this.onlyActive,
     this.includeStatusNames,
@@ -81,6 +86,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
   final String? startDate;
   final String? endDate;
   final int? assignedToPegawaiId;
+  final int? memberPegawaiId;
   final int? departemenId;
   final bool? onlyActive;
   final List<String>? includeStatusNames;
@@ -101,6 +107,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
     this.startDate,
     this.endDate,
     this.assignedToPegawaiId,
+    this.memberPegawaiId,
     this.departemenId,
     this.onlyActive,
     this.includeStatusNames,
@@ -122,6 +129,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
   final String? startDate;
   final String? endDate;
   final int? assignedToPegawaiId;
+  final int? memberPegawaiId;
   final int? departemenId;
   final bool? onlyActive;
   final List<String>? includeStatusNames;
@@ -141,6 +149,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
     this.startDate,
     this.endDate,
     this.assignedToPegawaiId,
+    this.memberPegawaiId,
     this.departemenId,
     this.onlyActive,
     this.includeStatusNames,

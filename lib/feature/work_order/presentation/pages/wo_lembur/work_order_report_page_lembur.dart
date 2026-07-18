@@ -132,8 +132,6 @@ class _WorkOrderReportPageLemburState
 
   /// Status geofence untuk banner UX. `_geoStatus` null = belum/ gagal cek.
   GeofenceStatus? _geoStatus;
-  double? _lastDistanceMeters;
-  double? _accuracyMeters;
   bool _poorAccuracy = false;
   String? _geoStatusError;
 
@@ -1157,8 +1155,6 @@ class _WorkOrderReportPageLemburState
           setState(() {
             _currentPosition = geo.position;
             _geoStatus = geo.status;
-            _lastDistanceMeters = geo.distanceMeters;
-            _accuracyMeters = geo.position.accuracy;
             _poorAccuracy = geo.accuracyPoor;
             _geoStatusError = null;
           });
@@ -1166,8 +1162,8 @@ class _WorkOrderReportPageLemburState
           // Akurasi buruk = peringatan saja, tidak memblokir.
           if (geo.accuracyPoor) {
             AppSnackbar.showWarning(
-              "Akurasi GPS rendah (±${geo.position.accuracy.toStringAsFixed(0)} m). "
-              "Hasil pengecekan lokasi mungkin kurang akurat.",
+              "Akurasi GPS rendah. Aktifkan mode Lokasi 'Akurasi Tinggi' dan "
+              "berada di area terbuka agar GPS lebih presisi.",
             );
           }
 
@@ -1176,11 +1172,7 @@ class _WorkOrderReportPageLemburState
           if (GeofenceService.enforceGeofence && !geo.allowed) {
             setState(() => _isSubmitting = false);
             AppSnackbar.showError(
-              "Anda berada di luar jangkauan lokasi WO "
-              "(±${geo.distanceMeters.toStringAsFixed(0)} m, "
-              "radius ${widget.radiusMeter} m, "
-              "akurasi GPS ±${geo.position.accuracy.toStringAsFixed(0)} m). "
-              "Submit ditolak.",
+              "Anda berada di luar jangkauan lokasi WO. Submit ditolak.",
             );
             return;
           }
@@ -1646,6 +1638,8 @@ class _WorkOrderReportPageLemburState
             preferFresh: preferFresh,
           )
           .timeout(
+            // Lebih besar dari total budget akuisisi di GeofenceService
+            // (stream GPS ~6s + medium ~5s) agar fallback sempat jalan.
             const Duration(seconds: 15),
             onTimeout: () => throw TimeoutException("Pengecekan lokasi timeout"),
           );
@@ -1655,8 +1649,6 @@ class _WorkOrderReportPageLemburState
         _isCheckingDistance = false;
         _currentPosition = result.position;
         _geoStatus = result.status;
-        _lastDistanceMeters = result.distanceMeters;
-        _accuracyMeters = result.position.accuracy;
         _poorAccuracy = result.accuracyPoor;
         _geoStatusError = null;
       });
@@ -1712,14 +1704,11 @@ class _WorkOrderReportPageLemburState
     }
 
     if (_geoStatus != null) {
-      final dist = _lastDistanceMeters?.toStringAsFixed(0) ?? '-';
-      final acc = _accuracyMeters?.toStringAsFixed(0) ?? '-';
+      // Angka jarak/radius/akurasi sengaja TIDAK ditampilkan di UI (bisa
+      // membingungkan saat GPS kasar) — tetap tercatat di log `[Geofence]`.
       final accNote = _poorAccuracy
           ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
           : "";
-      final detail =
-          "±$dist m dari titik WO (radius ${widget.radiusMeter} m, "
-          "akurasi GPS ±$acc m).";
       switch (_geoStatus!) {
         case GeofenceStatus.inside:
           return _geoStatusBox(
@@ -1728,17 +1717,17 @@ class _WorkOrderReportPageLemburState
             icon: Icons.check_circle,
             iconColor: color.status[2]!,
             title: "Anda berada dalam jangkauan",
-            subtitle: "$detail$accNote",
+            subtitle: accNote.isEmpty ? "Lokasi terverifikasi." : accNote.trim(),
             showRecheck: true,
           );
         case GeofenceStatus.withinTolerance:
           return _geoStatusBox(
             bg: Colors.orange.withValues(alpha: 0.1),
             border: Colors.orange,
-            icon: Icons.my_location,
+            icon: Icons.warning_amber_rounded,
             iconColor: Colors.orange.shade800,
             title: "Dalam jangkauan (perkiraan)",
-            subtitle: "$detail Submit diizinkan.$accNote",
+            subtitle: "Submit diizinkan.$accNote",
             showRecheck: true,
           );
         case GeofenceStatus.outside:
@@ -1748,7 +1737,7 @@ class _WorkOrderReportPageLemburState
             icon: Icons.location_off,
             iconColor: color.danger,
             title: "Anda di luar jangkauan",
-            subtitle: "$detail Submit akan ditolak.$accNote",
+            subtitle: "Submit akan ditolak.$accNote",
             showRecheck: true,
           );
       }

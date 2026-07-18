@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
+import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
 import 'package:project_mobile_pdam/core/widget/filter_list/filter_list.dart';
@@ -28,6 +29,14 @@ class _AssigneeWorkOrderListPageState
   // Filter state
   FilterResult? _currentFilter;
 
+  /// pegawai_id staff yang login — dipakai memfilter WO agar hanya menampilkan
+  /// WO di mana staff ini jadi anggota assignment. Sumber sama dgn WO-Masuk.
+  int? get _memberPegawaiId {
+    final raw = AuthStorage.getUserSync()?['pegawai_id'];
+    if (raw is int) return raw;
+    return int.tryParse('$raw');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +59,7 @@ class _AssigneeWorkOrderListPageState
     _workOrderBloc.add(
       GetWorkOrdersEvent(
         userId: widget.userId,
+        memberPegawaiId: _memberPegawaiId,
         status: _currentFilter?.statusIds ?? activeStatuses,
         kategori: _currentFilter?.kategoriForm,
         onlyLembur: _currentFilter?.onlyLembur,
@@ -141,6 +151,7 @@ class _AssigneeWorkOrderListPageState
           WorkOrderStatusId.pengecekan,
         ],
         userId: widget.userId,
+        memberPegawaiId: _memberPegawaiId,
         kategoriForm: _currentFilter?.kategoriForm,
         onlyLembur: _currentFilter?.onlyLembur,
       ),
@@ -162,6 +173,7 @@ class _AssigneeWorkOrderListPageState
               SearchWorkOrdersEvent(
                 value,
                 userId: widget.userId,
+                memberPegawaiId: _memberPegawaiId,
                 status: const [
                   WorkOrderStatusId.ditugaskanKeStaff,
                   WorkOrderStatusId.inProgress,

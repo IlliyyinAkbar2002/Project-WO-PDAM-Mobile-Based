@@ -75,7 +75,19 @@ class GeofenceService {
   /// (mis. >100 m) ditolak supaya banner awal tidak memakai posisi meleset.
   static const double _maxCacheAccuracyMeters = 100;
 
-  Future<Position> getCurrentPosition({bool preferFresh = false}) async {
+  /// Berapa lama menunggu GPS mengunci fix presisi sebelum menyerah ke fix
+  /// terbaik yang sempat datang. Bila GPS bisa lock, early-accept terjadi lebih
+  /// cepat; nilai ini adalah batas atas agar pengecekan tidak terasa lama
+  /// (dipangkas dari 20 dtk demi kecepatan UX / demo).
+  static const Duration _freshFixBudget = Duration(seconds: 6);
+
+  /// Ambang akurasi (m) yang dianggap "GPS sudah lock" → boleh selesai lebih awal.
+  static const double _defaultDesiredAccuracyMeters = 50;
+
+  Future<Position> getCurrentPosition({
+    bool preferFresh = false,
+    double desiredAccuracyMeters = _defaultDesiredAccuracyMeters,
+  }) async {
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       // Buka pengaturan GPS (lebih reliable daripada location.requestService()).
@@ -98,14 +110,6 @@ class GeofenceService {
       );
     }
 
-    // Akurasi tinggi (GPS/fine-location) agar jarak ke titik WO presisi.
-    // Akurasi `medium` (berbasis wifi/sel) bisa meleset ratusan meter–>1 km
-    // dan membuat submit ditolak keliru meski pengguna berada di lokasi.
-    const LocationSettings settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      timeLimit: Duration(seconds: 15),
-    );
-
     if (!preferFresh) {
       // Lokasi terakhir yang diketahui (sangat cepat) bila tersedia, cukup baru,
       // dan cukup akurat — fix basi atau kasar bisa membuat jarak tampak jauh
@@ -119,21 +123,108 @@ class GeofenceService {
       }
     }
 
-    try {
-      return await Geolocator.getCurrentPosition(locationSettings: settings);
-    } on TimeoutException {
-      // Cold-start GPS bisa melewati timeLimit. Fallback ke last-known yang
-      // masih relevan bila ada, agar pengguna tidak buntu; jika tidak ada,
-      // laporkan sebagai kegagalan lokasi biasa.
-      final Position? last = await Geolocator.getLastKnownPosition();
-      if (last != null &&
-          DateTime.now().difference(last.timestamp) <= _maxCacheAge) {
-        return last;
+    // Fallback bertingkat agar presisi TANPA membuat pengguna buntu:
+    //  1. Fix segar via STREAM akurasi tinggi — tunggu GPS mengunci fix presisi
+    //     (bukan sekadar fix jaringan kasar pertama yang datang).
+    //  2. Akurasi medium (wifi/sel) satu-tembak — cepat, kasar. Aman karena
+    //     decide() memperhitungkan ketidakpastian sehingga tak menolak keliru.
+    //  3. Last-known apa pun sebagai upaya terakhir.
+    final Position? fresh = await _acquireFreshFix(desiredAccuracyMeters);
+    if (fresh != null) return fresh;
+
+    if (kDebugMode) {
+      debugPrint('[Geofence] stream GPS tak memberi fix, fallback ke medium');
+    }
+    final Position? medium = await _tryFix(
+      LocationAccuracy.medium,
+      const Duration(seconds: 5),
+    );
+    if (medium != null) return medium;
+
+    final Position? last = await Geolocator.getLastKnownPosition();
+    if (last != null) {
+      if (kDebugMode) {
+        debugPrint('[Geofence] semua fix gagal, pakai last-known');
       }
-      throw const GeofenceException(
-        'Gagal mendapatkan lokasi GPS. Pastikan berada di area terbuka lalu '
-        'coba lagi.',
+      return last;
+    }
+
+    throw const GeofenceException(
+      'Gagal mendapatkan lokasi GPS. Pastikan berada di area terbuka lalu '
+      'coba lagi.',
+    );
+  }
+
+  /// Ambil fix segar via stream akurasi tinggi (GPS).
+  ///
+  /// Kembalikan fix pertama yang akurasinya `<= [desiredAccuracyMeters]` begitu
+  /// tersedia (cepat saat GPS sudah lock), atau — bila tak tercapai — fix dengan
+  /// akurasi terbaik yang sempat datang dalam [_freshFixBudget]. `null` bila
+  /// tidak ada fix sama sekali (mis. stream error) agar pemanggil bisa fallback.
+  Future<Position?> _acquireFreshFix(double desiredAccuracyMeters) async {
+    Position? best;
+    final completer = Completer<Position>();
+    StreamSubscription<Position>? sub;
+
+    sub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
+    ).listen(
+      (pos) {
+        if (best == null || pos.accuracy < best!.accuracy) best = pos;
+        if (pos.accuracy > 0 &&
+            pos.accuracy <= desiredAccuracyMeters &&
+            !completer.isCompleted) {
+          completer.complete(pos);
+        }
+      },
+      onError: (Object e) {
+        if (kDebugMode) debugPrint('[Geofence] stream lokasi error: $e');
+        if (!completer.isCompleted) completer.completeError(e);
+      },
+      cancelOnError: false,
+    );
+
+    try {
+      return await completer.future.timeout(_freshFixBudget);
+    } on TimeoutException {
+      // Budget habis: pakai fix terbaik yang sempat datang (mungkin belum ideal,
+      // tapi decide() akan memperhitungkan akurasinya).
+      if (kDebugMode) {
+        debugPrint(
+          '[Geofence] budget GPS habis, best accuracy='
+          '${best?.accuracy.toStringAsFixed(0) ?? "-"}m',
+        );
+      }
+      return best;
+    } catch (_) {
+      return best;
+    } finally {
+      await sub.cancel();
+    }
+  }
+
+  /// Coba satu kali ambil posisi pada [accuracy] dengan batas [timeLimit].
+  /// Mengembalikan `null` bila timeout atau gagal (bukan melempar) agar
+  /// pemanggil bisa lanjut ke tingkat fallback berikutnya.
+  Future<Position?> _tryFix(
+    LocationAccuracy accuracy,
+    Duration timeLimit,
+  ) async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(
+          accuracy: accuracy,
+          timeLimit: timeLimit,
+        ),
       );
+    } on TimeoutException {
+      return null;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Geofence] getCurrentPosition gagal: $e');
+      return null;
     }
   }
 
@@ -199,7 +290,13 @@ class GeofenceService {
     required double radiusMeter,
     bool preferFresh = false,
   }) async {
-    final Position position = await getCurrentPosition(preferFresh: preferFresh);
+    // Radius besar → boleh terima fix agak longgar (selesai lebih cepat); radius
+    // kecil → butuh fix lebih presisi. Batasi 30–100 m.
+    final double desiredAccuracy = (radiusMeter * 0.5).clamp(30.0, 100.0);
+    final Position position = await getCurrentPosition(
+      preferFresh: preferFresh,
+      desiredAccuracyMeters: desiredAccuracy,
+    );
     final double distance = distanceTo(position, targetLat, targetLng);
     final GeofenceDecision decision = decide(
       distanceMeters: distance,
