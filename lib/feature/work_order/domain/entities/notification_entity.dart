@@ -38,24 +38,12 @@ class NotificationEntity extends Equatable {
 }
 
 enum NotificationKind {
-  /// Superadmin membuat WO → SPV (`assigned_to`).
   woCreated,
-
-  /// SPV menugaskan staff lapangan → staff (anggota assignment).
   woAssigned,
-
-  /// Staff menyelesaikan WO → SPV (review).
   woReadyForReview,
-
-  /// Staff mengajukan pengembalian material → SPV.
   materialReturnSubmitted,
-
-  /// SPV memverifikasi (setujui/tolak) pengembalian material → staff pengaju.
   materialReturnVerified,
-
-  /// Pengajuan lembur SPV disetujui superadmin → staff lapangan yang ditugaskan.
   woLemburApproved,
-
   unknown,
 }
 
@@ -72,9 +60,6 @@ extension NotificationKindParsing on String {
         return NotificationKind.materialReturnSubmitted;
       case 'material_return_verified':
         return NotificationKind.materialReturnVerified;
-      // Catatan: kontrak BE untuk approval lembur belum final
-      // (LemburApprovalService masih dalam proses merge). Beberapa kandidat
-      // string didukung agar FE tidak jatuh ke `unknown` saat BE siap.
       case 'wo_lembur_approved':
       case 'lembur_approved':
       case 'wo_overtime_approved':
