@@ -18,6 +18,7 @@ import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
 import 'package:project_mobile_pdam/core/widget/custom_form.dart';
+import 'package:project_mobile_pdam/core/widget/custom_scroll_refresh.dart';
 import 'package:project_mobile_pdam/core/widget/dynamic_form_builder.dart';
 import 'package:project_mobile_pdam/core/widget/image_picker.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
@@ -66,8 +67,8 @@ class WorkOrderReportPage extends StatefulWidget {
     this.workOrderTypeId,
     this.lngLat,
     this.locationName,
-    this.radiusMeter =
-        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
+    this.radiusMeter = MapsSeedModel
+        .defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
     this.kategoriForm,
     this.initialKategoriData,
     this.initialDescription,
@@ -276,6 +277,50 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       setState(() {
         _isCheckingDistance = false;
       });
+    }
+  }
+
+  /// Muat ulang data form via pull-to-refresh. Isian yang sedang diketik
+  /// disimpan dulu sebagai draft supaya listener BLoC me-restore-nya setelah
+  /// data baru masuk — refresh tidak boleh menghapus input user.
+  Future<void> _onRefresh() async {
+    if (!isDetailMode && !_isAlreadyRecorded) {
+      _journalDraftCubit.saveDraft(
+        _draftKey,
+        JournalDraft(
+          description: _descriptionController.text,
+          images: _images,
+          formData: _formData,
+        ),
+      );
+    }
+
+    if (widget.progressId != null) {
+      if (widget.isAssignee) _fetchRevisionNote();
+      // Await state hasil fetch agar spinner RefreshIndicator berputar selama
+      // loading berlangsung, bukan langsung hilang.
+      final done = _workOrderBloc.stream
+          .firstWhere(
+            (state) =>
+                state is WorkOrderProgressDetailLoaded ||
+                state is ProgressDetailsLoaded ||
+                state is WorkOrderError,
+          )
+          .timeout(const Duration(seconds: 10));
+      if (widget.mode == 'Selesai') {
+        _workOrderBloc.add(GetProgressDetailsEvent(widget.progressId!));
+      } else {
+        _workOrderBloc.add(GetWorkOrderProgressDetailEvent(widget.progressId!));
+      }
+      try {
+        await done;
+      } on TimeoutException {
+        // Respons lambat — listener tetap memproses bila data datang belakangan.
+      }
+    }
+
+    if (_shouldGateGeofence) {
+      await _checkDistance(preferFresh: true);
     }
   }
 
@@ -537,193 +582,204 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                       ],
                     ),
                   )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          if (widget.lngLat != null) _buildLocationMap(),
-                          if (_shouldGateGeofence) ...[
-                            const SizedBox(height: 8),
-                            _buildGeofenceStatus(),
-                          ],
-                          const SizedBox(height: 16),
-
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: TextFormField(
-                              key: ValueKey(specificLabel),
-                              initialValue: specificLabel,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: "Target Pekerjaan",
-                                border: OutlineInputBorder(),
-                                filled: true,
-                                fillColor: Color(0xFFF5F5F5),
-                              ),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-
-                          if (isRejected && _revisionNote != null) ...[
-                            _buildRevisionNotePanel(),
+                : CustomScrollRefreshWidget(
+                    onRefresh: _onRefresh,
+                    child: SingleChildScrollView(
+                      // Tetap bisa di-swipe walau konten lebih pendek dari
+                      // layar — syarat gesture pull-to-refresh.
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            if (widget.lngLat != null) _buildLocationMap(),
+                            if (_shouldGateGeofence) ...[
+                              const SizedBox(height: 8),
+                              _buildGeofenceStatus(),
+                            ],
                             const SizedBox(height: 16),
-                          ],
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: color.foreground[400]!),
+
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: TextFormField(
+                                key: ValueKey(specificLabel),
+                                initialValue: specificLabel,
+                                readOnly: true,
+                                decoration: const InputDecoration(
+                                  labelText: "Target Pekerjaan",
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: Color(0xFFF5F5F5),
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
                             ),
-                            child: Column(
-                              spacing: 8,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomForm(
-                                  labelText: "Deskripsi",
-                                  hintText: "Masukkan deskripsi pekerjaan",
-                                  maxLines: 5,
-                                  controller: _descriptionController,
-                                  readOnly: isDetailMode || _isAlreadyRecorded,
+
+                            if (isRejected && _revisionNote != null) ...[
+                              _buildRevisionNotePanel(),
+                              const SizedBox(height: 16),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: color.foreground[400]!,
                                 ),
-                                Text(
-                                  "Dokumentasi",
-                                  style: textTheme.titleLarge,
-                                ),
-                                ImagePickerField(
-                                  initialImages: _images,
-                                  enabled: !isDetailMode && !_isAlreadyRecorded,
-                                  onChanged: (newImages) {
-                                    setState(() {
-                                      _images = newImages;
-                                    });
-                                  },
-                                ),
-                              ],
+                              ),
+                              child: Column(
+                                spacing: 8,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CustomForm(
+                                    labelText: "Deskripsi",
+                                    hintText: "Masukkan deskripsi pekerjaan",
+                                    maxLines: 5,
+                                    controller: _descriptionController,
+                                    readOnly:
+                                        isDetailMode || _isAlreadyRecorded,
+                                  ),
+                                  Text(
+                                    "Dokumentasi",
+                                    style: textTheme.titleLarge,
+                                  ),
+                                  ImagePickerField(
+                                    initialImages: _images,
+                                    enabled:
+                                        !isDetailMode && !_isAlreadyRecorded,
+                                    onChanged: (newImages) {
+                                      setState(() {
+                                        _images = newImages;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTahapanSelector(),
-                          const SizedBox(height: 16),
-                          if (widget.mode == 'Selesai' ||
-                              widget.mode == 'Mulai')
-                            _buildDynamicForm(),
-                          const SizedBox(height: 24),
-                          widget.isAssignee && !isDetailMode
-                              ? (_isAlreadyRecorded
-                                    ? _buildAlreadyRecordedBanner()
-                                    : (!canShowResubmitButton
-                                          ? _buildOnlySeniorStaffBanner()
-                                          : ElevatedButton(
-                                              // Pertahankan warna tombol saat
-                                              // disabled (sedang submit) agar
-                                              // spinner tetap kontras — default
-                                              // disabled Material = abu-abu.
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: _getColor(),
-                                                disabledBackgroundColor:
-                                                    _getColor(),
-                                              ),
-                                              onPressed: _isSubmitting
-                                                  ? null
-                                                  : _onSubmit,
-                                              child: _isSubmitting
-                                                  ? SizedBox(
-                                                      height: 20,
-                                                      width: 20,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                              Color
-                                                            >(
-                                                              widget.mode ==
+                            const SizedBox(height: 16),
+                            _buildTahapanSelector(),
+                            const SizedBox(height: 16),
+                            if (widget.mode == 'Selesai' ||
+                                widget.mode == 'Mulai')
+                              _buildDynamicForm(),
+                            const SizedBox(height: 24),
+                            widget.isAssignee && !isDetailMode
+                                ? (_isAlreadyRecorded
+                                      ? _buildAlreadyRecordedBanner()
+                                      : (!canShowResubmitButton
+                                            ? _buildOnlySeniorStaffBanner()
+                                            : ElevatedButton(
+                                                // Pertahankan warna tombol saat
+                                                // disabled (sedang submit) agar
+                                                // spinner tetap kontras — default
+                                                // disabled Material = abu-abu.
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: _getColor(),
+                                                  disabledBackgroundColor:
+                                                      _getColor(),
+                                                ),
+                                                onPressed: _isSubmitting
+                                                    ? null
+                                                    : _onSubmit,
+                                                child: _isSubmitting
+                                                    ? SizedBox(
+                                                        height: 20,
+                                                        width: 20,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                Color
+                                                              >(
+                                                                widget.mode ==
+                                                                        'Selesai'
+                                                                    ? color
+                                                                          .foreground[100]!
+                                                                    : color
+                                                                          .primary[500]!,
+                                                              ),
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        isRejected
+                                                            ? 'Kerjakan Revisi'
+                                                            : widget.mode,
+                                                        style: textTheme
+                                                            .labelLarge
+                                                            ?.copyWith(
+                                                              color:
+                                                                  widget.mode ==
                                                                       'Selesai'
                                                                   ? color
-                                                                        .foreground[100]!
+                                                                        .foreground[100]
                                                                   : color
-                                                                        .primary[500]!,
+                                                                        .primary[500],
                                                             ),
                                                       ),
-                                                    )
-                                                  : Text(
-                                                      isRejected
-                                                          ? 'Kerjakan Revisi'
-                                                          : widget.mode,
-                                                      style: textTheme.labelLarge?.copyWith(
-                                                        color:
-                                                            widget.mode ==
-                                                                'Selesai'
-                                                            ? color
-                                                                  .foreground[100]
-                                                            : color
-                                                                  .primary[500],
-                                                      ),
-                                                    ),
-                                            )))
-                              : widget.isAssignee && isRejected
-                              ? const SizedBox()
-                              : widget.mode == 'Selesai' &&
-                                    !widget.isAssignee &&
-                                    isSpv &&
-                                    !isWorkOrderClosed &&
-                                    ProgressStatusId.isSubmitted(
-                                      _progressStatusId,
-                                    )
-                              ? Row(
-                                  children: [
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.danger,
+                                              )))
+                                : widget.isAssignee && isRejected
+                                ? const SizedBox()
+                                : widget.mode == 'Selesai' &&
+                                      !widget.isAssignee &&
+                                      isSpv &&
+                                      !isWorkOrderClosed &&
+                                      ProgressStatusId.isSubmitted(
+                                        _progressStatusId,
+                                      )
+                                ? Row(
+                                    children: [
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: color.danger,
+                                          ),
+                                          onPressed: _isSubmitting
+                                              ? null
+                                              : _showRevisionDialog,
+                                          child: const Text('Revisi'),
                                         ),
-                                        onPressed: _isSubmitting
-                                            ? null
-                                            : _showRevisionDialog,
-                                        child: const Text('Revisi'),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: color.status[2],
-                                          disabledBackgroundColor:
-                                              color.status[2],
-                                        ),
-                                        onPressed: _isSubmitting
-                                            ? null
-                                            : () => _onReview('accept'),
-                                        child: _isSubmitting
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor:
-                                                          AlwaysStoppedAnimation<
-                                                            Color
-                                                          >(Color(0xFF000080)),
-                                                    ),
-                                              )
-                                            : const Text(
-                                                'Terima',
-                                                style: TextStyle(
-                                                  color: Color(0xFF000080),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: color.status[2],
+                                            disabledBackgroundColor:
+                                                color.status[2],
+                                          ),
+                                          onPressed: _isSubmitting
+                                              ? null
+                                              : () => _onReview('accept'),
+                                          child: _isSubmitting
+                                              ? const SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Color(0xFF000080)),
+                                                  ),
+                                                )
+                                              : const Text(
+                                                  'Terima',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF000080),
+                                                  ),
                                                 ),
-                                              ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                )
-                              : const SizedBox(),
-                        ],
+                                    ],
+                                  )
+                                : const SizedBox(),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -792,7 +848,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     final int? entityTahapan = state is WorkOrderDetailLoaded
         ? state.workOrder.tahapanTertinggi
         : null;
-    final int tahapanTertinggi = widget.currentTahapanTertinggi ?? entityTahapan ?? 0;
+    final int tahapanTertinggi =
+        widget.currentTahapanTertinggi ?? entityTahapan ?? 0;
     // Bila tahap tidak diketahui (0), selector tidak membatasi pilihan — biarkan
     // BE (rejectIfTahapanInvalid) yang menolak urutan yang salah.
     final bool knowTahapan = tahapanTertinggi > 0;
@@ -1020,9 +1077,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       return;
     }
     if (_isAlreadyRecorded) {
-      AppSnackbar.showWarning(
-        'Laporan sudah tercatat dan tidak dapat diubah.',
-      );
+      AppSnackbar.showWarning('Laporan sudah tercatat dan tidak dapat diubah.');
       return;
     }
     // Cutoff jam upload laporan WO reguler: di atas 16:00 tidak boleh upload,
@@ -1692,7 +1747,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // Lebih besar dari total budget akuisisi di GeofenceService
             // (stream GPS ~6s + medium ~5s) agar fallback sempat jalan.
             const Duration(seconds: 15),
-            onTimeout: () => throw TimeoutException("Pengecekan lokasi timeout"),
+            onTimeout: () =>
+                throw TimeoutException("Pengecekan lokasi timeout"),
           );
 
       if (!mounted) return;
@@ -1768,7 +1824,9 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.check_circle,
             iconColor: color.status[2]!,
             title: "Anda berada dalam jangkauan",
-            subtitle: accNote.isEmpty ? "Lokasi terverifikasi." : accNote.trim(),
+            subtitle: accNote.isEmpty
+                ? "Lokasi terverifikasi."
+                : accNote.trim(),
             showRecheck: true,
           );
         case GeofenceStatus.withinTolerance:

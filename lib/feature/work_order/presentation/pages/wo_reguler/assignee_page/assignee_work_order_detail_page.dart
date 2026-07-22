@@ -67,8 +67,8 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter =
-        MapsSeedModel.defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
+    this.radiusMeter = MapsSeedModel
+        .defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
   });
 
   @override
@@ -84,6 +84,8 @@ class _AssigneeWorkOrderDetailPageState
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
   late final MaterialRemoteDataSource _materialRemoteDataSource;
   WorkOrderEntity? _workOrder;
+  final GlobalKey<RefreshIndicatorState> _refreshKey =
+      GlobalKey<RefreshIndicatorState>();
 
   String _resolveAppBarTitle() {
     if (widget.kategoriForm != null) {
@@ -233,12 +235,21 @@ class _AssigneeWorkOrderDetailPageState
   }
 
   Future<void> _handleRefresh() async {
-    _fetchProgresses();
     if (widget.workOrderId != null) {
       context.read<WorkOrderBloc>().add(
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
+    // Await agar spinner RefreshIndicator berputar selama fetch berlangsung.
+    await _fetchProgresses();
+  }
+
+  /// Refresh dengan indikator terlihat — dipanggil setelah kembali dari halaman
+  /// yang mengubah data (form jurnal / peminjaman material). `show()` memutar
+  /// ikon refresh sekaligus menjalankan [_handleRefresh].
+  void _showRefreshIndicator() {
+    final shown = _refreshKey.currentState?.show();
+    if (shown == null) _handleRefresh();
   }
 
   Widget _buildBody() {
@@ -253,6 +264,7 @@ class _AssigneeWorkOrderDetailPageState
     final bool hasSelesai = visibleProgresses.any((item) => item.isSelesai);
 
     return RefreshIndicator(
+      key: _refreshKey,
       onRefresh: _handleRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -303,7 +315,7 @@ class _AssigneeWorkOrderDetailPageState
                         ),
                       );
                       if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
+                        _showRefreshIndicator();
                       }
                     },
                   ),
@@ -345,7 +357,7 @@ class _AssigneeWorkOrderDetailPageState
                         ),
                       );
                       if (shouldRefresh == true && mounted) {
-                        _handleRefresh();
+                        _showRefreshIndicator();
                       }
                     },
                   ),
@@ -402,7 +414,7 @@ class _AssigneeWorkOrderDetailPageState
               ),
             );
             if (shouldRefresh == true && mounted) {
-              _handleRefresh();
+              _showRefreshIndicator();
             }
           },
         ),
@@ -460,7 +472,7 @@ class _AssigneeWorkOrderDetailPageState
       ),
     );
     if (shouldRefresh == true && mounted) {
-      _handleRefresh();
+      _showRefreshIndicator();
     }
   }
 
@@ -612,7 +624,7 @@ class _AssigneeWorkOrderDetailPageState
           ),
         );
         if (shouldRefresh == true && mounted) {
-          _handleRefresh();
+          _showRefreshIndicator();
         }
       } finally {
         if (mounted) _isNavigatingToReport = false;

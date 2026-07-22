@@ -79,6 +79,8 @@ class _DetailWorkOrderPageLemburState
   late final WorkOrderProgressRemoteDataSource _progressRemoteDataSource;
   late final MaterialRemoteDataSource _materialRemoteDataSource;
   WorkOrderEntity? _workOrder;
+  final GlobalKey<RefreshIndicatorState> _refreshKey =
+      GlobalKey<RefreshIndicatorState>();
 
   bool _isManager = false;
   int? _userId;
@@ -225,14 +227,22 @@ class _DetailWorkOrderPageLemburState
   }
 
   Future<void> _handleRefresh() async {
-    _fetchProgresses();
     if (widget.workOrderId != null) {
       context.read<WorkOrderBloc>().add(
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
+    // Await agar spinner RefreshIndicator berputar selama fetch berlangsung.
+    await _fetchProgresses();
   }
 
+  /// Refresh dengan indikator terlihat — dipanggil setelah kembali dari halaman
+  /// yang mengubah data (form jurnal / peminjaman material). `show()` memutar
+  /// ikon refresh sekaligus menjalankan [_handleRefresh].
+  void _showRefreshIndicator() {
+    final shown = _refreshKey.currentState?.show();
+    if (shown == null) _handleRefresh();
+  }
 
   LatLng? get _resolvedLngLat {
     if (widget.lngLat != null) return widget.lngLat;
@@ -269,6 +279,7 @@ class _DetailWorkOrderPageLemburState
     final isPendingApproval = _workOrder?.statusId == 1; // Pending SPL
 
     return RefreshIndicator(
+      key: _refreshKey,
       onRefresh: _handleRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -386,7 +397,7 @@ class _DetailWorkOrderPageLemburState
                           ),
                         );
                         if (shouldRefresh == true && mounted) {
-                          _handleRefresh();
+                          _showRefreshIndicator();
                         }
                       },
                     ),
@@ -430,7 +441,7 @@ class _DetailWorkOrderPageLemburState
                           ),
                         );
                         if (shouldRefresh == true && mounted) {
-                          _handleRefresh();
+                          _showRefreshIndicator();
                         }
                       },
                     ),
@@ -491,7 +502,7 @@ class _DetailWorkOrderPageLemburState
               ),
             );
             if (shouldRefresh == true && mounted) {
-              _handleRefresh();
+              _showRefreshIndicator();
             }
           },
         ),
@@ -549,7 +560,7 @@ class _DetailWorkOrderPageLemburState
       ),
     );
     if (shouldRefresh == true && mounted) {
-      _handleRefresh();
+      _showRefreshIndicator();
     }
   }
 
@@ -695,7 +706,7 @@ class _DetailWorkOrderPageLemburState
           ),
         );
         if (shouldRefresh == true && mounted) {
-          _handleRefresh();
+          _showRefreshIndicator();
         }
       } finally {
         if (mounted) _isNavigatingToReport = false;
