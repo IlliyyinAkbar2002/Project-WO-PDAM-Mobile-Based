@@ -54,18 +54,8 @@ class AuthStorage {
   static Map<String, dynamic>? getUserSync() {
     return _cachedUser;
   }
-
-  /// Kode jabatan user yang sedang login ('SPV', 'SENIOR_STAFF', 'STAFF', ...).
-  /// Diturunkan dari nama/id jabatan via [JabatanKode] (lihat mobile_access.dart).
+  
   static String? getJabatanKodeSync() => JabatanKode.fromUser(_cachedUser);
-
-  /// Normalisasi objek `user` dari respons login ke bentuk kanonik yang dipakai
-  /// seluruh aplikasi: tetap menyimpan field flat (role_id, departemen_*,
-  /// jabatan_*) dan menambahkan `jabatan_kode` serta sub-map `employee` agar
-  /// header/profil/resolver lama tetap menemukan datanya.
-  ///
-  /// Endpoint /me yang baru hanya mengembalikan kolom user tipis tanpa jabatan
-  /// & departemen, jadi respons login adalah sumber data terkaya.
   static Map<String, dynamic> normalizeLoginUser(Map<String, dynamic> raw) {
     final kode = JabatanKode.fromUser(raw);
     return {
@@ -83,10 +73,6 @@ class AuthStorage {
     };
   }
 
-  /// Lengkapi sub-map `employee` pada user yang tersimpan dengan data pegawai
-  /// penuh dari `/v1/pegawai/{id}` (mis. `nip`, `tanggal_lahir`, `alamat`) yang
-  /// tidak ikut di respons login. Bersifat best-effort: bila belum ada user
-  /// tersimpan, tidak melakukan apa-apa.
   static Future<void> enrichEmployeeFromPegawai(
     Map<String, dynamic> pegawai,
   ) async {

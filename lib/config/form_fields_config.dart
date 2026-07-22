@@ -239,11 +239,17 @@ class FormFieldsConfig {
           "isReadOnly": isReadOnly,
         },
         {
-          "type": "text",
+          "type": "dropdown",
           "key": "kondisi_awal",
           "label": "Kondisi Awal",
-          "hint": "Deskripsi kondisi sebelum pemeliharaan",
+          "hint": "Cek Kondisi Awal",
+          "options": [
+            {"value": "Ringan", "label": "Ringan"},
+            {"value": "Sedang", "label": "Sedang"},
+            {"value": "Berat", "label": "Berat"},
+          ],
           "isReadOnly": isReadOnly,
+          "isDisabled": isReadOnly,
         },
       ];
     } else if (kategoriForm == 'meter') {
@@ -266,6 +272,7 @@ class FormFieldsConfig {
             {"value": "Berat", "label": "Berat"},
           ],
           "isReadOnly": isReadOnly,
+          "isDisabled": isReadOnly,
         },
       ];
     }

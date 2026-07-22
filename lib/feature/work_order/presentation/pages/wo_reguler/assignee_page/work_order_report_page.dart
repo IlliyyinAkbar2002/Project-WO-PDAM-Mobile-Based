@@ -14,6 +14,7 @@ import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/revision_change_guard.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
@@ -124,6 +125,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
   final GeofenceService _geofence = sl<GeofenceService>();
+
+  /// Snapshot laporan versi server — pembanding gate "Kerjakan Revisi harus
+  /// mengandung perubahan". Diambil dari data listener BLoC (bukan draft).
+  /// null = belum tersnapshot → gate dilewati (fail-open).
+  RevisionBaseline? _serverBaseline;
 
   /// Status geofence untuk banner UX. `_geoStatus` null = belum/ gagal cek.
   GeofenceStatus? _geoStatus;
@@ -360,6 +366,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                 .cast<dynamic>()
                 .toList();
 
+            // Snapshot versi server SEBELUM draft di-restore — pembanding gate
+            // "Kerjakan Revisi" (draft bisa identik dengan versi tersubmit).
+            _serverBaseline = RevisionBaseline(
+              description: description,
+              images: images,
+              formData: {...?state.progress.kategoriData},
+            );
+
             // Schedule setState setelah frame selesai untuk menghindari blocking
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -453,6 +467,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             // pada form Selesai (jaringan/infrastruktur/meter) tidak terisi.
             final kategoriData =
                 progressDetails.first.workOrderProgress?.kategoriData;
+
+            // Snapshot versi server SEBELUM draft di-restore — pembanding gate
+            // "Kerjakan Revisi" (draft bisa identik dengan versi tersubmit).
+            _serverBaseline = RevisionBaseline(
+              description: description,
+              images: images,
+              formData: {...formData, ...?kategoriData},
+            );
 
             // Schedule setState setelah frame selesai untuk menghindari blocking
             final draft = _journalDraftCubit.getDraft(_draftKey);
@@ -799,33 +821,36 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     );
   }
 
-  Widget _buildDynamicForm() {
-    final List<Map<String, dynamic>> dynamicFields;
+  /// Daftar field dinamis yang dirender di form. Juga dipakai gate revisi di
+  /// [_onSubmit] sebagai sumber key field yang benar-benar editable.
+  List<Map<String, dynamic>> _dynamicFormFields() {
     if (widget.kategoriForm != null) {
       if (widget.mode == 'Mulai') {
-        dynamicFields = FormFieldsConfig.getStartKategoriFields(
+        return FormFieldsConfig.getStartKategoriFields(
           kategoriForm: widget.kategoriForm,
           isReadOnly: isDetailMode || _isAlreadyRecorded,
         );
-      } else if (widget.mode == 'Selesai') {
-        dynamicFields = FormFieldsConfig.getSubmissionFields(
-          kategoriForm: widget.kategoriForm,
-          isReadOnly: isDetailMode || _isAlreadyRecorded,
-        );
-      } else {
-        dynamicFields = [];
       }
-    } else {
-      dynamicFields = (isDetailMode || !widget.isAssignee)
-          ? DynamicFormConfig.getDetailDynamicFormFields(
-              details: _progressDetails,
-              isDetailMode: isDetailMode,
-            )
-          : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
+      if (widget.mode == 'Selesai') {
+        return FormFieldsConfig.getSubmissionFields(
+          kategoriForm: widget.kategoriForm,
+          isReadOnly: isDetailMode || _isAlreadyRecorded,
+        );
+      }
+      return [];
     }
+    return (isDetailMode || !widget.isAssignee)
+        ? DynamicFormConfig.getDetailDynamicFormFields(
+            details: _progressDetails,
+            isDetailMode: isDetailMode,
+          )
+        : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
+  }
+
+  Widget _buildDynamicForm() {
     debugPrint("🔍 detail mode: $isDetailMode");
     return DynamicFormBuilder(
-      fields: dynamicFields,
+      fields: _dynamicFormFields(),
       formData: _formData,
       onFieldChanged: _onFieldChanged,
       customWidgets: CustomFieldWidgets.fields,
@@ -1089,6 +1114,26 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     if (_isAlreadyRecorded) {
       AppSnackbar.showWarning('Laporan sudah tercatat dan tidak dapat diubah.');
       return;
+    }
+    // Gate revisi: resubmit tanpa perubahan ditolak — SPV meminta perbaikan,
+    // jadi minimal satu isian harus berbeda dari versi tersubmit. Tidak
+    // berlaku untuk submit normal (non-revisi).
+    if (isRejected && _serverBaseline != null) {
+      final editableKeys = _dynamicFormFields()
+          .map((field) => field['key']?.toString())
+          .whereType<String>();
+      if (_serverBaseline!.isUnchanged(
+        description: _descriptionController.text,
+        images: _images,
+        formData: _formData,
+        editableKeys: editableKeys,
+      )) {
+        AppSnackbar.showError(
+          'Belum ada perubahan pada laporan. Perbarui minimal satu isian '
+          '(deskripsi, foto, atau isian lainnya) sesuai catatan revisi.',
+        );
+        return;
+      }
     }
     // Cutoff jam upload laporan WO reguler: di atas 16:00 tidak boleh upload,
     // kecuali prioritas Urgent. Mengikuti pola gate assignment 09:00–16:00 di

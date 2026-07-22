@@ -15,6 +15,7 @@ import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/revision_change_guard.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
@@ -130,6 +131,11 @@ class _WorkOrderReportPageLemburState
   bool _requestedHeaderFallback = false;
   Position? _currentPosition;
   final GeofenceService _geofence = sl<GeofenceService>();
+
+  /// Snapshot laporan versi server — pembanding gate "Kerjakan Revisi harus
+  /// mengandung perubahan". Diambil dari data listener BLoC (bukan draft).
+  /// null = belum tersnapshot → gate dilewati (fail-open).
+  RevisionBaseline? _serverBaseline;
 
   /// Status geofence untuk banner UX. `_geoStatus` null = belum/ gagal cek.
   GeofenceStatus? _geoStatus;
@@ -361,6 +367,18 @@ class _WorkOrderReportPageLemburState
           debugPrint("📢 State saat ini: $state");
 
           if (state is LemburProgressDetailLoaded) {
+            // Snapshot versi server — pembanding gate "Kerjakan Revisi"
+            // (resubmit revisi tanpa perubahan ditolak).
+            _serverBaseline = RevisionBaseline(
+              description:
+                  state.progress.description ?? widget.initialDescription ?? '',
+              images: (state.progress.documentation ?? [])
+                  .map((doc) => doc.url)
+                  .where((urlValue) => urlValue != null && urlValue.isNotEmpty)
+                  .cast<dynamic>()
+                  .toList(),
+              formData: {...?state.progress.kategoriData},
+            );
             setState(() {
               _progressStatusId = state.progress.statusId;
               _descriptionController.text =
@@ -455,6 +473,14 @@ class _WorkOrderReportPageLemburState
             // terpisah dari progress_detail. Tanpa merge ini, field kategori
             // pada form Selesai (jaringan/infrastruktur/meter) tidak terisi.
             final kategoriData = firstElement.workOrderProgress?.kategoriData;
+
+            // Snapshot versi server SEBELUM draft di-restore — pembanding gate
+            // "Kerjakan Revisi" (draft bisa identik dengan versi tersubmit).
+            _serverBaseline = RevisionBaseline(
+              description: description,
+              images: images,
+              formData: {...formData, ...?kategoriData},
+            );
 
             final draft = _journalDraftCubit.getDraft(_draftKey);
             SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -800,10 +826,11 @@ class _WorkOrderReportPageLemburState
     );
   }
 
-  Widget _buildDynamicForm() {
-    final List<Map<String, dynamic>> dynamicFields;
+  /// Daftar field dinamis yang dirender di form. Juga dipakai gate revisi di
+  /// [_onSubmit] sebagai sumber key field yang benar-benar editable.
+  List<Map<String, dynamic>> _dynamicFormFields() {
     if (widget.kategoriForm != null) {
-      dynamicFields = widget.mode == 'Mulai'
+      return widget.mode == 'Mulai'
           ? FormFieldsConfig.getStartKategoriFields(
               kategoriForm: widget.kategoriForm,
               isReadOnly: isDetailMode || _isAlreadyRecorded,
@@ -812,16 +839,18 @@ class _WorkOrderReportPageLemburState
               kategoriForm: widget.kategoriForm,
               isReadOnly: isDetailMode || _isAlreadyRecorded,
             );
-    } else {
-      dynamicFields = (isDetailMode || !widget.isAssignee)
-          ? DynamicFormConfig.getDetailDynamicFormFields(
-              details: _progressDetails,
-              isDetailMode: isDetailMode,
-            )
-          : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
     }
+    return (isDetailMode || !widget.isAssignee)
+        ? DynamicFormConfig.getDetailDynamicFormFields(
+            details: _progressDetails,
+            isDetailMode: isDetailMode,
+          )
+        : DynamicFormConfig.getDynamicFormFields(details: _progressDetails);
+  }
+
+  Widget _buildDynamicForm() {
     return DynamicFormBuilder(
-      fields: dynamicFields,
+      fields: _dynamicFormFields(),
       formData: _formData,
       onFieldChanged: _onFieldChanged,
       customWidgets: CustomFieldWidgets.fields,
@@ -1073,6 +1102,26 @@ class _WorkOrderReportPageLemburState
     if (_isAlreadyRecorded) {
       AppSnackbar.showWarning('Laporan sudah tercatat dan tidak dapat diubah.');
       return;
+    }
+    // Gate revisi: resubmit tanpa perubahan ditolak — SPV meminta perbaikan,
+    // jadi minimal satu isian harus berbeda dari versi tersubmit. Tidak
+    // berlaku untuk submit normal (non-revisi).
+    if (isRejected && _serverBaseline != null) {
+      final editableKeys = _dynamicFormFields()
+          .map((field) => field['key']?.toString())
+          .whereType<String>();
+      if (_serverBaseline!.isUnchanged(
+        description: _descriptionController.text,
+        images: _images,
+        formData: _formData,
+        editableKeys: editableKeys,
+      )) {
+        AppSnackbar.showError(
+          'Belum ada perubahan pada laporan. Perbarui minimal satu isian '
+          '(deskripsi, foto, atau isian lainnya) sesuai catatan revisi.',
+        );
+        return;
+      }
     }
     // Cutoff lembur: laporan hanya boleh diupload sampai pukul 00:00 (tengah
     // malam) setelah tanggal jadwal mulai. Lewat tengah malam → ditolak.

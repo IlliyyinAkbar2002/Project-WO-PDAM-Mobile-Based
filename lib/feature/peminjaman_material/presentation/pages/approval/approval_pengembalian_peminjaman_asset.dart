@@ -296,7 +296,7 @@ class _PersetujuanPeminjamanBarangPageState
             children: [
               Expanded(
                 child: Text(
-                  'Approval Log Pengembalian Material',
+                  'Approval Pengembalian Material',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: const Color(0xFF101828),
                     fontWeight: FontWeight.w800,

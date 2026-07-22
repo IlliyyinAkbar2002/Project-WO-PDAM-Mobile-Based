@@ -840,9 +840,9 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       AppSnackbar.showError("Waktu selesai harus diisi.");
       return;
     }
-    if (endDateTime.isBefore(startDateTime)) {
+    if (!endDateTime.isAfter(startDateTime)) {
       AppSnackbar.showError(
-        "Waktu selesai tidak boleh mendahului waktu mulai.",
+        "Waktu selesai harus setelah waktu mulai.",
       );
       return;
     }
@@ -1022,11 +1022,23 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       AppSnackbar.showError("Estimasi selesai harus diisi.");
       return;
     }
-    if (estimasiSelesai.isBefore(tanggalMulai)) {
+    if (!estimasiSelesai.isAfter(tanggalMulai)) {
       AppSnackbar.showError(
-        "Estimasi selesai tidak boleh mendahului waktu mulai.",
+        "Estimasi selesai harus setelah waktu mulai.",
       );
       return;
+    }
+
+    // Estimasi selesai WO non-Urgent harus berakhir dalam jam kerja (maks 16:00).
+    if (!isUrgent) {
+      final int selesaiMenit =
+          estimasiSelesai.hour * 60 + estimasiSelesai.minute;
+      if (selesaiMenit > 16 * 60) {
+        AppSnackbar.showError(
+          "Estimasi selesai untuk WO non-Urgent maksimal pukul 16:00.",
+        );
+        return;
+      }
     }
 
     setState(() {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 
 class TimeEstimate extends StatefulWidget {
@@ -336,6 +337,20 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
     );
 
     if (pickedDate != null) {
+      // Cegat langsung: selesai harus setelah mulai (kalau data sudah lengkap).
+      if (selectedEndTime != null &&
+          !_isEndAfterStart(
+            DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              selectedEndTime!.hour,
+              selectedEndTime!.minute,
+            ),
+          )) {
+        AppSnackbar.showError("Waktu selesai harus setelah waktu mulai.");
+        return;
+      }
       setState(() {
         selectedEndDate = pickedDate;
         _endDateController.text = "${pickedDate.toLocal()}".split(' ')[0];
@@ -357,12 +372,40 @@ class _TimeEstimateState extends AppStatePage<TimeEstimate> {
       },
     );
     if (pickedTime != null) {
+      // Cegat langsung: selesai harus setelah mulai (kalau data sudah lengkap).
+      if (selectedEndDate != null &&
+          !_isEndAfterStart(
+            DateTime(
+              selectedEndDate!.year,
+              selectedEndDate!.month,
+              selectedEndDate!.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            ),
+          )) {
+        AppSnackbar.showError("Waktu selesai harus setelah waktu mulai.");
+        return;
+      }
       setState(() {
         selectedEndTime = pickedTime;
         _endTimeController.text = pickedTime.format(context);
         _calculateEndDateTime();
       });
     }
+  }
+
+  /// True kalau [candidateEnd] jatuh setelah waktu mulai. Kalau tanggal/jam
+  /// mulai belum lengkap, kembalikan true (validasi jatuh ke tombol Ajukan).
+  bool _isEndAfterStart(DateTime candidateEnd) {
+    if (selectedDate == null || selectedTime == null) return true;
+    final DateTime start = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+    return candidateEnd.isAfter(start);
   }
 
   void _calculateEndDateTime() {

@@ -1,13 +1,5 @@
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 
-/// Menentukan kategori efektif sebuah WO ('jaringan' / 'infrastruktur' /
-/// 'meter') dengan cara yang SAMA seperti chip di kartu daftar WO.
-///
-/// Sumber utama adalah `wo.kategoriForm` (string dari backend). Bila null,
-/// jatuh ke tebakan dari nama jenis WO / judul. Dipakai bersama oleh kartu
-/// daftar (`WorkOrderList._buildStatusChip`) dan filter FE-side di
-/// `WorkOrderBloc._applyMobileFilters`, sehingga hasil filter tidak pernah
-/// berbeda dengan yang ditampilkan.
 class WorkOrderKategoriHelper {
   const WorkOrderKategoriHelper._();
 
