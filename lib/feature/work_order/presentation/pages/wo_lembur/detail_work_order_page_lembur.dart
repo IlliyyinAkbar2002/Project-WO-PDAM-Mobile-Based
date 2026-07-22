@@ -82,6 +82,10 @@ class _DetailWorkOrderPageLemburState
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
 
+  /// Naik setiap refresh — memicu DetailWorkOrderPage embedded (bloc terpisah)
+  /// ikut memuat ulang datanya via didUpdateWidget.
+  int _detailReloadTick = 0;
+
   bool _isManager = false;
   int? _userId;
 
@@ -232,6 +236,7 @@ class _DetailWorkOrderPageLemburState
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
+    setState(() => _detailReloadTick++);
     // Await agar spinner RefreshIndicator berputar selama fetch berlangsung.
     await _fetchProgresses();
   }
@@ -290,6 +295,7 @@ class _DetailWorkOrderPageLemburState
             isAssignee: widget.isAssignee,
             status: widget.status,
             enableInnerScroll: false,
+            reloadTick: _detailReloadTick,
           ),
 
           if (widget.isAssignee && _workOrder != null)

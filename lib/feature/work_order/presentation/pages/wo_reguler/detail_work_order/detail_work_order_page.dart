@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -37,6 +39,11 @@ class DetailWorkOrderPage extends StatelessWidget {
   final bool isAssignee;
   final bool enableInnerScroll;
 
+  /// Trigger reload deklaratif dari halaman induk. Bloc halaman ini terisolasi
+  /// (factory di service locator), jadi induk tidak bisa me-refresh lewat
+  /// event — naikkan nilai ini agar detail dimuat ulang (lihat didUpdateWidget).
+  final int reloadTick;
+
   const DetailWorkOrderPage({
     super.key,
     this.picId,
@@ -46,6 +53,7 @@ class DetailWorkOrderPage extends StatelessWidget {
     required this.isOvertime,
     this.isAssignee = false,
     this.enableInnerScroll = true,
+    this.reloadTick = 0,
   });
 
   @override
@@ -60,6 +68,7 @@ class DetailWorkOrderPage extends StatelessWidget {
         isOvertime: isOvertime,
         isAssignee: isAssignee,
         enableInnerScroll: enableInnerScroll,
+        reloadTick: reloadTick,
       ),
     );
   }
@@ -73,6 +82,7 @@ class _DetailWorkOrderPage extends StatefulWidget {
   final bool isOvertime;
   final bool isAssignee;
   final bool enableInnerScroll;
+  final int reloadTick;
 
   const _DetailWorkOrderPage({
     this.picId,
@@ -82,6 +92,7 @@ class _DetailWorkOrderPage extends StatefulWidget {
     required this.isOvertime,
     this.isAssignee = false,
     this.enableInnerScroll = true,
+    this.reloadTick = 0,
   });
 
   @override
@@ -112,6 +123,8 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
   bool _isSubmitting = false;
 
   bool _hasClosedAfterCreate = false;
+  final GlobalKey<RefreshIndicatorState> _refreshKey =
+      GlobalKey<RefreshIndicatorState>();
   bool get isDetailMode => widget.workOrderId != null;
 
   @override
@@ -130,6 +143,16 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     } else {
       bloc.add(GetWorkOrderTypesEvent());
       _loadAssignableUsers(bloc, user);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DetailWorkOrderPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Induk menaikkan reloadTick saat me-refresh (mis. setelah submit laporan
+    // Inspeksi/Mulai/Progress/Selesai) — muat ulang detail dari bloc sendiri.
+    if (widget.reloadTick != oldWidget.reloadTick) {
+      _reloadDetail();
     }
   }
 
@@ -190,6 +213,32 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     if (!widget.isAssignee) {
       bloc.add(GetProgressByMemberEvent(widget.workOrderId!));
     }
+  }
+
+  /// Handler pull-to-refresh (mode standalone). Await state hasil fetch agar
+  /// spinner RefreshIndicator berputar selama loading berlangsung.
+  Future<void> _onRefresh() async {
+    if (!isDetailMode) return;
+    final bloc = context.read<WorkOrderBloc>();
+    final done = bloc.stream
+        .firstWhere(
+          (state) => state is WorkOrderDetailLoaded || state is WorkOrderError,
+        )
+        .timeout(const Duration(seconds: 10));
+    _reloadDetail();
+    try {
+      await done;
+    } on TimeoutException {
+      // Respons lambat — listener tetap memproses bila data datang belakangan.
+    }
+  }
+
+  /// Refresh dengan indikator terlihat — dipanggil setelah kembali dari form
+  /// jurnal yang mengubah data (mis. SPV Terima/Revisi progress anggota).
+  /// Fallback ke [_reloadDetail] bila indikator tidak ter-build (mode embedded).
+  void _showRefreshIndicator() {
+    final shown = _refreshKey.currentState?.show();
+    if (shown == null) _reloadDetail();
   }
 
   List<int>? _assignableJabatanIds(Map<String, dynamic>? user) {
@@ -530,8 +579,25 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                   // Spinner penuh hanya saat detail belum siap. Setelah form
                   // tampil (isDataLoaded), WorkOrderLoading dari fetch progress
                   // TIDAK boleh menutup form yang sudah ada.
-                  body: (state is WorkOrderLoading && isDetailMode && !isDataLoaded)
+                  body:
+                      (state is WorkOrderLoading &&
+                          isDetailMode &&
+                          !isDataLoaded)
                       ? const Center(child: CircularProgressIndicator())
+                      : isDetailMode
+                      // Pull-to-refresh hanya untuk mode detail; form buat WO
+                      // baru tidak punya data server untuk dimuat ulang.
+                      ? RefreshIndicator(
+                          key: _refreshKey,
+                          onRefresh: _onRefresh,
+                          child: SingleChildScrollView(
+                            // Tetap bisa di-swipe walau konten pendek —
+                            // syarat gesture pull-to-refresh.
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(16.0),
+                            child: _buildFormContent(progresses),
+                          ),
+                        )
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(16.0),
                           child: _buildFormContent(progresses),
@@ -616,6 +682,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       workOrderTypeName: formData["workOrderTypeName"] as String?,
       workOrderTypeId: formData["workOrderTypeId"] as int?,
       isOvertime: widget.isOvertime,
+      onProgressUpdated: _showRefreshIndicator,
     );
   }
 
@@ -896,7 +963,13 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Lokasi Belum Ditentukan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+          title: const Text(
+            'Lokasi Belum Ditentukan',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
+          ),
           content: const Text(
             'Lokasi penugasan belum diatur. Apakah Anda yakin ingin melanjutkan penugasan ke staff tanpa lokasi?',
           ),

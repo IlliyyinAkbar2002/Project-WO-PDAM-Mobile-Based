@@ -87,6 +87,10 @@ class _AssigneeWorkOrderDetailPageState
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
 
+  /// Naik setiap refresh — memicu DetailWorkOrderPage embedded (bloc terpisah)
+  /// ikut memuat ulang datanya via didUpdateWidget.
+  int _detailReloadTick = 0;
+
   String _resolveAppBarTitle() {
     if (widget.kategoriForm != null) {
       return WoKategoriForm.label(widget.kategoriForm);
@@ -240,7 +244,7 @@ class _AssigneeWorkOrderDetailPageState
         GetWorkOrderDetailEvent(widget.workOrderId!),
       );
     }
-    // Await agar spinner RefreshIndicator berputar selama fetch berlangsung.
+    setState(() => _detailReloadTick++);
     await _fetchProgresses();
   }
 
@@ -275,6 +279,7 @@ class _AssigneeWorkOrderDetailPageState
             isAssignee: widget.isAssignee,
             status: widget.status,
             enableInnerScroll: false,
+            reloadTick: _detailReloadTick,
           ),
           if (_workOrder != null)
             TahapanStepper(workOrder: _workOrder, progresses: progresses),

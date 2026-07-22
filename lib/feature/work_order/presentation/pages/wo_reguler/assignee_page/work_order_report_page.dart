@@ -493,7 +493,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           if (state is WorkOrderProgressUpdated) {
             if (_hasClosedAfterSubmit) return;
             _hasClosedAfterSubmit = true;
-            AppSnackbar.showSuccess("Form berhasil disubmit.");
             if ((widget.isAssignee && !isDetailMode) || !widget.isAssignee) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
@@ -505,7 +504,18 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                     Navigator.of(context).canPop()) {
                   Navigator.of(context).pop(true);
                 }
+                // Toast SETELAH pop: Flushbar tampil via route push; kalau
+                // dipanggil sebelum pop, route-nya merebut posisi teratas
+                // sehingga guard route.isCurrent gagal dan pop di-skip (form
+                // "nyangkut", tanpa refresh). AppSnackbar memakai
+                // scaffoldMessengerKeys global, jadi tetap tampil di halaman
+                // detail setelah form ditutup.
+                AppSnackbar.showSuccess("Form berhasil disubmit.");
               });
+            } else {
+              // Cabang tak-pop (praktis tak terjangkau) tetap memberi
+              // konfirmasi.
+              AppSnackbar.showSuccess("Form berhasil disubmit.");
             }
           }
           if (state is WorkOrderError) {
@@ -1247,13 +1257,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             _geoStatusError = null;
           });
 
-          // Akurasi buruk = peringatan saja, tidak memblokir.
-          if (geo.accuracyPoor) {
-            AppSnackbar.showWarning(
-              "Akurasi GPS rendah. Aktifkan mode Lokasi 'Akurasi Tinggi' dan "
-              "berada di area terbuka agar GPS lebih presisi.",
-            );
-          }
+          // Akurasi buruk = peringatan saja, tidak memblokir. TIDAK dijadikan
+          // toast di sini: AppSnackbar (Flushbar) push route, dan route toast
+          // itu menutup form sehingga guard route.isCurrent pada auto-pop sukses
+          // gagal → form nyangkut tanpa refresh (khusus staff yang kena
+          // geofence; SPV tidak). Peringatan akurasi tetap tampil persisten di
+          // banner geofence, jadi tak ada info yang hilang. `_poorAccuracy`
+          // (di setState atas) yang menyalakan banner itu.
 
           // Gate memperhitungkan ketidakpastian GPS (allowed), bukan jarak
           // mentah — mencegah penolakan keliru saat di dalam/di dekat batas.

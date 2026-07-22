@@ -31,6 +31,10 @@ class MemberProgressCard extends StatefulWidget {
   /// Margin pembungkus. Default mengikuti perilaku lama.
   final EdgeInsetsGeometry? margin;
 
+  /// Dipanggil saat form jurnal yang dibuka dari kartu ini pop dengan `true`
+  /// (progress berubah, mis. SPV Terima/Revisi) agar pemilik halaman refresh.
+  final VoidCallback? onProgressUpdated;
+
   const MemberProgressCard({
     super.key,
     required this.member,
@@ -48,6 +52,7 @@ class MemberProgressCard extends StatefulWidget {
     this.showAvatar = false,
     this.flat = false,
     this.margin,
+    this.onProgressUpdated,
   });
 
   @override
@@ -88,7 +93,8 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
     }
 
     return Card(
-      margin: widget.margin ??
+      margin:
+          widget.margin ??
           const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: widget.isLeader ? 3 : 2,
       shape: RoundedRectangleBorder(
@@ -103,170 +109,159 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
 
   Widget _buildContent() {
     return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Avatar, Nama, Jabatan, PIC Badge
-              Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header: Avatar, Nama, Jabatan, PIC Badge
+        Row(
+          children: [
+            if (widget.showAvatar) ...[
+              _buildAvatar(),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.showAvatar) ...[
-                    _buildAvatar(),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.member.nama,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (widget.member.isPic) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'PIC',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.member.nama,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (widget.isLeader) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.shield_outlined,
-                                size: 14,
-                                color: Colors.blue[700],
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'Penanggung Jawab Lapangan',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue[700],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.member.jabatan,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        if (widget.member.nip != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            'NIP: ${widget.member.nip}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    _isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: Colors.grey[600],
-                  ),
-                ],
-              ),
-              // Expanded Section: Progress List
-              if (_isExpanded) ...[
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                Text(
-                  'Riwayat Progress (${widget.member.progressList.length})',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (widget.member.progressList.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'Belum ada progress',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
                       ),
-                    ),
-                  )
-                else
-                  ...(_showAllProgress
-                          ? widget.member.progressList
-                          : widget.member.progressList.take(5))
-                      .map((progress) {
-                        return _buildProgressItem(progress);
-                      }),
-                if (widget.member.progressList.length > 5)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Center(
-                      child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            _showAllProgress = !_showAllProgress;
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
+                      if (widget.member.isPic) ...[
+                        const SizedBox(width: 8),
+                        Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 8,
+                            vertical: 2,
                           ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PIC',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (widget.isLeader) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.shield_outlined,
+                          size: 14,
+                          color: Colors.blue[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
                           child: Text(
-                            _showAllProgress
-                                ? 'Tampilkan lebih sedikit'
-                                : '+ ${widget.member.progressList.length - 5} progress lainnya',
+                            'Penanggung Jawab Lapangan',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[700],
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.member.jabatan,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  if (widget.member.nip != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'NIP: ${widget.member.nip}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+              color: Colors.grey[600],
+            ),
+          ],
+        ),
+        // Expanded Section: Progress List
+        if (_isExpanded) ...[
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+          Text(
+            'Riwayat Progress (${widget.member.progressList.length})',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          if (widget.member.progressList.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Belum ada progress',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                ),
+              ),
+            )
+          else
+            ...(_showAllProgress
+                    ? widget.member.progressList
+                    : widget.member.progressList.take(5))
+                .map((progress) {
+                  return _buildProgressItem(progress);
+                }),
+          if (widget.member.progressList.length > 5)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Center(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _showAllProgress = !_showAllProgress;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Text(
+                      _showAllProgress
+                          ? 'Tampilkan lebih sedikit'
+                          : '+ ${widget.member.progressList.length - 5} progress lainnya',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ),
-              ],
-            ],
-          );
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
   }
 
   Widget _buildAvatar() {
@@ -309,8 +304,8 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final shouldRefresh = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
                 builder: (_) => widget.isOvertime
@@ -343,6 +338,9 @@ class _MemberProgressCardState extends State<MemberProgressCard> {
                       ),
               ),
             );
+            if (shouldRefresh == true) {
+              widget.onProgressUpdated?.call();
+            }
           },
           borderRadius: BorderRadius.circular(8),
           child: Container(

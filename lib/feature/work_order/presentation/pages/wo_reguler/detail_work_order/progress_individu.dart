@@ -16,6 +16,10 @@ class IndividualProgressSection extends StatelessWidget {
   final int? workOrderTypeId;
   final bool isOvertime;
 
+  /// Dipanggil saat sebuah progress berubah dari form jurnal (mis. SPV
+  /// Terima/Revisi) agar pemilik halaman bisa me-refresh datanya.
+  final VoidCallback? onProgressUpdated;
+
   const IndividualProgressSection({
     super.key,
     required this.progressByMember,
@@ -27,6 +31,7 @@ class IndividualProgressSection extends StatelessWidget {
     this.workOrderTypeName,
     this.workOrderTypeId,
     this.isOvertime = false,
+    this.onProgressUpdated,
   });
 
   @override
@@ -84,8 +89,9 @@ class IndividualProgressSection extends StatelessWidget {
 
     if (pic == null) {
       return [
-        ...progressByMember.members
-            .map((member) => _buildCard(member, isLeader: false)),
+        ...progressByMember.members.map(
+          (member) => _buildCard(member, isLeader: false),
+        ),
         // Tanpa PIC: tampilkan total laporan tim saja (tanpa Status Terakhir).
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -99,8 +105,7 @@ class IndividualProgressSection extends StatelessWidget {
       ];
     }
 
-    final anggota =
-        progressByMember.members.where((m) => !m.isPic).toList();
+    final anggota = progressByMember.members.where((m) => !m.isPic).toList();
 
     // Satu container luar membungkus seluruh tim: leader (PIC) dirender rata
     // sebagai konten di atas, lalu anggota lapangan sebagai kartu di dalamnya.
@@ -116,7 +121,10 @@ class IndividualProgressSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionLabel(icon: Icons.groups_outlined, text: 'Tim Lapangan'),
+            _buildSectionLabel(
+              icon: Icons.groups_outlined,
+              text: 'Tim Lapangan',
+            ),
             const SizedBox(height: 8),
             // Leader (PIC) — flat, tanpa kartu sendiri.
             _buildCard(pic, isLeader: true, flat: true),
@@ -151,8 +159,9 @@ class IndividualProgressSection extends StatelessWidget {
   /// Footer ringkasan di dalam container "Tim Lapangan": total laporan tim
   /// (agregat seluruh anggota) dan status terakhir PIC.
   Widget _buildTeamFooter(MemberProgressEntity pic) {
-    final lastProgress =
-        pic.progressList.isNotEmpty ? pic.progressList.last : null;
+    final lastProgress = pic.progressList.isNotEmpty
+        ? pic.progressList.last
+        : null;
 
     return Row(
       children: [
@@ -249,6 +258,7 @@ class IndividualProgressSection extends StatelessWidget {
       workOrderTypeName: workOrderTypeName,
       workOrderTypeId: workOrderTypeId,
       isOvertime: isOvertime,
+      onProgressUpdated: onProgressUpdated,
     );
   }
 }
