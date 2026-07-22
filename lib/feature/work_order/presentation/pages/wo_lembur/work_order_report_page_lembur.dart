@@ -620,14 +620,20 @@ class _WorkOrderReportPageLemburState
                                     : (!canShowResubmitButton
                                           ? _buildOnlySeniorStaffBanner()
                                           : ElevatedButton(
+                                              // Pertahankan warna tombol saat
+                                              // disabled (sedang submit) agar
+                                              // spinner tetap kontras — default
+                                              // disabled Material = abu-abu.
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: _getColor(),
+                                                disabledBackgroundColor:
+                                                    _getColor(),
                                               ),
                                               onPressed: _isSubmitting
                                                   ? null
                                                   : _onSubmit,
                                               child: _isSubmitting
-                                                  ? const SizedBox(
+                                                  ? SizedBox(
                                                       height: 20,
                                                       width: 20,
                                                       child: CircularProgressIndicator(
@@ -635,7 +641,13 @@ class _WorkOrderReportPageLemburState
                                                         valueColor:
                                                             AlwaysStoppedAnimation<
                                                               Color
-                                                            >(Colors.white),
+                                                            >(
+                                                              widget.mode ==
+                                                                      'Selesai'
+                                                                  ? Colors.white
+                                                                  : color
+                                                                        .primary[500]!,
+                                                            ),
                                                       ),
                                                     )
                                                   : Text(
@@ -685,6 +697,8 @@ class _WorkOrderReportPageLemburState
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
+                                          disabledBackgroundColor:
+                                              color.status[2],
                                         ),
                                         onPressed: _isSubmitting
                                             ? null

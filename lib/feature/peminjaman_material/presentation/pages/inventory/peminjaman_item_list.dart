@@ -523,7 +523,7 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          (m.kategori ?? 'UMUM').toUpperCase(),
+                          (m.kategori ?? 'Material').toUpperCase(),
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,

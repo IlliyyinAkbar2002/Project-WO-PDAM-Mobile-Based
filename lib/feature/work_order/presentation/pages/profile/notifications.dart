@@ -404,32 +404,32 @@ class _NotificationsHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
+            Tooltip(
+              message: 'Tandai semua dibaca',
+              child: GestureDetector(
+                onTap: unreadCount > 0
+                    ? () => context.read<NotificationBloc>().add(
+                        MarkAllNotificationsAsReadEvent(),
+                      )
+                    : null,
+                child: Container(
                   width: 40,
                   height: 40,
                   decoration: const BoxDecoration(
                     color: NotificationsPage._blueSoft,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.tune_rounded,
-                    color: NotificationsPage._accentBlue,
+                  child: Icon(
+                    Icons.done_all_rounded,
+                    color: unreadCount > 0
+                        ? NotificationsPage._accentBlue
+                        : NotificationsPage._textSecondary.withValues(
+                            alpha: 0.4,
+                          ),
                     size: 20,
                   ),
                 ),
-                if (unreadCount > 0)
-                  const Positioned(
-                    top: -1,
-                    right: -1,
-                    child: CircleAvatar(
-                      radius: 5,
-                      backgroundColor: Color(0xFFFF4D4F),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ],
         ),

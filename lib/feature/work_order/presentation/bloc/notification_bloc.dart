@@ -14,6 +14,8 @@ class MarkNotificationAsReadEvent extends NotificationEvent {
   MarkNotificationAsReadEvent(this.id);
 }
 
+class MarkAllNotificationsAsReadEvent extends NotificationEvent {}
+
 // --- States ---
 abstract class NotificationState {}
 
@@ -45,6 +47,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   ) : super(NotificationInitial()) {
     on<FetchNotificationsEvent>(_onFetchNotifications);
     on<MarkNotificationAsReadEvent>(_onMarkNotificationAsRead);
+    on<MarkAllNotificationsAsReadEvent>(_onMarkAllNotificationsAsRead);
   }
 
   Future<void> _onFetchNotifications(
@@ -98,6 +101,55 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     if (result is DataFailed && state is NotificationLoaded) {
       // Revert tanpa memicu loading flash (kembalikan snapshot sebelumnya).
       emit(NotificationLoaded(previousNotifications));
+    }
+  }
+
+  Future<void> _onMarkAllNotificationsAsRead(
+    MarkAllNotificationsAsReadEvent event,
+    Emitter<NotificationState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! NotificationLoaded) return;
+
+    final previousNotifications = currentState.notifications;
+    final unreadIds = previousNotifications
+        .where((n) => !n.isRead)
+        .map((n) => n.id)
+        .toList();
+    if (unreadIds.isEmpty) return;
+
+    // Update optimistis: tandai semua dibaca sekaligus.
+    final now = DateTime.now();
+    emit(
+      NotificationLoaded(
+        previousNotifications
+            .map((n) => n.isRead ? n : n.copyWith(readAt: now))
+            .toList(),
+      ),
+    );
+
+    // BE tidak punya endpoint bulk read-all; panggil endpoint single per id.
+    final results = await Future.wait(
+      unreadIds.map((id) => _markNotificationAsReadUseCase(id)),
+    );
+
+    // Revert parsial: hanya id yang gagal yang dikembalikan ke unread.
+    final failedIds = <String>{
+      for (var i = 0; i < unreadIds.length; i++)
+        if (results[i] is DataFailed) unreadIds[i],
+    };
+    if (failedIds.isNotEmpty && state is NotificationLoaded) {
+      emit(
+        NotificationLoaded(
+          previousNotifications
+              .map(
+                (n) => n.isRead || failedIds.contains(n.id)
+                    ? n
+                    : n.copyWith(readAt: now),
+              )
+              .toList(),
+        ),
+      );
     }
   }
 }

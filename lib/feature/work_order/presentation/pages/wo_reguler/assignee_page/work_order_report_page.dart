@@ -619,14 +619,20 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                     : (!canShowResubmitButton
                                           ? _buildOnlySeniorStaffBanner()
                                           : ElevatedButton(
+                                              // Pertahankan warna tombol saat
+                                              // disabled (sedang submit) agar
+                                              // spinner tetap kontras — default
+                                              // disabled Material = abu-abu.
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: _getColor(),
+                                                disabledBackgroundColor:
+                                                    _getColor(),
                                               ),
                                               onPressed: _isSubmitting
                                                   ? null
                                                   : _onSubmit,
                                               child: _isSubmitting
-                                                  ? const SizedBox(
+                                                  ? SizedBox(
                                                       height: 20,
                                                       width: 20,
                                                       child: CircularProgressIndicator(
@@ -634,7 +640,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                                         valueColor:
                                                             AlwaysStoppedAnimation<
                                                               Color
-                                                            >(Colors.white),
+                                                            >(
+                                                              widget.mode ==
+                                                                      'Selesai'
+                                                                  ? color
+                                                                        .foreground[100]!
+                                                                  : color
+                                                                        .primary[500]!,
+                                                            ),
                                                       ),
                                                     )
                                                   : Text(
@@ -680,6 +693,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: color.status[2],
+                                          disabledBackgroundColor:
+                                              color.status[2],
                                         ),
                                         onPressed: _isSubmitting
                                             ? null

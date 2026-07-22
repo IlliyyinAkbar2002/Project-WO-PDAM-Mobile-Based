@@ -225,7 +225,10 @@ class _SelectableChipFieldState extends State<SelectableChipField> {
               final isKoordinator =
                   widget.coordinatorId != null && m.id == widget.coordinatorId;
               return InputChip(
-                label: Text(name),
+                label: Text(
+                  name,
+                  style: const TextStyle(color: Color(0xFF0F172A)),
+                ),
                 avatar: isKoordinator
                     ? const Icon(Icons.star, color: Colors.orange, size: 16)
                     : null,
@@ -240,6 +243,7 @@ class _SelectableChipFieldState extends State<SelectableChipField> {
                     ? null
                     : const Icon(Icons.close, size: 18),
                 onDeleted: widget.isReadOnly ? null : () => _removeMember(m),
+                onPressed: widget.isReadOnly ? () {} : null,
               );
             }).toList(),
           ),
