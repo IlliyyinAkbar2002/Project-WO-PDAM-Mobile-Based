@@ -39,9 +39,33 @@ class WorkOrderRemoteDataSource extends RemoteDatasource {
     String? dateRange,
     String? startDate,
     String? endDate,
-    String? search,
-  ) async {
+    String? search, {
+    bool fromHistory = false,
+  }) async {
     try {
+      // Endpoint history (`/v1/workorder/history`) sudah meng-eager-load relasi
+      // `laporan_workorder` (untuk tanggal_terbit) + hard-code status='Selesai'.
+      // Ia hanya menerima page/limit/search; parameter lain diabaikan BE (sama
+      // seperti index), jadi tak ada yang benar-benar hilang.
+      if (fromHistory) {
+        final response = await get(
+          path: '/v1/workorder/history',
+          queryParameters: {
+            'page': page,
+            'limit': limit,
+            if (search != null) 'search': search,
+          },
+        );
+        final data = response.data['data']
+            .map<WorkOrderModel>((json) => WorkOrderModel.fromMap(json))
+            .toList();
+        return PaginatedDataSuccess(
+          data,
+          totalPages: response.data['totalPages'],
+          currentPage: response.data['currentPage'],
+        );
+      }
+
       String? statusStr;
       if (status != null && status.isNotEmpty) {
         final firstId = status.first;

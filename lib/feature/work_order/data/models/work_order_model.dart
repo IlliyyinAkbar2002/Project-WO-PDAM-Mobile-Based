@@ -29,6 +29,7 @@ class WorkOrderModel extends WorkOrderEntity {
     super.progresPersen,
     super.createdAt,
     super.updatedAt,
+    super.tanggalTerbitLaporan,
     super.kategoriForm,
     super.detailKategori,
     super.prioritas,
@@ -397,6 +398,14 @@ class WorkOrderModel extends WorkOrderEntity {
     final Map<String, dynamic>? assignmentLocationMap =
         parseMap(assignmentMap?['location']) ?? parseMap(map['location']);
 
+    // Tanggal terbit laporan: hanya tersedia dari endpoint `/v1/workorder/history`
+    // yang meng-eager-load relasi `laporan_workorder` (hasOne). BE mengirim UTC 'Z'
+    // → normalisasi ke lokal (WIB) via parseUtcDateTime, konsisten dgn model detail.
+    final Map<String, dynamic>? laporanMap = parseMap(map['laporan_workorder']);
+    final DateTime? tanggalTerbitLaporan = parseUtcDateTime(
+      laporanMap?['tanggal_terbit'],
+    );
+
     final assignment = AssignmentWorkorderEntity(
       id: parseIdFromAny(assignmentMap?['id']),
       workOrderId:
@@ -475,6 +484,7 @@ class WorkOrderModel extends WorkOrderEntity {
           : null,
       createdAt: parseUtcDateTime(map['created_at']),
       updatedAt: parseUtcDateTime(map['updated_at']),
+      tanggalTerbitLaporan: tanggalTerbitLaporan,
       assignment: assignment,
       tahapanTertinggi: parseInt(map['tahapan_tertinggi']),
       // departemenId: departemenId,
@@ -547,6 +557,7 @@ class WorkOrderModel extends WorkOrderEntity {
       progresPersen: progresPersen,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      tanggalTerbitLaporan: tanggalTerbitLaporan,
       kategoriForm: kategoriForm,
       detailKategori: detailKategori,
       prioritas: prioritas,
@@ -580,6 +591,7 @@ class WorkOrderModel extends WorkOrderEntity {
       progresPersen: entity.progresPersen,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      tanggalTerbitLaporan: entity.tanggalTerbitLaporan,
       kategoriForm: entity.kategoriForm,
       detailKategori: entity.detailKategori,
       prioritas: entity.prioritas,

@@ -185,6 +185,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
           dateRange: event.dateRange,
           startDate: event.startDate,
           endDate: event.endDate,
+          fromHistory: event.fromHistory,
         ),
       );
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {
@@ -301,6 +302,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
         dateRange: event.dateRange,
         startDate: event.startDate,
         endDate: event.endDate,
+        fromHistory: event.fromHistory,
       ),
     );
 
@@ -485,6 +487,7 @@ class WorkOrderBloc extends Bloc<WorkOrderEvent, WorkOrderState> {
           startDate: event.startDate,
           endDate: event.endDate,
           search: event.query,
+          fromHistory: event.fromHistory,
         ),
       );
       if (dataState is PaginatedDataSuccess<List<WorkOrderEntity>>) {

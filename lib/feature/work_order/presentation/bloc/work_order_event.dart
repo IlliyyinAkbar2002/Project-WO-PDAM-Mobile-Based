@@ -52,6 +52,10 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
   /// 'infrastruktur' / 'meter'. null = tak memfilter. Lihat WorkOrderBloc.
   final String? kategori;
 
+  /// Bila true, sumber data = endpoint `/v1/workorder/history` (eager-load
+  /// laporan → tanggal_terbit). Default false = index `/v1/workorder`.
+  final bool fromHistory;
+
   GetWorkOrdersEvent({
     this.status,
     this.excludeStatus,
@@ -71,6 +75,7 @@ class GetWorkOrdersEvent extends WorkOrderEvent {
     this.excludeLembur,
     this.onlyLembur,
     this.kategori,
+    this.fromHistory = false,
   });
 }
 
@@ -94,6 +99,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
   final bool? excludeLembur;
   final bool? onlyLembur;
   final String? kategori;
+  final bool fromHistory;
 
   LoadMoreWorkOrdersEvent(
     this.page,
@@ -115,6 +121,7 @@ class LoadMoreWorkOrdersEvent extends WorkOrderEvent {
     this.excludeLembur,
     this.onlyLembur,
     this.kategori,
+    this.fromHistory = false,
   });
 }
 
@@ -137,6 +144,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
   final bool? excludeLembur;
   final bool? onlyLembur;
   final String? kategori;
+  final bool fromHistory;
 
   SearchWorkOrdersEvent(
     this.query, {
@@ -157,6 +165,7 @@ class SearchWorkOrdersEvent extends WorkOrderEvent {
     this.excludeLembur,
     this.onlyLembur,
     this.kategori,
+    this.fromHistory = false,
   });
 }
 

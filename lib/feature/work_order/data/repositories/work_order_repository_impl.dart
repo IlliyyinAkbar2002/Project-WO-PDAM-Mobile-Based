@@ -22,8 +22,9 @@ class WorkOrderRepositoryImpl implements WorkOrderRepository {
     String? dateRange,
     String? startDate,
     String? endDate,
-    String? search,
-  ) async {
+    String? search, {
+    bool fromHistory = false,
+  }) async {
     try {
       final response = await remoteDataSource.fetchWorkOrders(
         page,
@@ -37,6 +38,7 @@ class WorkOrderRepositoryImpl implements WorkOrderRepository {
         startDate,
         endDate,
         search,
+        fromHistory: fromHistory,
       );
       debugPrint("📥 Data dari RemoteDataSource: $response");
       if (response is PaginatedDataSuccess<List<WorkOrderModel>>) {

@@ -24,6 +24,10 @@ class WorkOrderEntity extends Equatable {
   final int? progresPersen;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// Tanggal terbit laporan (`laporan_workorder.tanggal_terbit`), hanya terisi
+  /// dari endpoint `/v1/workorder/history` yang meng-eager-load relasi laporan.
+  final DateTime? tanggalTerbitLaporan;
   final int? tahapanTertinggi;
   // final int? departemenId;
   // final String? departemenNama;
@@ -59,6 +63,7 @@ class WorkOrderEntity extends Equatable {
     this.progresPersen,
     this.createdAt,
     this.updatedAt,
+    this.tanggalTerbitLaporan,
     this.kategoriForm,
     this.detailKategori,
     this.prioritas,
@@ -96,6 +101,7 @@ class WorkOrderEntity extends Equatable {
     progresPersen,
     createdAt,
     updatedAt,
+    tanggalTerbitLaporan,
     kategoriForm,
     detailKategori,
     prioritas,
@@ -130,6 +136,7 @@ class WorkOrderEntity extends Equatable {
     int? progresPersen,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? tanggalTerbitLaporan,
     String? kategoriForm,
     Map<String, dynamic>? detailKategori,
     String? prioritas,
@@ -163,6 +170,7 @@ class WorkOrderEntity extends Equatable {
       progresPersen: progresPersen ?? this.progresPersen,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      tanggalTerbitLaporan: tanggalTerbitLaporan ?? this.tanggalTerbitLaporan,
       kategoriForm: kategoriForm ?? this.kategoriForm,
       detailKategori: detailKategori ?? this.detailKategori,
       prioritas: prioritas ?? this.prioritas,

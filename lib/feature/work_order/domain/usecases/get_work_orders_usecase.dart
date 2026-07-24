@@ -24,6 +24,7 @@ class GetWorkOrdersUseCase
       params.startDate,
       params.endDate,
       params.search,
+      fromHistory: params.fromHistory,
     );
   }
 }
@@ -42,6 +43,10 @@ class WorkOrderParams {
   final String? endDate;
   final String? search;
 
+  /// Bila true, ambil dari endpoint `/v1/workorder/history` (eager-load laporan)
+  /// alih-alih index `/v1/workorder`. Default false → perilaku lama.
+  final bool fromHistory;
+
   // Constructor
   WorkOrderParams(
       {required this.page,
@@ -54,5 +59,6 @@ class WorkOrderParams {
       this.dateRange,
       this.startDate,
       this.endDate,
-      this.search});
+      this.search,
+      this.fromHistory = false});
 }

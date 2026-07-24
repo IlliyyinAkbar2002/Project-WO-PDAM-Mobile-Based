@@ -13,7 +13,8 @@ abstract class WorkOrderRepository {
       String? dateRange,
       String? startDate,
       String? endDate,
-      String? search);
+      String? search,
+      {bool fromHistory});
   Future<DataState<WorkOrderEntity>> getWorkOrderDetail(int id);
   Future<DataState<WorkOrderEntity>> createWorkOrder(WorkOrderEntity workOrder);
   Future<DataState<WorkOrderEntity>> updateWorkOrder(WorkOrderEntity workOrder);

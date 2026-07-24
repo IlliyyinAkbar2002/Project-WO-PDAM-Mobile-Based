@@ -83,6 +83,7 @@ class _ListLaporanWorkorderPageState
           startDate: startDate,
           endDate: endDate,
           userId: userId,
+          fromHistory: true,
         ),
       );
     } else {
@@ -92,6 +93,7 @@ class _ListLaporanWorkorderPageState
           startDate: startDate,
           endDate: endDate,
           userId: userId,
+          fromHistory: true,
         ),
       );
     }
@@ -296,15 +298,16 @@ class _LaporanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // Tanggal selesai: pakai updated_at (waktu status→Selesai, sumber dari
-    // endpoint index) yang sepadan dengan laporan.tanggal_terbit di detail.
-    // Fallback ke startDateTime bila kelak data sudah membawa assignment.
     String dateStr = '-';
-    final completedAt = workOrder.updatedAt ?? workOrder.startDateTime;
+    final completedAt =
+        workOrder.tanggalTerbitLaporan ??
+        workOrder.updatedAt ??
+        workOrder.startDateTime;
     if (completedAt != null) {
       final d = completedAt;
       dateStr =
-          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} '
+          '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     }
 
     return Material(
@@ -350,7 +353,7 @@ class _LaporanCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Selesai · $dateStr',
+                      'Tanggal Terbit · $dateStr',
                       style: textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade600,
                       ),
