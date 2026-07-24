@@ -5,8 +5,9 @@ import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_bloc.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_event.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/presentation/bloc/material/material_state.dart';
+import 'package:project_mobile_pdam/service/service_locator.dart';
 
-class PengajuanItemPage extends StatefulWidget {
+class PengajuanItemPage extends StatelessWidget {
   final MaterialEntity material;
   final int workOrderId;
 
@@ -17,10 +18,25 @@ class PengajuanItemPage extends StatefulWidget {
   });
 
   @override
-  State<PengajuanItemPage> createState() => _PengajuanItemPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider<MaterialBloc>(
+      create: (_) => sl<MaterialBloc>(),
+      child: _PengajuanItemView(material: material, workOrderId: workOrderId),
+    );
+  }
 }
 
-class _PengajuanItemPageState extends State<PengajuanItemPage> {
+class _PengajuanItemView extends StatefulWidget {
+  final MaterialEntity material;
+  final int workOrderId;
+
+  const _PengajuanItemView({required this.material, required this.workOrderId});
+
+  @override
+  State<_PengajuanItemView> createState() => _PengajuanItemViewState();
+}
+
+class _PengajuanItemViewState extends State<_PengajuanItemView> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _jumlahController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();

@@ -626,7 +626,20 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    List<PeminjamanMaterialEntity> peminjamanList = _borrowedMaterials;
+    // "Peminjaman Saya" = milik user login. Staff hanya boleh melihat
+    // peminjamannya sendiri; SPV tetap melihat seluruh pinjaman tim di WO.
+    // item.userId dan pegawai_id user login sama-sama pegawai_id (dari
+    // kolom diajukan_oleh), dibandingkan sebagai String agar aman tipe.
+    final currentPegawaiId = AuthStorage.getUserSync()?['pegawai_id'];
+    List<PeminjamanMaterialEntity> peminjamanList =
+        (isStaff && currentPegawaiId != null)
+        ? _borrowedMaterials
+              .where(
+                (item) =>
+                    item.userId?.toString() == currentPegawaiId.toString(),
+              )
+              .toList()
+        : _borrowedMaterials;
 
     if (peminjamanList.isEmpty) {
       if (state is MaterialError) {
@@ -661,8 +674,12 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
           ),
         );
       }
-      return const Center(
-        child: Text('Belum ada material yang dipinjam untuk WO ini.'),
+      return Center(
+        child: Text(
+          isStaff
+              ? 'Anda belum meminjam material untuk WO ini.'
+              : 'Belum ada material yang dipinjam untuk WO ini.',
+        ),
       );
     }
 
@@ -680,8 +697,9 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
   Widget _buildBorrowedCard(PeminjamanMaterialEntity item, bool isStaff) {
     final matName =
         item.material?.namaMaterial ?? 'Material #${item.materialKode}';
-    final matCat = item.material?.kategori ?? 'Umum';
+    final matCat = item.material?.kategori ?? 'Material';
     final isBorrowed = item.status == 'DIPINJAM';
+    final borrowerName = item.user?.employee?.name;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -788,6 +806,31 @@ class _PeminjamanItemListPageState extends State<PeminjamanItemListPage> {
               ),
             ],
           ),
+          if (borrowerName != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 14,
+                  color: Color(0xFF6A7282),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Peminjam: $borrowerName',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6A7282),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (isStaff && isBorrowed && widget.returnMode) ...[
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF3F4F6)),
