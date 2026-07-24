@@ -49,11 +49,7 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
   }
 
   void _fetchWorkOrders() {
-    const historyStatuses = <int>[
-      WorkOrderStatusId.selesai,
-      WorkOrderStatusId.menungguApprovalManager,
-      WorkOrderStatusId.ditolakManager,
-    ];
+    const historyStatuses = <int>[WorkOrderStatusId.selesai];
     _workOrderBloc.add(
       GetWorkOrdersEvent(
         userId: widget.userId,
@@ -136,11 +132,7 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
           Expanded(
             child: WorkOrderList(
               isAssignee: true,
-              status: const [
-                WorkOrderStatusId.selesai,
-                WorkOrderStatusId.menungguApprovalManager,
-                WorkOrderStatusId.ditolakManager,
-              ],
+              status: const [WorkOrderStatusId.selesai],
               userId: widget.userId,
               memberPegawaiId: _memberPegawaiId,
               kategoriForm: _currentFilter?.kategoriForm,
@@ -168,11 +160,7 @@ class _HistoryWorkOrderPageState extends AppStatePage<HistoryWorkOrderPage> {
                 value,
                 userId: widget.userId,
                 memberPegawaiId: _memberPegawaiId,
-                status: const [
-                  WorkOrderStatusId.selesai,
-                  WorkOrderStatusId.menungguApprovalManager,
-                  WorkOrderStatusId.ditolakManager,
-                ],
+                status: const [WorkOrderStatusId.selesai],
               ),
             );
           });

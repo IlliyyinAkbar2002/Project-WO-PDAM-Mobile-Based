@@ -107,10 +107,6 @@ class _ButtonInteractionState extends AppStatePage<ButtonInteraction> {
         return 'Ditugaskan ke SPV';
       case WorkOrderStatusId.ditugaskanKeStaff:
         return 'Ditugaskan ke Staff';
-      case WorkOrderStatusId.menungguApprovalManager:
-        return 'Menunggu Approval Manager';
-      case WorkOrderStatusId.ditolakManager:
-        return 'Ditolak Manager';
       default:
         return 'Ajukan';
     }

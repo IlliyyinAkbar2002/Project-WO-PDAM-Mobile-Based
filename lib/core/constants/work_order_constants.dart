@@ -94,8 +94,6 @@ class WorkOrderStatusId {
 
   static const int ditugaskanKeSpv = 12;
   static const int ditugaskanKeStaff = 13;
-  static const int menungguApprovalManager = 16;
-  static const int ditolakManager = 17;
 }
 
 class WorkOrderListFilterTypeId {

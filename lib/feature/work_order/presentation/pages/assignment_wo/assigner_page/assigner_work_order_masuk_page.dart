@@ -68,7 +68,6 @@ class _AssignerWorkOrderMasukPageState
         // status-nya masih 'Pending' sampai di-approve superadmin.
         excludeLembur: true,
         excludeStatus: const [
-          WorkOrderStatusId.menungguApprovalManager,
           WorkOrderStatusId.ditugaskanKeStaff,
           WorkOrderStatusId.inProgress,
           WorkOrderStatusId.pengecekan,
