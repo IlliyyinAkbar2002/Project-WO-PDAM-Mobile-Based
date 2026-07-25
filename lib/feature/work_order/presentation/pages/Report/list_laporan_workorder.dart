@@ -121,7 +121,7 @@ class _ListLaporanWorkorderPageState
   @override
   Widget buildPage(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Work Order')),
+      appBar: AppBar(title: const Text('History Laporan Work Order')),
       body: Column(
         children: [
           const SizedBox(height: 8),
@@ -133,7 +133,7 @@ class _ListLaporanWorkorderPageState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Daftar Laporan',
+                  'Daftar History Laporan',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -160,7 +160,7 @@ class _ListLaporanWorkorderPageState
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: CustomForm(
-        labelText: 'Cari Laporan',
+        labelText: 'Cari History Laporan Work Order',
         hintText: 'Masukkan kata kunci',
         inputType: InputType.text,
         controller: _searchController,

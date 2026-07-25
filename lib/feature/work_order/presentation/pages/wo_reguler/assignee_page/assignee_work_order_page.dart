@@ -16,7 +16,7 @@ class AssigneeWorkOrderPage extends StatefulWidget {
 class _AssigneeWorkOrderPageState extends AppStatePage<AssigneeWorkOrderPage> {
   int _selectedFilter = 0;
 
-  final List<String> _filterLabels = ['Pengerjaan', 'Riwayat'];
+  final List<String> _filterLabels = ['Pengerjaan', 'History Laporan Work Order'];
 
   @override
   Widget buildPage(BuildContext context) {

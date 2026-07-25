@@ -23,7 +23,7 @@ class _AssignerWorkOrderPageState extends AppStatePage<AssignerWorkOrderPage> {
 
   final List<String> _filterLabels = [
     'List Work Order',
-    'History Work Order',
+    'History Laporan Work Order',
   ];
 
   @override
