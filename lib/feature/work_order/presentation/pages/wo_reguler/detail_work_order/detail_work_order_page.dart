@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/config/form_fields_config.dart';
+import 'package:project_mobile_pdam/core/resource/api_error_message.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/busy_staff_guard.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
@@ -912,6 +914,19 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     final List<UserEntity> selectedAssignees = _toUserEntityList(
       formData[_assigneeKey],
     );
+
+    // Hard block: petugas yang masih memegang WO belum selesai tidak boleh
+    // ditugaskan lagi. Picker sudah men-disable mereka, tapi daftar kandidat
+    // dimuat lebih awal sehingga bisa basi — cek ulang di sini, dan backend
+    // tetap jadi penentu akhir lewat 422.
+    final String? busyMessage = BusyStaffGuard.validationMessage(
+      selectedAssignees,
+    );
+    if (busyMessage != null) {
+      AppSnackbar.showError(busyMessage);
+      return;
+    }
+
     List<int> staffIds = selectedAssignees
         .map((user) => user.id)
         .whereType<int>()
@@ -1084,8 +1099,14 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
       return;
     }
 
-    final message =
-        (result as DataFailed).error?.toString() ?? "Gagal assign staff.";
+    // Backend menolak assign lewat 422 dengan pesan yang memang ditulis untuk
+    // dibaca SPV (mis. petugas masih memegang WO belum selesai). Bongkar
+    // ApiException-nya — `DioException.toString()` akan mengubur pesan itu di
+    // dalam dump teknis.
+    final message = friendlyApiErrorMessage(
+      (result as DataFailed).error,
+      serverErrorFallback: "Gagal assign staff. Silakan coba lagi.",
+    );
     AppSnackbar.showError(message);
   }
 }

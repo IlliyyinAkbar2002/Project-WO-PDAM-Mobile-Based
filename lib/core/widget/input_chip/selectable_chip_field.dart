@@ -2,24 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 
-/// Pemilih petugas berbasis tombol "Pilih" + bottom sheet checkbox.
-///
-/// Pengganti [EditableChipField] (autocomplete) dengan API konstruktor yang
-/// identik, sehingga bisa ditukar langsung pada [CustomFieldWidgets.fields].
-/// Kandidat pegawai diberikan lewat [userList] (biasanya sudah difilter
-/// departemen/jabatan di titik pemuatan), lalu ditampilkan sebagai daftar
-/// checkbox pada bottom sheet — mirip pemilih anggota di halaman pengajuan
-/// lembur.
+
 class SelectableChipField extends StatefulWidget {
   final bool isReadOnly;
   final List<UserEntity> userList;
   final List<UserEntity> initialSelectedUsers;
   final Function(List<UserEntity>) onChanged;
-
-  /// Id petugas yang menjadi Koordinator (PIC). Chip yang cocok diberi penanda
-  /// bintang + sorotan oranye, mirip pemilih anggota di pengajuan lembur.
   final int? coordinatorId;
-
   const SelectableChipField({
     super.key,
     this.isReadOnly = false,
@@ -47,13 +36,11 @@ class _SelectableChipFieldState extends State<SelectableChipField> {
       AppSnackbar.showInfo('Daftar pegawai belum tersedia.');
       return;
     }
-
     // Snapshot seleksi agar user bisa membatalkan tanpa mengubah data.
     final tempSelected = <int>{
       for (final m in _selected)
         if (m.id != null) m.id!,
     };
-
     final result = await showModalBottomSheet<List<UserEntity>>(
       context: context,
       isScrollControlled: true,
@@ -103,15 +90,21 @@ class _SelectableChipFieldState extends State<SelectableChipField> {
                                 id != null && tempSelected.contains(id);
                             final name =
                                 user.employee?.name ?? user.email ?? '-';
+                            final isBusy = user.isBusy;
+                            final busyWorkorder = user.busyWorkorderName?.trim();
                             final subtitle = [
                               if (user.employee?.nip != null)
                                 'NPP: ${user.employee?.nip}',
                               if (user.employee?.jabatan != null)
                                 user.employee!.jabatan!,
+                              if (isBusy)
+                                busyWorkorder != null && busyWorkorder.isNotEmpty
+                                    ? 'Sedang mengerjakan Work Order'
+                                    : 'Masih memegang WO yang belum selesai',
                             ].join(' · ');
                             return CheckboxListTile(
                               value: checked,
-                              onChanged: id == null
+                              onChanged: (id == null || isBusy)
                                   ? null
                                   : (val) {
                                       setSheetState(() {
@@ -122,10 +115,22 @@ class _SelectableChipFieldState extends State<SelectableChipField> {
                                         }
                                       });
                                     },
-                              title: Text(name),
+                              title: Text(
+                                name,
+                                style: isBusy
+                                    ? const TextStyle(color: Color(0xFF94A3B8))
+                                    : null,
+                              ),
                               subtitle: subtitle.isEmpty
                                   ? null
-                                  : Text(subtitle),
+                                  : Text(
+                                      subtitle,
+                                      style: isBusy
+                                          ? const TextStyle(
+                                              color: Color(0xFFB45309),
+                                            )
+                                          : null,
+                                    ),
                               controlAffinity: ListTileControlAffinity.leading,
                             );
                           },

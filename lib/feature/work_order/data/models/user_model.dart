@@ -10,6 +10,9 @@ class UserModel extends UserEntity {
     super.roleId,
     super.email,
     super.employee,
+    super.isBusy,
+    super.busyWorkorderId,
+    super.busyWorkorderName,
   });
 
   factory UserModel.fromJson(String source) =>
@@ -28,7 +31,29 @@ class UserModel extends UserEntity {
       employee: map['pegawai'] != null
           ? EmployeeModel.fromMap(map['pegawai'])
           : (hasFlatEmployee ? EmployeeModel.fromMap(map) : null),
+      isBusy: _parseBool(map['is_busy']),
+      busyWorkorderId: _parseInt(map['busy_workorder_id']),
+      busyWorkorderName: map['busy_workorder_name']?.toString(),
     );
+  }
+
+  /// Field beban kerja belum tentu dikirim backend (mis. endpoint lama atau
+  /// backend belum ter-deploy) → dianggap tidak sibuk. Angka/string juga
+  /// diterima karena MySQL bisa mengirim `1`/`0` untuk kolom boolean.
+  static bool _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == 'true' || normalized == '1';
+    }
+    return false;
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
   }
 
   Map<String, dynamic> toMap() {
@@ -38,6 +63,9 @@ class UserModel extends UserEntity {
       'email': email,
       'role_id': roleId,
       'pegawai': employee,
+      'is_busy': isBusy,
+      'busy_workorder_id': busyWorkorderId,
+      'busy_workorder_name': busyWorkorderName,
     };
   }
 
@@ -48,6 +76,9 @@ class UserModel extends UserEntity {
       email: email,
       roleId: roleId,
       employee: employee,
+      isBusy: isBusy,
+      busyWorkorderId: busyWorkorderId,
+      busyWorkorderName: busyWorkorderName,
     );
   }
 
@@ -58,6 +89,9 @@ class UserModel extends UserEntity {
       email: entity.email,
       roleId: entity.roleId,
       employee: entity.employee,
+      isBusy: entity.isBusy,
+      busyWorkorderId: entity.busyWorkorderId,
+      busyWorkorderName: entity.busyWorkorderName,
     );
   }
 }

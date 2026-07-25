@@ -132,12 +132,17 @@ class FormFieldsConfig {
         "key": "picId",
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
-        // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff).
+        // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff),
+        // dan tidak boleh petugas yang masih memegang WO belum selesai —
+        // opsi ini menarik dari daftar kandidat yang sama dengan picker
+        // petugas, jadi tanpa saringan `isBusy` staff sibuk masih bisa lolos
+        // sebagai koordinator.
         "options": assigneeOptions
             .where(
               (e) =>
+                  !e.isBusy &&
                   (e.employee?.jabatan ?? '').trim().toLowerCase() ==
-                  'staff senior',
+                      'staff senior',
             )
             .map(
               (e) => {
