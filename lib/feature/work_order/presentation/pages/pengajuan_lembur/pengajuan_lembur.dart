@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/usecases/get_work_orders_usecase.dart';
@@ -57,11 +58,13 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   double? _latitude;
   double? _longitude;
   int? _locationId;
+  String? _locationName;
   int? _koordinatorUserId;
 
   double? _woRefLat;
   double? _woRefLng;
   int? _woRefRadius;
+  String _woRefLokasi = '';
 
   static const List<({String value, String label})> _prioritasOptions = [
     (value: 'rendah', label: 'Rendah'),
@@ -173,9 +176,6 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
       final bloc = context.read<WorkOrderBloc>();
       if (!_usersRequested) {
         _usersRequested = true;
-        // Scope picker ke departemen pemohon agar BE tidak menolak anggota
-        // lintas-departemen (422). Jabatan disaring FE-side via
-        // _filterEligibleMembers (lihat listener UsersLoaded).
         bloc.add(GetUsersEvent(departemenId: _callerDepartemenId()));
       }
     });
@@ -338,22 +338,57 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     final woLokasi = (wo.lokasiText?.trim().isNotEmpty == true)
         ? wo.lokasiText!.trim()
         : (wo.assignment?.location?.nama.trim() ?? '');
+    _woRefLokasi = woLokasi;
     _lokasiController.text = woLokasi.length > 255
         ? woLokasi.substring(0, 255)
         : woLokasi;
 
-    // Titik peta: hanya jika koordinat asli ditemukan. Jangan pernah 0,0.
+    // Acuan titik peta = titik penugasan WO. WO yang masih 'Pending' belum
+    // punya baris workorder_assignment (dan `index` BE juga tidak eager-load
+    // relasi location), jadi acuan jatuh ke master lokasi seed yang namanya
+    // sama dengan lokasi pengaduan.
     final coords = _coordsFromWorkOrder(wo);
-    _latitude = coords?.$1;
-    _longitude = coords?.$2;
-    _locationId = (coords != null)
-        ? (wo.assignment?.locationId ?? wo.assignment?.location?.id)
-        : null;
+    final seed = _seedLocationFor(woLokasi);
 
-    // Acuan lokasi WO untuk validasi jarak titik peta lembur.
-    _woRefLat = coords?.$1;
-    _woRefLng = coords?.$2;
-    _woRefRadius = wo.assignment?.location?.radiusMeter;
+    if (coords != null) {
+      _woRefLat = coords.$1;
+      _woRefLng = coords.$2;
+      _woRefRadius = wo.assignment?.location?.radiusMeter ?? seed?.radiusMeter;
+      _locationId =
+          wo.assignment?.locationId ?? wo.assignment?.location?.id ?? seed?.id;
+      // Relasi location kerap tidak ikut di payload list; pakai teks lokasi WO
+      // agar guard nama tetap punya pembanding.
+      _locationName = wo.assignment?.location?.nama ?? seed?.nama ?? woLokasi;
+    } else if (seed != null) {
+      _woRefLat = seed.latitude;
+      _woRefLng = seed.longitude;
+      _woRefRadius = seed.radiusMeter;
+      _locationId = seed.id;
+      _locationName = seed.nama;
+    } else {
+      _woRefLat = null;
+      _woRefLng = null;
+      _woRefRadius = null;
+      _locationId = null;
+      _locationName = null;
+    }
+
+    // Titik peta mengikuti acuan WO. Jangan pernah 0,0.
+    _latitude = _woRefLat;
+    _longitude = _woRefLng;
+  }
+
+  /// Master lokasi seed yang namanya sama dengan [name] (dinormalisasi dengan
+  /// normalizer yang sama dengan pencarian lokasi).
+  MasterLocationEntity? _seedLocationFor(String name) {
+    final normalized = MapsSeedModel.normalize(name);
+    if (normalized.isEmpty) return null;
+    for (final location in MapsSeedModel.entities) {
+      if (MapsSeedModel.normalize(location.nama) == normalized) {
+        return location;
+      }
+    }
+    return null;
   }
 
   (double, double)? _coordsFromWorkOrder(WorkOrderEntity wo) {
@@ -611,6 +646,28 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
     if (_latitude == null || _longitude == null) {
       return 'Titik peta wajib dipilih. Ketuk peta untuk menandai lokasi lembur.';
     }
+    // Lokasi lembur harus sama dengan lokasi pengaduan WO — paritas dengan
+    // guard penugasan SPV di DetailWorkOrderPage. Bandingkan nama lokasi
+    // pilihan vs lokasi pengaduan (dinormalisasi dengan normalizer yang sama
+    // dengan pencarian lokasi).
+    final chosenLocationName = _locationName?.trim() ?? '';
+    if (_woRefLokasi.isNotEmpty) {
+      if (chosenLocationName.isNotEmpty) {
+        final sameLocation =
+            MapsSeedModel.normalize(chosenLocationName) ==
+            MapsSeedModel.normalize(_woRefLokasi);
+        if (!sameLocation) {
+          return 'Lokasi lembur harus sama dengan lokasi pengaduan '
+              '($_woRefLokasi).';
+        }
+      } else if (_woRefLat == null || _woRefLng == null) {
+        // Pin ditaruh manual (tanpa nama) dan tidak ada acuan koordinat WO,
+        // jadi kesesuaian lokasi tidak bisa diverifikasi sama sekali.
+        return 'Pilih lokasi lembur lewat kolom "Cari lokasi" dan sesuaikan '
+            'dengan lokasi pengaduan ($_woRefLokasi).';
+      }
+    }
+
     // Titik peta lembur tidak boleh jauh dari lokasi WO (acuan pengaduan).
     if (_woRefLat != null && _woRefLng != null) {
       final radius = (_woRefRadius ?? MapsSeedModel.defaultRadiusMeter)
@@ -622,8 +679,9 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
         _longitude!,
       );
       if (dist > radius) {
-        return 'Titik peta lembur harus berada di sekitar lokasi WO '
-            '(maks ${radius.round()} m).';
+        return 'Titik peta lembur harus berada di sekitar lokasi pengaduan'
+            '${_woRefLokasi.isEmpty ? '' : ' ($_woRefLokasi)'}, '
+            'maks ${radius.round()} m.';
       }
     }
     return null;
@@ -1081,6 +1139,7 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                           _latitude = null;
                                           _longitude = null;
                                           _locationId = null;
+                                          _locationName = null;
                                         });
                                       },
                                       style: TextButton.styleFrom(
@@ -1113,6 +1172,8 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                   isReadOnly: false,
                                   latitude: _latitude,
                                   longitude: _longitude,
+                                  locationId: _locationId,
+                                  locationName: _locationName,
                                   onLocationSelected:
                                       (
                                         lat,
@@ -1125,6 +1186,9 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                           _latitude = lat;
                                           _longitude = long;
                                           _locationId = locationId;
+                                          // Ketuk peta = pin kustom tanpa nama;
+                                          // guard nama jatuh ke cek jarak.
+                                          _locationName = locationName;
                                         });
                                       },
                                 ),
@@ -1169,7 +1233,10 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
                                 Text(
                                   _selectedWorkOrder == null
                                       ? 'Pilih pekerjaan untuk menentukan titik peta.'
-                                      : 'Titik peta harus berada di sekitar lokasi WO.',
+                                      : _woRefLokasi.isEmpty
+                                      ? 'Titik peta harus berada di sekitar lokasi WO.'
+                                      : 'Lokasi lembur harus sama dengan lokasi '
+                                            'pengaduan ($_woRefLokasi).',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
