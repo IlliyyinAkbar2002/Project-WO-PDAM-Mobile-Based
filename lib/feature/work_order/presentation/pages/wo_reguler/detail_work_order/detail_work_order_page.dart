@@ -11,6 +11,7 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/busy_staff_guard.dart';
+import 'package:project_mobile_pdam/core/utils/jabatan_pegawai.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/core/widget/custom_field_widgets.dart';
@@ -942,6 +943,20 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
     if (picId == null || !staffIds.contains(picId)) {
       AppSnackbar.showError(
         "Koordinator (PIC) harus dipilih dari anggota tim yang ditugaskan.",
+      );
+      return;
+    }
+
+    // Koordinator wajib berjabatan Staff Senior (PIC setara/di atas staff
+    // biasa). Dropdown Koordinator memang sudah menyaring jabatan, tapi itu
+    // hanya membatasi pilihan: `picId` juga di-seed dari data server saat
+    // detail dimuat, jadi jabatannya ditegakkan ulang di sini sebelum submit.
+    final UserEntity? pic = selectedAssignees
+        .where((user) => user.id == picId)
+        .firstOrNull;
+    if (pic == null || !pic.isStaffSenior) {
+      AppSnackbar.showError(
+        "Koordinator (PIC) harus berjabatan Staff Senior.",
       );
       return;
     }

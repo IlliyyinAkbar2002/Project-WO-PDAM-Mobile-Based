@@ -1,3 +1,4 @@
+import 'package:project_mobile_pdam/core/utils/jabatan_pegawai.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_type_entity.dart';
 
@@ -133,17 +134,15 @@ class FormFieldsConfig {
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
         // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff),
-        // dan tidak boleh petugas yang masih memegang WO belum selesai —
-        // opsi ini menarik dari daftar kandidat yang sama dengan picker
-        // petugas, jadi tanpa saringan `isBusy` staff sibuk masih bisa lolos
-        // sebagai koordinator.
+        // dan tidak boleh petugas yang masih memegang WO belum selesai — opsi
+        // ini menarik dari daftar kandidat yang sama dengan picker petugas,
+        // jadi saringan `isBusy` perlu diulang di sini.
+        //
+        // Saringan ini hanya membatasi PILIHAN. Penegakan sebenarnya ada di
+        // `_validateAndAssignStaff` (detail_work_order_page.dart), yang menolak
+        // submit bila PIC bukan Staff Senior atau bukan anggota tim.
         "options": assigneeOptions
-            .where(
-              (e) =>
-                  !e.isBusy &&
-                  (e.employee?.jabatan ?? '').trim().toLowerCase() ==
-                      'staff senior',
-            )
+            .where((e) => !e.isBusy && e.isStaffSenior)
             .map(
               (e) => {
                 "value": e.id,

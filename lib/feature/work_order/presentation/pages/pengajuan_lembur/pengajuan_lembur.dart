@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/jabatan_pegawai.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/user_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
@@ -113,16 +114,10 @@ class _PengajuanLemburPageState extends State<_PengajuanLemburPage> {
   }
 
   List<UserEntity> _filterEligibleMembers(List<UserEntity> users) {
-    const allowed = {'staff', 'staff senior'};
-    return users.where((u) {
-      final jabatan = u.employee?.jabatan?.trim().toLowerCase();
-      return jabatan != null && allowed.contains(jabatan);
-    }).toList();
+    return users.where((u) => u.isPelaksanaLapangan).toList();
   }
 
-  bool _isStaffSenior(UserEntity u) {
-    return (u.employee?.jabatan ?? '').trim().toLowerCase() == 'staff senior';
-  }
+  bool _isStaffSenior(UserEntity u) => u.isStaffSenior;
 
   Future<void> _loadWorkOrders() async {
     setState(() => _loadingWorkOrders = true);

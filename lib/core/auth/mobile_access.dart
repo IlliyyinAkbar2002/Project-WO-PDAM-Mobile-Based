@@ -32,6 +32,16 @@ class JabatanKode {
     return _fromId(_toInt(user['jabatan_id'] ?? employee?['position_id']));
   }
 
+  /// Kode jabatan dari data pegawai lepas (mis. `EmployeeEntity`), bukan dari
+  /// map user hasil login. Dipakai untuk menilai jabatan KANDIDAT petugas —
+  /// [fromUser] hanya bisa membaca user yang sedang login.
+  ///
+  /// Nama diutamakan karena lebih spesifik; [id] jadi cadangan bila backend
+  /// hanya mengirim `jabatan_id`.
+  static String? fromEmployee({String? nama, int? id}) {
+    return _fromNama(nama) ?? _fromId(id);
+  }
+
   static String? _fromNama(String? nama) {
     if (nama == null) return null;
     final n = nama.toUpperCase();
