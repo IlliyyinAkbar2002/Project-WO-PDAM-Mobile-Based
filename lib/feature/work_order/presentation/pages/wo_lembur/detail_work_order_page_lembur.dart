@@ -6,6 +6,7 @@ import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
+import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
 import 'package:project_mobile_pdam/core/widget/custom_app_bar.dart';
 import 'package:project_mobile_pdam/feature/work_order/data/data_source/remote/work_order_progress_remote_data_source.dart';
@@ -425,11 +426,12 @@ class _DetailWorkOrderPageLemburState
                 ],
               ),
             ],
-            // Tombol muncul begitu staff submit progress "Selesai". Tidak digate
-            // ke status WO numerik (5/6): BE terintegrasi memakai status string
-            // (Proses→13, Selesai→6) & tak punya "pengecekan", lalu status WO
-            // induk baru jadi "Selesai" saat verifikasi — bukan saat staff selesai.
-            if (hasSelesai) ...[
+            // Pengembalian material baru dibuka setelah status WO mencapai
+            // tahap akhir ("Selesai" — progress staf sudah diverifikasi SPV —
+            // atau "Tutup"). Selama status masih "Proses" pekerjaan (dan
+            // materialnya) masih berjalan, jadi tombol disembunyikan meski
+            // entri progress "Selesai" sudah dikirim.
+            if (WorkOrderStatusHelper.isFinished(_workOrder)) ...[
               const SizedBox(height: 8),
               Row(
                 children: [

@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' show basename;
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/resource/remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/model/material_model.dart';
@@ -179,21 +183,72 @@ class MaterialRemoteDataSource extends RemoteDatasource {
     }
   }
 
+  /// Bangun body multipart untuk pengembalian yang menyertakan foto kerusakan.
+  /// Pola file mengikuti [WorkOrderProgressRemoteDataSource]: lewati file yang
+  /// sudah tidak ada di disk agar satu foto gagal tidak menggagalkan submit.
+  Future<FormData> _buildKembalikanFormData({
+    required int jumlahKembali,
+    required int jumlahRusak,
+    String? kondisiKembali,
+    required List<XFile> fotoKerusakan,
+  }) async {
+    final formData = FormData();
+    formData.fields.add(MapEntry('jumlah_kembali', jumlahKembali.toString()));
+    formData.fields.add(MapEntry('jumlah_rusak', jumlahRusak.toString()));
+    if (kondisiKembali != null) {
+      formData.fields.add(MapEntry('kondisi_kembali', kondisiKembali));
+    }
+
+    for (final foto in fotoKerusakan) {
+      try {
+        final file = File(foto.path);
+        if (!await file.exists()) continue;
+        formData.files.add(
+          MapEntry(
+            'foto_kerusakan[]',
+            await MultipartFile.fromFile(
+              foto.path,
+              filename: basename(foto.path),
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('❌ Gagal melampirkan foto kerusakan ${foto.path}: $e');
+      }
+    }
+
+    return formData;
+  }
+
   Future<DataState<PeminjamanMaterialModel>> kembalikanMaterial({
     required int peminjamanId,
     required int jumlahKembali,
     int jumlahRusak = 0,
     String? kondisiKembali,
+    List<XFile> fotoKerusakan = const [],
   }) async {
     try {
-      final response = await post(
-        path: '/v1/peminjaman-material/$peminjamanId/kembalikan',
-        data: {
-          'jumlah_kembali': jumlahKembali,
-          'jumlah_rusak': jumlahRusak,
-          if (kondisiKembali != null) 'kondisi_kembali': kondisiKembali,
-        },
-      );
+      // Tanpa foto tetap JSON seperti sebelumnya — hanya naik ke multipart saat
+      // benar-benar ada berkas yang perlu diunggah.
+      final response = fotoKerusakan.isEmpty
+          ? await post(
+              path: '/v1/peminjaman-material/$peminjamanId/kembalikan',
+              data: {
+                'jumlah_kembali': jumlahKembali,
+                'jumlah_rusak': jumlahRusak,
+                if (kondisiKembali != null) 'kondisi_kembali': kondisiKembali,
+              },
+            )
+          : await post(
+              path: '/v1/peminjaman-material/$peminjamanId/kembalikan',
+              contentType: ContentType.multipart,
+              data: await _buildKembalikanFormData(
+                jumlahKembali: jumlahKembali,
+                jumlahRusak: jumlahRusak,
+                kondisiKembali: kondisiKembali,
+                fotoKerusakan: fotoKerusakan,
+              ),
+            );
       final dynamic responseData = response.data;
       final dynamic data;
       if (responseData is Map && responseData.containsKey('data')) {

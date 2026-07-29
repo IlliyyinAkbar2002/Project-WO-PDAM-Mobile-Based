@@ -18,6 +18,11 @@ class PeminjamanMaterialEntity extends Equatable {
   final int? jumlahTerpasang;
   final DateTime? waktuKembali;
   final String? kondisiKembali;
+
+  /// Foto bukti kerusakan yang diunggah staf saat mengajukan pengembalian.
+  /// Berisi path relatif storage dari BE (dirender lewat
+  /// `AppConfig.baseStorageUrl + path`), bukan URL lengkap.
+  final List<String> fotoKerusakan;
   final String? status;
   final MaterialEntity? material;
   final UserEntity? user;
@@ -34,6 +39,7 @@ class PeminjamanMaterialEntity extends Equatable {
     this.jumlahTerpasang,
     this.waktuKembali,
     this.kondisiKembali,
+    this.fotoKerusakan = const [],
     this.status,
     this.material,
     this.user,
@@ -52,6 +58,7 @@ class PeminjamanMaterialEntity extends Equatable {
     jumlahTerpasang,
     waktuKembali,
     kondisiKembali,
+    fotoKerusakan,
     status,
     material,
     user,

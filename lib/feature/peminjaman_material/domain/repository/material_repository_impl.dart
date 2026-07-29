@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/material_entity.dart';
@@ -42,12 +43,14 @@ class MaterialRepositoryImpl implements MaterialRepository {
     required int jumlahKembali,
     int jumlahRusak = 0,
     String? kondisiKembali,
+    List<XFile> fotoKerusakan = const [],
   }) async {
     return await _remoteDataSource.kembalikanMaterial(
       peminjamanId: peminjamanId,
       jumlahKembali: jumlahKembali,
       jumlahRusak: jumlahRusak,
       kondisiKembali: kondisiKembali,
+      fotoKerusakan: fotoKerusakan,
     );
   }
 }

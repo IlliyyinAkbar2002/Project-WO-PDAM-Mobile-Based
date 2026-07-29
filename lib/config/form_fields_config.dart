@@ -133,14 +133,6 @@ class FormFieldsConfig {
         "key": "picId",
         "label": "Koordinator (PIC)",
         "hint": "Pilih koordinator dari tim",
-        // Koordinator hanya boleh dari jabatan "Staff Senior" (bukan SPV/Staff),
-        // dan tidak boleh petugas yang masih memegang WO belum selesai — opsi
-        // ini menarik dari daftar kandidat yang sama dengan picker petugas,
-        // jadi saringan `isBusy` perlu diulang di sini.
-        //
-        // Saringan ini hanya membatasi PILIHAN. Penegakan sebenarnya ada di
-        // `_validateAndAssignStaff` (detail_work_order_page.dart), yang menolak
-        // submit bila PIC bukan Staff Senior atau bukan anggota tim.
         "options": assigneeOptions
             .where((e) => !e.isBusy && e.isStaffSenior)
             .map(

@@ -16,10 +16,29 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
     super.jumlahTerpasang,
     super.waktuKembali,
     super.kondisiKembali,
+    super.fotoKerusakan,
     super.status,
     super.material,
     super.user,
   });
+
+  /// Parsing toleran untuk `foto_kerusakan`: BE bisa mengirim daftar string path
+  /// atau daftar objek (`{url|path|foto: ...}`). Bentuk lain diabaikan.
+  static List<String> _parseFotoKerusakan(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((item) {
+          if (item is String) return item;
+          if (item is Map) {
+            final value = item['url'] ?? item['path'] ?? item['foto'];
+            return value?.toString();
+          }
+          return null;
+        })
+        .whereType<String>()
+        .where((path) => path.trim().isNotEmpty)
+        .toList();
+  }
 
   factory PeminjamanMaterialModel.fromMap(Map<String, dynamic> map) {
     return PeminjamanMaterialModel(
@@ -46,6 +65,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
           ? DateTime.tryParse(map['waktu_kembali'].toString())?.toLocal()
           : (map['dikembalikan_at'] != null ? DateTime.tryParse(map['dikembalikan_at'].toString())?.toLocal() : null),
       kondisiKembali: map['kondisi_kembali'],
+      fotoKerusakan: _parseFotoKerusakan(map['foto_kerusakan']),
       status: map['status'],
       material: map['material'] != null
           ? MaterialModel.fromMap(Map<String, dynamic>.from(map['material']))
@@ -69,6 +89,7 @@ class PeminjamanMaterialModel extends PeminjamanMaterialEntity {
       'jumlah_terpasang': jumlahTerpasang,
       'waktu_kembali': waktuKembali?.toIso8601String(),
       'kondisi_kembali': kondisiKembali,
+      'foto_kerusakan': fotoKerusakan,
       'status': status,
     };
   }

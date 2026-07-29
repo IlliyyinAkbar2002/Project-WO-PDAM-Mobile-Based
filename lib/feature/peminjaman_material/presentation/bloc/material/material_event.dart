@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:image_picker/image_picker.dart';
 
 abstract class MaterialEvent extends Equatable {
   const MaterialEvent();
@@ -40,11 +41,16 @@ class KembalikanMaterialEvent extends MaterialEvent {
   final int jumlahRusak;
   final String? kondisiKembali;
 
+  /// Foto bukti kerusakan yang dipilih staf (belum terunggah). Dikirim sebagai
+  /// multipart `foto_kerusakan[]` oleh remote data source.
+  final List<XFile> fotoKerusakan;
+
   const KembalikanMaterialEvent({
     required this.peminjamanId,
     required this.jumlahKembali,
     this.jumlahRusak = 0,
     this.kondisiKembali,
+    this.fotoKerusakan = const [],
   });
 
   @override
@@ -53,5 +59,6 @@ class KembalikanMaterialEvent extends MaterialEvent {
     jumlahKembali,
     jumlahRusak,
     kondisiKembali,
+    fotoKerusakan,
   ];
 }

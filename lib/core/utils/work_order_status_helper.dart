@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/config/theme/app_color.dart';
+import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
 
 class WorkOrderStatusHelper {
@@ -23,6 +24,9 @@ class WorkOrderStatusHelper {
     'ditolak': Color(0xFFEF4444), // Merah
   };
 
+  // Status tahap akhir WO (key selalu lowercase).
+  static const Set<String> _finishedStatuses = {'selesai', 'tutup'};
+
   // Ambil status mentah dari sumber mana pun yang tersedia.
   static String _rawStatus(WorkOrderEntity workOrder) {
     final statusEnum = workOrder.statusEnum?.trim();
@@ -34,6 +38,17 @@ class WorkOrderStatusHelper {
     final raw = _rawStatus(workOrder);
     if (raw.isEmpty) return '-';
     return _labels[raw.toLowerCase()] ?? raw;
+  }
+
+  /// WO sudah mencapai tahap akhir: "Selesai" (progress staf sudah diverifikasi
+  /// SPV) atau "Tutup". Baca string status lebih dulu — BE terintegrasi
+  /// mengirim status sebagai enum string, `status_id` numerik hanya turunannya.
+  static bool isFinished(WorkOrderEntity? workOrder) {
+    if (workOrder == null) return false;
+    final raw = _rawStatus(workOrder).toLowerCase();
+    if (raw.isNotEmpty) return _finishedStatuses.contains(raw);
+    return workOrder.statusId == WorkOrderStatusId.selesai ||
+        workOrder.statusId == WorkOrderStatusId.tutup;
   }
 
   static Color getColor(WorkOrderEntity workOrder, AppColor appColor) {

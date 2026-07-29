@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/usecase/usecase.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
@@ -8,12 +9,14 @@ class KembalikanMaterialParams {
   final int jumlahKembali;
   final int jumlahRusak;
   final String? kondisiKembali;
+  final List<XFile> fotoKerusakan;
 
   KembalikanMaterialParams({
     required this.peminjamanId,
     required this.jumlahKembali,
     this.jumlahRusak = 0,
     this.kondisiKembali,
+    this.fotoKerusakan = const [],
   });
 }
 
@@ -35,6 +38,7 @@ class KembalikanMaterial
       jumlahKembali: params.jumlahKembali,
       jumlahRusak: params.jumlahRusak,
       kondisiKembali: params.kondisiKembali,
+      fotoKerusakan: params.fotoKerusakan,
     );
   }
 }

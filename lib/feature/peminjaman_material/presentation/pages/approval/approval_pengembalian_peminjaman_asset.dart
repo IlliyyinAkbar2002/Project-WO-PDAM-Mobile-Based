@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
+import 'package:project_mobile_pdam/core/widget/image_picker.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/data/remote/material_remote_data_source.dart';
 import 'package:project_mobile_pdam/feature/peminjaman_material/domain/entities_material/peminjaman_material_entity.dart';
 import 'package:project_mobile_pdam/feature/work_order/presentation/pages/users/spv/landing_page.dart';
@@ -902,6 +903,22 @@ class _ApprovalDetailSheet extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Bukti kerusakan dari staf. Read-only: `enabled: false`
+                    // menyembunyikan tombol tambah/hapus tapi tetap memberi
+                    // tap-to-fullscreen bawaan ImagePickerField.
+                    if (r.fotoKerusakan.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _buildSectionLabel(
+                        Icons.photo_camera_outlined,
+                        'Foto Kerusakan',
+                      ),
+                      const SizedBox(height: 8),
+                      ImagePickerField(
+                        initialImages: r.fotoKerusakan,
+                        enabled: false,
+                        onChanged: (_) {},
+                      ),
+                    ],
                   ],
                 ),
               ),

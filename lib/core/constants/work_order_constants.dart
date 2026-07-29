@@ -94,6 +94,7 @@ class WorkOrderStatusId {
 
   static const int ditugaskanKeSpv = 12;
   static const int ditugaskanKeStaff = 13;
+  static const int tutup = 17;
 }
 
 class WorkOrderListFilterTypeId {

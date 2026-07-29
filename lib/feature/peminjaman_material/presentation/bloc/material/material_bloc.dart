@@ -89,6 +89,7 @@ class MaterialBloc extends Bloc<MaterialEvent, MaterialState> {
         jumlahKembali: event.jumlahKembali,
         jumlahRusak: event.jumlahRusak,
         kondisiKembali: event.kondisiKembali,
+        fotoKerusakan: event.fotoKerusakan,
       ),
     );
     if (result is DataSuccess && result.data != null) {
