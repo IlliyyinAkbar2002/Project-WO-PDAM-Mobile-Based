@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/master_location_entity.dart';
 
 class MasterLocationModel extends MasterLocationEntity {
@@ -8,7 +7,7 @@ class MasterLocationModel extends MasterLocationEntity {
     required super.nama,
     required super.latitude,
     required super.longitude,
-    required super.radiusMeter,
+    super.radiusMeter,
   });
 
   factory MasterLocationModel.fromJson(String source) =>
@@ -69,10 +68,12 @@ class MasterLocationModel extends MasterLocationEntity {
     return 0;
   }
 
-  /// Radius dari BE; jatuh ke [MapsSeedModel.defaultRadiusMeter] bila
-  /// null/kosong/0 agar geofence tidak menolak submit secara keliru.
-  static int _resolveRadius(dynamic value) {
+  /// Radius dari BE. `null` bila tidak dikirim / kosong / ≤ 0 — sengaja TIDAK
+  /// ditambal di sini. Menambalnya dengan nilai longgar membuat WO yang sama
+  /// punya radius berbeda tergantung endpoint mana yang memuatnya, tanpa gejala
+  /// apa pun di UI. Keputusan fallback diambil di titik pemakaian geofence.
+  static int? _resolveRadius(dynamic value) {
     final parsed = _toInt(value);
-    return parsed > 0 ? parsed : MapsSeedModel.defaultRadiusMeter;
+    return parsed > 0 ? parsed : null;
   }
 }

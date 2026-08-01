@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
-import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/member_progress_entity.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -20,7 +19,9 @@ class MemberProgressCard extends StatefulWidget {
   final String? kategoriForm;
   final LatLng? lngLat;
   final String? locationName;
-  final int radiusMeter;
+
+  /// `null` = BE tidak mengirim radius; diteruskan apa adanya ke form jurnal.
+  final int? radiusMeter;
   final String? workOrderTypeName;
   final int? workOrderTypeId;
   final bool isOvertime;
@@ -44,7 +45,7 @@ class MemberProgressCard extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = MapsSeedModel.defaultRadiusMeter,
+    this.radiusMeter,
     this.workOrderTypeName,
     this.workOrderTypeId,
     this.isOvertime = false,

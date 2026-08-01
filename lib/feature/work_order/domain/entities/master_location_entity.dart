@@ -5,14 +5,19 @@ class MasterLocationEntity extends Equatable {
   final String nama;
   final double latitude;
   final double longitude;
-  final int radiusMeter;
+
+  /// Radius geofence dari BE. `null` = BE tidak mengirimkannya (mis. relasi
+  /// `location` tidak ter-eager-load) — kondisi ini sengaja dibiarkan eksplisit
+  /// agar pemakainya memutuskan sendiri, bukan ditambal diam-diam dengan nilai
+  /// longgar. Pemakai geofence memakai `GeofenceService.fallbackRadiusMeter`.
+  final int? radiusMeter;
 
   const MasterLocationEntity({
     this.id,
     required this.nama,
     required this.latitude,
     required this.longitude,
-    required this.radiusMeter,
+    this.radiusMeter,
   });
 
   @override

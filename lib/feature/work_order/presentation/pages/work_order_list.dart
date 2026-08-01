@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
-import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
 import 'package:project_mobile_pdam/core/utils/work_order_kategori_helper.dart';
 import 'package:project_mobile_pdam/feature/work_order/domain/entities/work_order_entity.dart';
@@ -224,10 +223,10 @@ class _WorkOrderListState extends AppStatePage<WorkOrderList> {
                   workOrder.assignment!.longitude!,
                 )
               : null;
-          // Ambil radius dan nama lokasi dari location jika ada
-          final radiusMeter =
-              workOrder.assignment?.location?.radiusMeter ??
-              MapsSeedModel.defaultRadiusMeter;
+          // Ambil radius dan nama lokasi dari location jika ada. `null`
+          // diteruskan apa adanya — halaman laporan yang memutuskan fallback,
+          // supaya tidak ada radius longgar yang dipakai diam-diam.
+          final radiusMeter = workOrder.assignment?.location?.radiusMeter;
           final locationName = workOrder.assignment?.location?.nama;
           await Navigator.push(
             context,

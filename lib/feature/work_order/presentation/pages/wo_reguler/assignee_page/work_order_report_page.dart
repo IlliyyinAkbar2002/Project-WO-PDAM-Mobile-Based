@@ -10,7 +10,6 @@ import 'package:project_mobile_pdam/config/form_fields_config.dart';
 import 'package:project_mobile_pdam/config/theme/dynamic_form_config.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
-import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/services/geofence_service.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/auth_storage.dart';
@@ -43,7 +42,11 @@ class WorkOrderReportPage extends StatefulWidget {
   final int? workOrderTypeId;
   final LatLng? lngLat;
   final String? locationName; // Nama lokasi dari MasterLocation
-  final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
+
+  /// Radius dari MasterLocation untuk pengecekan jarak. `null` = BE tidak
+  /// mengirim radius → dipakai [GeofenceService.fallbackRadiusMeter] dan
+  /// kondisinya diberitahukan lewat banner, bukan ditambal diam-diam.
+  final int? radiusMeter;
   final String? kategoriForm;
   final Map<String, dynamic>? initialKategoriData;
   final String? initialDescription;
@@ -68,8 +71,7 @@ class WorkOrderReportPage extends StatefulWidget {
     this.workOrderTypeId,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = MapsSeedModel
-        .defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
+    this.radiusMeter,
     this.kategoriForm,
     this.initialKategoriData,
     this.initialDescription,
@@ -99,6 +101,14 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   /// digate.
   bool get _shouldGateGeofence =>
       widget.isAssignee && widget.lngLat != null && !isDetailMode;
+
+  /// `true` bila BE tidak mengirim radius untuk WO ini → geofence memakai
+  /// [GeofenceService.fallbackRadiusMeter] dan banner memberi tahu.
+  bool get _radiusUnknown => widget.radiusMeter == null;
+
+  /// Radius yang benar-benar dipakai gate geofence.
+  double get _effectiveRadius =>
+      widget.radiusMeter?.toDouble() ?? GeofenceService.fallbackRadiusMeter;
 
   String get _submitInProgressMessage {
     switch (widget.mode) {
@@ -137,6 +147,16 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   String? _geoStatusError;
   int? _selectedTahapan;
 
+  /// Pemantau app kembali ke depan setelah dikirim ke halaman Settings.
+  /// `Geolocator.openAppSettings()` selesai begitu Settings TERBUKA, bukan saat
+  /// pengguna kembali, jadi pengecekan ulang harus menunggu event resume —
+  /// kalau tidak, hasilnya hanya membaca izin lama.
+  AppLifecycleListener? _lifecycleListener;
+
+  /// Hanya `true` di antara "tekan Buka Pengaturan" dan resume berikutnya,
+  /// supaya resume biasa (mis. pindah app sebentar) tidak memicu ambil GPS.
+  bool _awaitingPrecisionSettings = false;
+
   String get _draftKey => '${widget.workOrderId}_${widget.mode}';
 
   // Simulasi JSON form dinamis (sementara hardcoded)
@@ -146,6 +166,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     super.initState();
     _workOrderBloc = context.read<WorkOrderBloc>();
     _journalDraftCubit = context.read<JournalDraftCubit>();
+    _lifecycleListener = AppLifecycleListener(onResume: _onAppResumed);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeData();
@@ -821,8 +842,6 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     );
   }
 
-  /// Daftar field dinamis yang dirender di form. Juga dipakai gate revisi di
-  /// [_onSubmit] sebagai sumber key field yang benar-benar editable.
   List<Map<String, dynamic>> _dynamicFormFields() {
     if (widget.kategoriForm != null) {
       if (widget.mode == 'Mulai') {
@@ -876,17 +895,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       }
     }
 
-    // Tahap tertinggi yang sudah tersubmit. Sumber utama: param dari pemanggil
-    // (dihitung dari daftar progress — andal). Fallback ke entity bila ada.
-    // Detail WO dari BE TIDAK mengembalikan `tahapan_tertinggi`, jadi entity
-    // biasanya null; karenanya param dari detail page yang jadi acuan.
     final int? entityTahapan = state is WorkOrderDetailLoaded
         ? state.workOrder.tahapanTertinggi
         : null;
     final int tahapanTertinggi =
         widget.currentTahapanTertinggi ?? entityTahapan ?? 0;
-    // Bila tahap tidak diketahui (0), selector tidak membatasi pilihan — biarkan
-    // BE (rejectIfTahapanInvalid) yang menolak urutan yang salah.
     final bool knowTahapan = tahapanTertinggi > 0;
 
     List<int> validTahapan = [1, 2, 3, 4];
@@ -898,18 +911,11 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       validTahapan = [TahapanWorkorder.dokumentasi];
     }
 
-    // Tahap berikut yang boleh dimajukan PIC: maju satu langkah, maksimal 3
-    // (Pengujian). Tahap 4 (Dokumentasi) hanya lewat mode "Selesai".
     final int nextStage = (tahapanTertinggi + 1).clamp(
       1,
       TahapanWorkorder.maxProgress,
     );
 
-    // Aturan enable/disable opsi tahapan (hanya saat tahap diketahui):
-    // - Mode selain Progress: pertahankan perilaku lama (hanya 1 opsi valid).
-    // - Mode Progress + PIC: hanya boleh lapor tahap berjalan atau maju satu
-    //   langkah (cegah lompat & mundur — Bug 1 & 2).
-    // - Mode Progress + non-PIC: tetap tidak boleh memajukan tahap.
     bool isStageDisabled(int val) {
       if (!knowTahapan) return false;
       if (widget.mode != 'Progress') {
@@ -1115,9 +1121,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       AppSnackbar.showWarning('Laporan sudah tercatat dan tidak dapat diubah.');
       return;
     }
-    // Gate revisi: resubmit tanpa perubahan ditolak — SPV meminta perbaikan,
-    // jadi minimal satu isian harus berbeda dari versi tersubmit. Tidak
-    // berlaku untuk submit normal (non-revisi).
+
     if (isRejected && _serverBaseline != null) {
       final editableKeys = _dynamicFormFields()
           .map((field) => field['key']?.toString())
@@ -1282,16 +1286,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         _hasClosedAfterSubmit = false;
       });
 
-      // === Geofence gate ===
-      // Ambil posisi SEGAR (preferFresh) agar perubahan mock GPS terbaca, lalu
-      // tolak submit bila di luar radius. Posisi disimpan untuk payload BE
-      // (latitude/longitude/accuracy) — kontrak tidak berubah.
       if (widget.lngLat != null) {
         try {
           final geo = await _geofence.check(
             targetLat: widget.lngLat!.latitude,
             targetLng: widget.lngLat!.longitude,
-            radiusMeter: widget.radiusMeter.toDouble(),
+            radiusMeter: _effectiveRadius,
             preferFresh: true,
           );
           if (!mounted) return;
@@ -1302,20 +1302,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             _geoStatusError = null;
           });
 
-          // Akurasi buruk = peringatan saja, tidak memblokir. TIDAK dijadikan
-          // toast di sini: AppSnackbar (Flushbar) push route, dan route toast
-          // itu menutup form sehingga guard route.isCurrent pada auto-pop sukses
-          // gagal → form nyangkut tanpa refresh (khusus staff yang kena
-          // geofence; SPV tidak). Peringatan akurasi tetap tampil persisten di
-          // banner geofence, jadi tak ada info yang hilang. `_poorAccuracy`
-          // (di setState atas) yang menyalakan banner itu.
-
-          // Gate memperhitungkan ketidakpastian GPS (allowed), bukan jarak
-          // mentah — mencegah penolakan keliru saat di dalam/di dekat batas.
           if (GeofenceService.enforceGeofence && !geo.allowed) {
             setState(() => _isSubmitting = false);
             AppSnackbar.showError(
-              "Anda berada di luar jangkauan lokasi WO. Submit ditolak.",
+              geo.status == GeofenceStatus.precisionReduced
+                  ? "Izin lokasi masih \"Perkiraan\". Aktifkan \"Gunakan lokasi "
+                        "persis\" di pengaturan aplikasi, lalu coba lagi."
+                  : "Anda berada di luar jangkauan lokasi WO. Submit ditolak.",
             );
             return;
           }
@@ -1768,6 +1761,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       );
       _journalDraftCubit.saveDraft(_draftKey, draft);
     }
+    _lifecycleListener?.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -1795,7 +1789,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
           .check(
             targetLat: widget.lngLat!.latitude,
             targetLng: widget.lngLat!.longitude,
-            radiusMeter: widget.radiusMeter.toDouble(),
+            radiusMeter: _effectiveRadius,
             preferFresh: preferFresh,
           )
           .timeout(
@@ -1871,6 +1865,12 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       final accNote = _poorAccuracy
           ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
           : "";
+      // Radius tidak dikirim BE → beri tahu bahwa gate memakai nilai default,
+      // supaya tidak ada radius yang dipakai diam-diam.
+      final radiusNote = _radiusUnknown
+          ? "\nRadius lokasi belum diatur, memakai default "
+                "${GeofenceService.fallbackRadiusMeter.toStringAsFixed(0)} m."
+          : "";
       switch (_geoStatus!) {
         case GeofenceStatus.inside:
           return _geoStatusBox(
@@ -1879,9 +1879,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.check_circle,
             iconColor: color.status[2]!,
             title: "Anda berada dalam jangkauan",
-            subtitle: accNote.isEmpty
-                ? "Lokasi terverifikasi."
-                : accNote.trim(),
+            subtitle: "Lokasi terverifikasi.$accNote$radiusNote",
             showRecheck: true,
           );
         case GeofenceStatus.withinTolerance:
@@ -1891,7 +1889,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.orange.shade800,
             title: "Dalam jangkauan (perkiraan)",
-            subtitle: "Submit diizinkan.$accNote",
+            subtitle: "Submit diizinkan.$accNote$radiusNote",
             showRecheck: true,
           );
         case GeofenceStatus.outside:
@@ -1901,13 +1899,46 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.location_off,
             iconColor: color.danger,
             title: "Anda di luar jangkauan",
-            subtitle: "Submit akan ditolak.$accNote",
+            subtitle: "Submit akan ditolak.$accNote$radiusNote",
             showRecheck: true,
+          );
+        case GeofenceStatus.precisionReduced:
+          // Sengaja TANPA accNote: peringatan "akurasi GPS rendah" menyesatkan
+          // di sini karena angka akurasinya konstanta dari OS, bukan hasil ukur.
+          return _geoStatusBox(
+            bg: color.danger.withValues(alpha: 0.1),
+            border: color.danger,
+            icon: Icons.location_disabled,
+            iconColor: color.danger,
+            title: "Izin lokasi masih \"Perkiraan\"",
+            subtitle:
+                "Lokasi Anda dibulatkan oleh sistem sehingga tidak bisa "
+                "diverifikasi. Aktifkan \"Gunakan lokasi persis\" di pengaturan "
+                "aplikasi, lalu periksa ulang. Submit ditolak sampai itu aktif.",
+            showRecheck: true,
+            actionLabel: "Buka Pengaturan",
+            onAction: _openLocationSettings,
           );
       }
     }
 
     return const SizedBox.shrink();
+  }
+
+  /// Buka halaman izin aplikasi agar staff bisa mengaktifkan lokasi persis.
+  /// Pengecekan ulang dilakukan di [_onAppResumed], bukan di sini.
+  Future<void> _openLocationSettings() async {
+    _awaitingPrecisionSettings = true;
+    await _geofence.openAppSettings();
+  }
+
+  /// Dipanggil saat app kembali ke depan. Memeriksa ulang hanya bila memang
+  /// baru saja dikirim ke Settings untuk memperbaiki izin lokasi.
+  void _onAppResumed() {
+    if (!_awaitingPrecisionSettings) return;
+    _awaitingPrecisionSettings = false;
+    if (!mounted || !_shouldGateGeofence) return;
+    _checkDistance(preferFresh: true);
   }
 
   Widget _geoStatusBox({
@@ -1919,6 +1950,8 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     String? subtitle,
     bool showSpinner = false,
     bool showRecheck = false,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     return Container(
       width: double.infinity,
@@ -1956,12 +1989,24 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
               ],
             ),
           ),
-          if (showRecheck)
-            TextButton(
-              onPressed: _isCheckingDistance
-                  ? null
-                  : () => _checkDistance(preferFresh: true),
-              child: const Text("Periksa ulang"),
+          if (showRecheck || onAction != null)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (onAction != null && actionLabel != null)
+                  TextButton(
+                    onPressed: _isCheckingDistance ? null : onAction,
+                    child: Text(actionLabel),
+                  ),
+                if (showRecheck)
+                  TextButton(
+                    onPressed: _isCheckingDistance
+                        ? null
+                        : () => _checkDistance(preferFresh: true),
+                    child: const Text("Periksa ulang"),
+                  ),
+              ],
             ),
         ],
       ),

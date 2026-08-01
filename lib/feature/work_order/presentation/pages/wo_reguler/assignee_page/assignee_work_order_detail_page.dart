@@ -4,7 +4,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mobile_pdam/core/constants/work_order_constants.dart';
 import 'package:project_mobile_pdam/core/resource/data_state.dart';
-import 'package:project_mobile_pdam/core/seed/maps_seed_model.dart';
 import 'package:project_mobile_pdam/core/utils/app_snackbar.dart';
 import 'package:project_mobile_pdam/core/utils/work_order_status_helper.dart';
 import 'package:project_mobile_pdam/core/widget/app_state_page.dart';
@@ -56,7 +55,9 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
   final String? kategoriForm; // 'meter' | 'jaringan' | 'infrastruktur'
   final LatLng? lngLat;
   final String? locationName; // Nama lokasi dari MasterLocation
-  final int radiusMeter; // Radius dari MasterLocation untuk pengecekan jarak
+
+  /// `null` = BE tidak mengirim radius; diteruskan apa adanya ke form jurnal.
+  final int? radiusMeter;
 
   const AssigneeWorkOrderDetailPage({
     super.key,
@@ -68,8 +69,7 @@ class AssigneeWorkOrderDetailPage extends StatefulWidget {
     this.kategoriForm,
     this.lngLat,
     this.locationName,
-    this.radiusMeter = MapsSeedModel
-        .defaultRadiusMeter, // Default dari MapsSeedModel bila tidak ada
+    this.radiusMeter,
   });
 
   @override
@@ -173,7 +173,11 @@ class _AssigneeWorkOrderDetailPageState
   String? get _resolvedLocationName =>
       widget.locationName ?? _workOrder?.assignment?.location?.nama;
 
-  int get _resolvedRadiusMeter =>
+  /// Radius efektif. Detail WO diutamakan karena endpoint detail meng-eager-load
+  /// `location`, sedangkan daftar WO belum tentu — jadi radius yang `null` saat
+  /// halaman dibuka bisa terisi setelah detail termuat. `null` = tetap tidak
+  /// diketahui → form jurnal memakai fallback dan memberi tahu lewat banner.
+  int? get _resolvedRadiusMeter =>
       _workOrder?.assignment?.location?.radiusMeter ?? widget.radiusMeter;
 
   /// Status WO terkini. `widget.status` dibekukan saat halaman dibuka, sehingga

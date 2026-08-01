@@ -1,10 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// Exception dengan pesan siap-tampil (Bahasa Indonesia) untuk masalah lokasi:
-/// GPS mati, izin ditolak, atau izin ditolak permanen.
 class GeofenceException implements Exception {
   final String message;
   const GeofenceException(this.message);
@@ -13,30 +10,24 @@ class GeofenceException implements Exception {
   String toString() => 'GeofenceException: $message';
 }
 
-/// Status posisi perangkat terhadap radius WO.
-///
-/// - [inside]          : jarak ≤ radius (pasti di dalam).
-/// - [withinTolerance] : jarak > radius, tetapi masih mungkin di dalam bila
-///   ketidakpastian GPS (accuracy) diperhitungkan → submit tetap diizinkan.
-/// - [outside]         : di luar radius bahkan setelah memperhitungkan akurasi.
-enum GeofenceStatus { inside, withinTolerance, outside }
+/// - [inside]           : jarak ≤ radius (pasti di dalam).
+/// - [withinTolerance]  : jarak > radius, tetapi masih mungkin di dalam bila
+/// - [outside]          : di luar radius bahkan setelah memperhitungkan akurasi.
+/// - [precisionReduced] : izin lokasi hanya "Perkiraan" sehingga posisi yang
+
+enum GeofenceStatus { inside, withinTolerance, outside, precisionReduced }
+
+/// - [precise] : app punya `ACCESS_FINE_LOCATION` (Android) / full accuracy (iOS).
+/// - [reduced] : app hanya dapat lokasi "Perkiraan". OS membulatkan posisi ke
+
+enum LocationPrecision { precise, reduced }
 
 /// Keputusan geofence murni (tanpa I/O) — mudah diuji.
 class GeofenceDecision {
-  /// `true` bila jarak mentah ≤ radius (di dalam secara ketat).
   final bool withinRadius;
-
-  /// `true` bila submit boleh dilanjutkan: jarak dikurangi ketidakpastian GPS
-  /// masih ≤ radius. Ini adalah gate otoritatif untuk submit.
   final bool allowed;
-
-  /// `true` bila ketidakpastian GPS (accuracy) lebih besar dari radius WO,
-  /// sehingga "di dalam/di luar" kurang bisa dipercaya. Bersifat PERINGATAN
-  /// saja — tidak pernah memblokir submit.
   final bool accuracyPoor;
-
   final GeofenceStatus status;
-
   const GeofenceDecision({
     required this.withinRadius,
     required this.allowed,
@@ -45,18 +36,19 @@ class GeofenceDecision {
   });
 }
 
-/// Hasil pengecekan geofence: posisi saat ini + jarak ke titik WO + keputusan.
 class GeofenceCheck {
   final Position position;
   final double distanceMeters;
   final double radiusMeter;
   final GeofenceDecision decision;
+  final LocationPrecision precision;
 
   const GeofenceCheck({
     required this.position,
     required this.distanceMeters,
     required this.radiusMeter,
     required this.decision,
+    required this.precision,
   });
 
   bool get withinRadius => decision.withinRadius;
@@ -67,26 +59,29 @@ class GeofenceCheck {
 
 class GeofenceService {
   static const bool enforceGeofence = true;
-
-  /// Umur maksimum fix cache (last-known) yang masih dianggap relevan.
   static const Duration _maxCacheAge = Duration(seconds: 30);
-
-  /// Akurasi maksimum agar fix cache boleh dipakai. Fix jaringan yang kasar
-  /// (mis. >100 m) ditolak supaya banner awal tidak memakai posisi meleset.
   static const double _maxCacheAccuracyMeters = 100;
-
-  /// Berapa lama menunggu GPS mengunci fix presisi sebelum menyerah ke fix
-  /// terbaik yang sempat datang. Bila GPS bisa lock, early-accept terjadi lebih
-  /// cepat; nilai ini adalah batas atas agar pengecekan tidak terasa lama
-  /// (dipangkas dari 20 dtk demi kecepatan UX / demo).
   static const Duration _freshFixBudget = Duration(seconds: 6);
-
-  /// Ambang akurasi (m) yang dianggap "GPS sudah lock" → boleh selesai lebih awal.
   static const double _defaultDesiredAccuracyMeters = 50;
+  static const double fallbackRadiusMeter = 100;
+  Future<LocationPrecision> checkPrecision() async {
+    try {
+      final status = await Geolocator.getLocationAccuracy();
+      return status == LocationAccuracyStatus.reduced
+          ? LocationPrecision.reduced
+          : LocationPrecision.precise;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Geofence] cek presisi gagal: $e');
+      return LocationPrecision.precise;
+    }
+  }
+
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
 
   Future<Position> getCurrentPosition({
     bool preferFresh = false,
     double desiredAccuracyMeters = _defaultDesiredAccuracyMeters,
+    LocationPrecision? precision,
   }) async {
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -111,9 +106,6 @@ class GeofenceService {
     }
 
     if (!preferFresh) {
-      // Lokasi terakhir yang diketahui (sangat cepat) bila tersedia, cukup baru,
-      // dan cukup akurat — fix basi atau kasar bisa membuat jarak tampak jauh
-      // meski pengguna sudah berada di lokasi yang benar.
       final Position? last = await Geolocator.getLastKnownPosition();
       if (last != null &&
           DateTime.now().difference(last.timestamp) <= _maxCacheAge &&
@@ -123,17 +115,21 @@ class GeofenceService {
       }
     }
 
-    // Fallback bertingkat agar presisi TANPA membuat pengguna buntu:
-    //  1. Fix segar via STREAM akurasi tinggi — tunggu GPS mengunci fix presisi
-    //     (bukan sekadar fix jaringan kasar pertama yang datang).
-    //  2. Akurasi medium (wifi/sel) satu-tembak — cepat, kasar. Aman karena
-    //     decide() memperhitungkan ketidakpastian sehingga tak menolak keliru.
-    //  3. Last-known apa pun sebagai upaya terakhir.
-    final Position? fresh = await _acquireFreshFix(desiredAccuracyMeters);
-    if (fresh != null) return fresh;
+    final LocationPrecision effectivePrecision =
+        precision ?? await checkPrecision();
+    if (effectivePrecision == LocationPrecision.reduced) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Geofence] izin lokasi "Perkiraan" — lewati budget GPS presisi',
+        );
+      }
+    } else {
+      final Position? fresh = await _acquireFreshFix(desiredAccuracyMeters);
+      if (fresh != null) return fresh;
 
-    if (kDebugMode) {
-      debugPrint('[Geofence] stream GPS tak memberi fix, fallback ke medium');
+      if (kDebugMode) {
+        debugPrint('[Geofence] stream GPS tak memberi fix, fallback ke medium');
+      }
     }
     final Position? medium = await _tryFix(
       LocationAccuracy.medium,
@@ -155,12 +151,6 @@ class GeofenceService {
     );
   }
 
-  /// Ambil fix segar via stream akurasi tinggi (GPS).
-  ///
-  /// Kembalikan fix pertama yang akurasinya `<= [desiredAccuracyMeters]` begitu
-  /// tersedia (cepat saat GPS sudah lock), atau — bila tak tercapai — fix dengan
-  /// akurasi terbaik yang sempat datang dalam [_freshFixBudget]. `null` bila
-  /// tidak ada fix sama sekali (mis. stream error) agar pemanggil bisa fallback.
   Future<Position?> _acquireFreshFix(double desiredAccuracyMeters) async {
     Position? best;
     final completer = Completer<Position>();
@@ -205,10 +195,6 @@ class GeofenceService {
       await sub.cancel();
     }
   }
-
-  /// Coba satu kali ambil posisi pada [accuracy] dengan batas [timeLimit].
-  /// Mengembalikan `null` bila timeout atau gagal (bukan melempar) agar
-  /// pemanggil bisa lanjut ke tingkat fallback berikutnya.
   Future<Position?> _tryFix(
     LocationAccuracy accuracy,
     Duration timeLimit,
@@ -248,16 +234,11 @@ class GeofenceService {
     return distanceTo(from, targetLat, targetLng) <= radiusMeter;
   }
 
-  /// Keputusan geofence murni — memperhitungkan ketidakpastian GPS ([accuracyMeters]).
-  ///
-  /// Perangkat dianggap boleh submit ([GeofenceDecision.allowed]) bila lingkaran
-  /// ketidakpastian GPS-nya menyentuh radius WO: `jarak - akurasi ≤ radius`.
-  /// Ini mencegah penolakan keliru saat berada di dalam/di dekat batas dengan
-  /// akurasi yang tidak sempurna.
   static GeofenceDecision decide({
     required double distanceMeters,
     required double accuracyMeters,
     required double radiusMeter,
+    bool precisionReduced = false,
   }) {
     final double accuracy = accuracyMeters.isFinite && accuracyMeters > 0
         ? accuracyMeters
@@ -267,11 +248,16 @@ class GeofenceService {
       0,
       double.infinity,
     );
-    final bool allowed = effective <= radiusMeter;
     final bool accuracyPoor = accuracy > radiusMeter;
-    final GeofenceStatus status = withinRadius
-        ? GeofenceStatus.inside
-        : (allowed ? GeofenceStatus.withinTolerance : GeofenceStatus.outside);
+    final bool allowed = !precisionReduced && effective <= radiusMeter;
+    final GeofenceStatus status;
+    if (precisionReduced) {
+      status = GeofenceStatus.precisionReduced;
+    } else if (withinRadius) {
+      status = GeofenceStatus.inside;
+    } else {
+      status = allowed ? GeofenceStatus.withinTolerance : GeofenceStatus.outside;
+    }
 
     return GeofenceDecision(
       withinRadius: withinRadius,
@@ -281,27 +267,25 @@ class GeofenceService {
     );
   }
 
-  /// Ambil posisi + hitung jarak ke titik WO sekaligus.
-  ///
-  /// Melempar [GeofenceException] bila posisi tidak bisa diperoleh.
   Future<GeofenceCheck> check({
     required double targetLat,
     required double targetLng,
     required double radiusMeter,
     bool preferFresh = false,
   }) async {
-    // Radius besar → boleh terima fix agak longgar (selesai lebih cepat); radius
-    // kecil → butuh fix lebih presisi. Batasi 30–100 m.
     final double desiredAccuracy = (radiusMeter * 0.5).clamp(30.0, 100.0);
+    final LocationPrecision precision = await checkPrecision();
     final Position position = await getCurrentPosition(
       preferFresh: preferFresh,
       desiredAccuracyMeters: desiredAccuracy,
+      precision: precision,
     );
     final double distance = distanceTo(position, targetLat, targetLng);
     final GeofenceDecision decision = decide(
       distanceMeters: distance,
       accuracyMeters: position.accuracy,
       radiusMeter: radiusMeter,
+      precisionReduced: precision == LocationPrecision.reduced,
     );
 
     if (kDebugMode) {
@@ -310,6 +294,7 @@ class GeofenceService {
         'device=(${position.latitude},${position.longitude}) '
         'accuracy=±${position.accuracy.toStringAsFixed(0)}m '
         'distance=${distance.toStringAsFixed(0)}m radius=${radiusMeter.toStringAsFixed(0)}m '
+        'precision=${precision.name} '
         'status=${decision.status.name} allowed=${decision.allowed}',
       );
     }
@@ -319,6 +304,7 @@ class GeofenceService {
       distanceMeters: distance,
       radiusMeter: radiusMeter,
       decision: decision,
+      precision: precision,
     );
   }
 }

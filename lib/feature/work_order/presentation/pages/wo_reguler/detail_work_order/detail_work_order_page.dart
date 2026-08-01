@@ -680,8 +680,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
             )
           : null,
       locationName: formData["locationName"] as String?,
-      radiusMeter:
-          (formData["radiusMeter"] as int?) ?? MapsSeedModel.defaultRadiusMeter,
+      radiusMeter: formData["radiusMeter"] as int?,
       workOrderTypeName: formData["workOrderTypeName"] as String?,
       workOrderTypeId: formData["workOrderTypeId"] as int?,
       isOvertime: widget.isOvertime,
@@ -876,9 +875,7 @@ class _DetailWorkOrderPageState extends AppStatePage<_DetailWorkOrderPage> {
                 nama: locationName,
                 latitude: latitude ?? 0,
                 longitude: longitude ?? 0,
-                radiusMeter:
-                    _toInt(formData["radiusMeter"]) ??
-                    MapsSeedModel.defaultRadiusMeter,
+                radiusMeter: _toInt(formData["radiusMeter"]),
               )
             : null,
       ),
