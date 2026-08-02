@@ -58,10 +58,6 @@ class _ListLaporanWorkorderPageState
 
   String? _isoDate(DateTime? date) => date?.toIso8601String().split('T').first;
 
-  /// Staff Senior/Staff hanya boleh melihat laporan WO yang mereka kerjakan
-  /// sendiri; SPV tetap melihat seluruh laporan tim/departemennya. `user_id`
-  /// adalah query param BE asli (lihat HistoryWorkOrderPage), bukan filter
-  /// FE-side seperti assignedToPegawaiId.
   int? get _scopedUserId {
     final isSpv = AuthStorage.getJabatanKodeSync() == 'SPV';
     if (isSpv) return null;
