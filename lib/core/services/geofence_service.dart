@@ -214,6 +214,14 @@ class GeofenceService {
     }
   }
 
+  /// Format jarak untuk ditampilkan ke pengguna (bukan untuk log).
+  /// < 1 km → meter bulat; ≥ 1 km → kilometer 1 desimal dengan koma (id-ID).
+  static String formatDistance(double meters) {
+    if (!meters.isFinite || meters < 0) return '-';
+    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
+    return '${(meters / 1000).toStringAsFixed(1).replaceAll('.', ',')} km';
+  }
+
   /// Jarak (meter) dari [from] ke titik target.
   double distanceTo(Position from, double targetLat, double targetLng) {
     return Geolocator.distanceBetween(

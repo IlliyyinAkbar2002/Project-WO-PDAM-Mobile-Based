@@ -145,6 +145,10 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
   GeofenceStatus? _geoStatus;
   bool _poorAccuracy = false;
   String? _geoStatusError;
+
+  /// Jarak (meter) dari fix terakhir ke titik WO — angka yang sama dengan yang
+  /// dipakai `decide()`, ditampilkan di banner. null = belum ada hasil cek.
+  double? _geoDistanceMeters;
   int? _selectedTahapan;
 
   /// Pemantau app kembali ke depan setelah dikirim ke halaman Settings.
@@ -1299,6 +1303,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             _currentPosition = geo.position;
             _geoStatus = geo.status;
             _poorAccuracy = geo.accuracyPoor;
+            _geoDistanceMeters = geo.distanceMeters;
             _geoStatusError = null;
           });
 
@@ -1806,6 +1811,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
         _currentPosition = result.position;
         _geoStatus = result.status;
         _poorAccuracy = result.accuracyPoor;
+        _geoDistanceMeters = result.distanceMeters;
         _geoStatusError = null;
       });
     } on GeofenceException catch (e) {
@@ -1813,6 +1819,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       setState(() {
         _isCheckingDistance = false;
         _geoStatus = null;
+        _geoDistanceMeters = null;
         _geoStatusError = e.message;
       });
     } on TimeoutException catch (_) {
@@ -1820,6 +1827,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       setState(() {
         _isCheckingDistance = false;
         _geoStatus = null;
+        _geoDistanceMeters = null;
         _geoStatusError = "Tidak dapat menentukan lokasi. Coba lagi.";
       });
     } catch (e) {
@@ -1828,6 +1836,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
       setState(() {
         _isCheckingDistance = false;
         _geoStatus = null;
+        _geoDistanceMeters = null;
         _geoStatusError = "Error: ${e.toString()}";
       });
     }
@@ -1860,8 +1869,13 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
     }
 
     if (_geoStatus != null) {
-      // Angka jarak/radius/akurasi sengaja TIDAK ditampilkan di UI (bisa
-      // membingungkan saat GPS kasar) — tetap tercatat di log `[Geofence]`.
+      // Jarak ditampilkan agar staff tahu harus bergeser seberapa jauh. Angka
+      // radius/akurasi tetap TIDAK ditampilkan (bisa membingungkan saat GPS
+      // kasar) — semuanya tetap tercatat di log `[Geofence]`.
+      final distNote = _geoDistanceMeters != null
+          ? " Jarak ±${GeofenceService.formatDistance(_geoDistanceMeters!)} "
+                "dari titik WO."
+          : "";
       final accNote = _poorAccuracy
           ? "\n⚠️ Akurasi GPS rendah, hasil mungkin kurang akurat."
           : "";
@@ -1879,7 +1893,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.check_circle,
             iconColor: color.status[2]!,
             title: "Anda berada dalam jangkauan",
-            subtitle: "Lokasi terverifikasi.$accNote$radiusNote",
+            subtitle: "Lokasi terverifikasi.$distNote$accNote$radiusNote",
             showRecheck: true,
           );
         case GeofenceStatus.withinTolerance:
@@ -1889,7 +1903,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.orange.shade800,
             title: "Dalam jangkauan (perkiraan)",
-            subtitle: "Submit diizinkan.$accNote$radiusNote",
+            subtitle: "Submit diizinkan.$distNote$accNote$radiusNote",
             showRecheck: true,
           );
         case GeofenceStatus.outside:
@@ -1899,7 +1913,7 @@ class _WorkOrderReportPageState extends AppStatePage<WorkOrderReportPage> {
             icon: Icons.location_off,
             iconColor: color.danger,
             title: "Anda di luar jangkauan",
-            subtitle: "Submit akan ditolak.$accNote$radiusNote",
+            subtitle: "Submit akan ditolak.$distNote$accNote$radiusNote",
             showRecheck: true,
           );
         case GeofenceStatus.precisionReduced:
